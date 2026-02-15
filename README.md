@@ -24,15 +24,16 @@ This system streamlines the academic grading workflow with a multi-tier approval
 
 ---
 
-## 🚀 Current Status: Phase 1 Complete ✅
+## 🚀 Current Status: Phase 2 Complete ✅
 
 **Completed:**
 - ✅ Phase 1: Foundation Setup & Database Architecture
+- ✅ Phase 2: Models & Seeders (11 models + test data)
 
-**Next Up: Phase 2 - Models & Seeders**
-- 📅 Create Eloquent models with relationships
-- 📅 Implement database seeders
-- 📅 Create test accounts
+**Next Up: Phase 3 - Authentication & Authorization**
+- 📅 Role-based middleware
+- 📅 Dashboard controllers
+- 📅 Login/redirect logic
 
 See [PROGRESS.md](PROGRESS.md) for detailed roadmap and [CHANGELOG.md](CHANGELOG.md) for development history.
 
@@ -118,7 +119,7 @@ See [PROGRESS.md](PROGRESS.md) for detailed roadmap and [CHANGELOG.md](CHANGELOG
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/cog-tor-system.git
+   git clone https://github.com/gitpushfrances/cog-tor-system.git
    cd cog-tor-system
    ```
 
@@ -152,16 +153,17 @@ See [PROGRESS.md](PROGRESS.md) for detailed roadmap and [CHANGELOG.md](CHANGELOG
    php artisan migrate
    ```
 
-7. **Seed database** (after Phase 2 completion)
+7. **Seed database**
    ```bash
    php artisan db:seed
    ```
    
-   **Test Accounts:**
+   **Test Accounts Created:**
    - Admin: `admin@cogtor.test` / `password`
    - Dean: `dean@cogtor.test` / `password`
    - Faculty: `faculty@cogtor.test` / `password`
    - Registrar: `registrar@cogtor.test` / `password`
+   - Pending: `pending@cogtor.test` / `password` (cannot login)
 
 8. **Build assets**
    ```bash
@@ -273,8 +275,8 @@ Cumulative GWA = Σ(Semester GWA × Total Semester Units) / Σ(Total Units)
 | Phase | Status | Description |
 |-------|--------|-------------|
 | **Phase 1** | ✅ Complete | Foundation + Database Architecture |
-| **Phase 2** | 📅 Next | Models, Seeders, Relationships |
-| **Phase 3** | 📅 Planned | Authentication & Authorization |
+| **Phase 2** | ✅ Complete | Models, Seeders, Relationships |
+| **Phase 3** | 📅 Next | Authentication & Authorization |
 | **Phase 4** | 📅 Planned | Admin Module (User & Academic Setup) |
 | **Phase 5** | 📅 Planned | Faculty Module (Grade Encoding) |
 | **Phase 6** | 📅 Planned | Dean Module (Grade Review & Approval) |
@@ -283,25 +285,25 @@ Cumulative GWA = Σ(Semester GWA × Total Semester Units) / Σ(Total Units)
 | **Phase 9** | 📅 Planned | Reporting & Analytics |
 | **Phase 10** | 📅 Planned | UI/UX Polish & Testing |
 
-**Overall Progress:** 10%
+**Overall Progress:** 20%
 
 ---
 
 ## 🎉 Recent Achievements
 
-### Phase 1 Completed! ✅
-- Laravel 10 + all packages installed successfully
-- Database migrations created (21 tables)
-- Foreign key relationships configured
-- Soft deletes implemented
-- Unique constraints added
-- Indexes created for performance
+### Phase 2 Completed! ✅
+- 11 Eloquent models with complete relationships
+- Enhanced User model with role/status helpers
+- 5 database seeders with test data
+- 4 working test accounts
+- Sample academic data (10 subjects, 10 students)
 
 **What's Working:**
-- ✅ Laravel development server running
-- ✅ Database migrations ready
-- ✅ All packages installed (Breeze, Spatie, Excel, DomPDF)
-- ✅ Frontend assets compiled (Tailwind + Vite)
+- ✅ Database fully populated with test data
+- ✅ All model relationships functional
+- ✅ Role-based permissions configured
+- ✅ Test accounts ready for login
+- ✅ Complete academic structure seeded
 
 ---
 
@@ -329,10 +331,12 @@ We welcome contributions! Please follow these steps:
 
 - **Started:** February 15, 2026
 - **Current Version:** 1.0.0-alpha
-- **Current Phase:** Phase 2 (Models & Seeders)
+- **Current Phase:** Phase 3 (Authentication & Authorization)
 - **Database Tables:** 21
-- **Models to Create:** 11
-- **Test Accounts:** 4 (Admin, Faculty, Dean, Registrar)
+- **Models:** 11 (+ User)
+- **Test Accounts:** 5
+- **Sample Students:** 10
+- **Sample Subjects:** 10
 
 ---
 
@@ -351,9 +355,9 @@ We welcome contributions! Please follow these steps:
 ## 📞 Support
 
 For questions or issues:
-- Open a GitHub Issue
-- Email: support@cogtor.test
-- Documentation: See PROGRESS.md and CHANGELOG.md
+- **GitHub:** https://github.com/gitpushfrances/cog-tor-system
+- **Email:** support@cogtor.test
+- **Documentation:** See PROGRESS.md and CHANGELOG.md
 
 ---
 
