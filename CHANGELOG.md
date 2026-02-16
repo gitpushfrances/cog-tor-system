@@ -53,121 +53,38 @@
 
 ### 2.1 Eloquent Models Created
 - [x] **SchoolYear** model with relationships and helper methods
-  - hasMany(Semester)
-  - isActive(), isCurrent()
-  - Scopes: active(), current()
-
 - [x] **Semester** model with relationships
-  - belongsTo(SchoolYear)
-  - hasMany(Enrollment), hasMany(CogRecord)
-  - isActive(), getFullName()
-
 - [x] **Department** model
-  - hasMany(Course)
-  - isActive()
-
 - [x] **Course** model
-  - belongsTo(Department)
-  - hasMany(Subject), hasMany(Student)
-  - isActive(), getFullName()
-
 - [x] **Subject** model
-  - belongsTo(Course)
-  - hasMany(Enrollment)
-  - isActive(), getFullName()
-  - Scope: byYearLevel()
-
 - [x] **Student** model
-  - belongsTo(Course)
-  - hasMany(Enrollment), hasMany(Grade), hasMany(CogRecord), hasMany(TorRecord)
-  - getFullName(), isActive(), isGraduated()
-  - Scopes: active(), byCourse(), byYearLevel()
-
 - [x] **Enrollment** model
-  - belongsTo(Student, Subject, Semester, User as enrolledBy)
-  - hasOne(Grade)
-  - isEnrolled(), isCompleted(), hasGrade()
-  - Scopes: enrolled(), bySemester(), byStudent()
-
 - [x] **Grade** model
-  - belongsTo(Enrollment, User as faculty)
-  - hasOne(GradeSubmission)
-  - isPending(), isApprovedByDean(), isFinalized(), isPassing()
-  - Static method: convertToGrade() - Philippine scale conversion
-  - Scopes: pending(), approvedByDean(), finalized(), passing(), failing()
-
 - [x] **GradeSubmission** model
-  - belongsTo(Grade, User as submittedBy/reviewedBy/finalizedBy)
-  - isApproved(), isRejected(), isPendingReview(), isReviewed(), isFinalized()
-  - Scopes: pendingReview(), approved(), rejected(), finalized()
-
 - [x] **CogRecord** model
-  - belongsTo(Student, Semester, User as generatedBy)
-  - getDocumentTitle(), hasFile()
-  - Scopes: byStudent(), bySemester(), recent()
-
 - [x] **TorRecord** model
-  - belongsTo(Student, User as generatedBy)
-  - getDocumentTitle(), isComplete(), hasFile()
-  - Scopes: byStudent(), complete(), partial(), recent()
 
 ### 2.2 User Model Enhanced
 - [x] Added Spatie Permission trait (HasRoles)
 - [x] Added Activity Log trait (LogsActivity)
-- [x] Added relationships:
-  - enrollmentsCreated, gradesCreated
-  - submissionsCreated, submissionsReviewed, submissionsFinalized
-  - cogRecordsGenerated, torRecordsGenerated
-  - approvedBy, approvedUsers
+- [x] Added complete relationships
 - [x] Role helper methods: isAdmin(), isFaculty(), isDean(), isRegistrar()
 - [x] Status helper methods: isActive(), isPending(), isInactive()
-- [x] Scopes: active(), pending(), byRole(), admins(), faculty(), deans(), registrars()
+- [x] Query scopes for filtering
 
 ### 2.3 Database Seeders Created
-- [x] **RoleSeeder**
-  - Created 4 roles: admin, faculty, dean, registrar
-  - Created 23 permissions
-  - Assigned permissions to each role
-
-- [x] **UserSeeder**
-  - Admin: admin@cogtor.test / password
-  - Dean: dean@cogtor.test / password (approved by Admin)
-  - Faculty: faculty@cogtor.test / password (approved by Dean)
-  - Registrar: registrar@cogtor.test / password (approved by Admin)
-  - Pending Faculty: pending@cogtor.test / password (status: pending)
-
-- [x] **AcademicStructureSeeder**
-  - 2 School Years (2024-2025 active, 2025-2026 upcoming)
-  - 3 Semesters (1st Sem completed, 2nd Sem active, Summer upcoming)
-  - 3 Departments (CCS, COE, COED)
-  - 5 Courses (BSIT, BSCS, BSCpE, BSEE, BSED)
-
-- [x] **SubjectSeeder**
-  - 5 BSIT subjects (IT 101-301)
-  - 5 BSCS subjects (CS 101-401)
-  - Total: 10 subjects
-
-- [x] **StudentSeeder**
-  - 5 BSIT students (3rd year)
-  - 5 BSCS students (4th year)
-  - Total: 10 students with complete details
-
-- [x] **DatabaseSeeder** (main seeder)
-  - Calls all seeders in correct order
-  - Displays summary after seeding
-
-### 2.4 Seeding Results
-- [x] All seeders ran successfully
-- [x] Total execution time: ~1.5 seconds
-- [x] No errors or warnings
-- [x] Database populated with test data
+- [x] **RoleSeeder** - 4 roles with 23 permissions
+- [x] **UserSeeder** - 5 test accounts
+- [x] **AcademicStructureSeeder** - School years, semesters, departments, courses
+- [x] **SubjectSeeder** - 10 sample subjects
+- [x] **StudentSeeder** - 10 sample students
+- [x] **DatabaseSeeder** - Main seeder orchestration
 
 **Deliverables:**
 - ✅ 11 Eloquent models with complete relationships
 - ✅ Enhanced User model with role/status helpers
 - ✅ 5 database seeders with test data
 - ✅ 4 working test accounts
-- ✅ Sample academic data (departments, courses, subjects, students)
 
 ---
 
@@ -191,108 +108,211 @@
 
 ### 3.2 Authentication Controller Modified
 - [x] **AuthenticatedSessionController** updated
-  - Added role-based redirect logic after login
+  - Role-based redirect logic after login
   - Admin → `/admin/dashboard`
   - Dean → `/dean/dashboard`
   - Faculty → `/faculty/dashboard`
   - Registrar → `/registrar/dashboard`
-  - Fallback to default dashboard
 
 ### 3.3 Route Configuration
-- [x] Created Admin route group
-  - Prefix: `/admin`
-  - Middleware: `auth`, `status`, `role:admin`
-  - Route: `admin.dashboard`
-
-- [x] Created Dean route group
-  - Prefix: `/dean`
-  - Middleware: `auth`, `status`, `role:dean`
-  - Route: `dean.dashboard`
-
-- [x] Created Faculty route group
-  - Prefix: `/faculty`
-  - Middleware: `auth`, `status`, `role:faculty`
-  - Route: `faculty.dashboard`
-
-- [x] Created Registrar route group
-  - Prefix: `/registrar`
-  - Middleware: `auth`, `status`, `role:registrar`
-  - Route: `registrar.dashboard`
+- [x] Created Admin route group with middleware protection
+- [x] Created Dean route group with middleware protection
+- [x] Created Faculty route group with middleware protection
+- [x] Created Registrar route group with middleware protection
 
 ### 3.4 Dashboard Controllers
-- [x] **AdminController** created
-  - Dashboard with system stats (users, students, subjects, departments)
-  - Recent users table with role and status display
-  - Located: `app/Http/Controllers/Admin/AdminController.php`
-
-- [x] **DeanController** created
-  - Dashboard with enrollment and grade approval stats
-  - Pending grade submissions table
-  - Located: `app/Http/Controllers/Dean/DeanController.php`
-
-- [x] **FacultyController** created
-  - Dashboard with subject and grade stats
-  - Recent grades submitted table with status
-  - Located: `app/Http/Controllers/Faculty/FacultyController.php`
-
-- [x] **RegistrarController** created
-  - Dashboard with finalization and document stats
-  - Pending grade finalization table
-  - Located: `app/Http/Controllers/Registrar/RegistrarController.php`
+- [x] **AdminController** - System stats and recent users
+- [x] **DeanController** - Enrollment and grade approval stats
+- [x] **FacultyController** - Subject and grade stats
+- [x] **RegistrarController** - Finalization and document stats
 
 ### 3.5 Dashboard Views
-- [x] **Admin Dashboard** (`resources/views/admin/dashboard.blade.php`)
-  - 4 stat cards (Total Users, Active Users, Pending Users, Total Students)
-  - Recent users table with name, email, role, and status
-  - Responsive grid layout with Tailwind CSS
-
-- [x] **Dean Dashboard** (`resources/views/dean/dashboard.blade.php`)
-  - 4 stat cards (Students, Enrollments, Pending Grades, Approved Grades)
-  - Pending grade submissions table
-  - Shows student, subject, faculty, and date
-
-- [x] **Faculty Dashboard** (`resources/views/faculty/dashboard.blade.php`)
-  - 4 stat cards (Assigned Subjects, Total Grades, Pending, Approved)
-  - Recent grades table with student, subject, grade, and status
-  - Color-coded status badges
-
-- [x] **Registrar Dashboard** (`resources/views/registrar/dashboard.blade.php`)
-  - 4 stat cards (Pending Finalization, Finalized, COG, TOR)
-  - Pending finalization table
-  - Shows approved grades awaiting finalization
+- [x] **Admin Dashboard** - Stats cards and recent users table
+- [x] **Dean Dashboard** - Pending grade submissions
+- [x] **Faculty Dashboard** - Recent grades with status
+- [x] **Registrar Dashboard** - Pending finalization queue
 
 ### 3.6 Testing & Verification
-- [x] Tested Admin login and dashboard access
-- [x] Tested Dean login and dashboard access
-- [x] Tested Faculty login and dashboard access
-- [x] Tested Registrar login and dashboard access
-- [x] Tested Pending user blocking (account pending approval message)
-- [x] Verified role-based access control (403 errors for unauthorized access)
-- [x] Verified status checking (pending/inactive users blocked)
-- [x] All test accounts working correctly
+- [x] Tested all 4 user roles (Admin, Dean, Faculty, Registrar)
+- [x] Verified pending user blocking
+- [x] Verified role-based access control (403 errors)
+- [x] Verified status checking middleware
 
 **Deliverables:**
 - ✅ 2 custom middleware (CheckRole, CheckStatus)
 - ✅ Role-based login redirects
-- ✅ 4 dashboard controllers with stats and data queries
+- ✅ 4 dashboard controllers with real-time stats
 - ✅ 4 responsive dashboard views
-- ✅ Complete route protection with middleware
-- ✅ Tested authentication workflow
-- ✅ User status validation working
+- ✅ Complete authentication workflow tested
 
 ---
 
-## PHASE 4: ADMIN MODULE 📅 NEXT
-**Status:** 📅 Ready to Start (0%)
+## PHASE 4: ADMIN MODULE 🔄 IN PROGRESS
+**Date:** February 15, 2026  
+**Status:** 🔄 Partial (60%)
+
+### 4.1 User Management ✅ COMPLETED
+- [x] **UserController** created with full CRUD
+  - index() - List all users with pagination
+  - create() - User creation form
+  - store() - Save new user with validation
+  - edit() - Edit user form
+  - update() - Update user with validation
+  - destroy() - Delete user (prevents self-deletion)
+  - approve() - Approve pending users
+  - reject() - Reject/deactivate users
+
+- [x] **User Views** created
+  - index.blade.php - User list with approve/reject/edit/delete actions
+  - create.blade.php - User creation form with role and status selection
+  - edit.blade.php - User edit form with optional password change
+
+- [x] **User Routes** registered
+  - Resource routes: admin.users.*
+  - Custom routes: admin.users.approve, admin.users.reject
+
+- [x] **Features Implemented**
+  - Form validation (name, email unique, password confirmation)
+  - Role assignment (faculty, dean, registrar)
+  - Status management (active, pending, inactive)
+  - Approval workflow (admin approves, sets approved_by and approved_at)
+  - Prevent self-deletion
+  - Success/error flash messages
+  - Pagination (15 per page)
+
+### 4.2 Department Management ✅ COMPLETED
+- [x] **DepartmentController** created with full CRUD
+  - index() - List departments with course count
+  - create() - Department creation form
+  - store() - Save department with validation
+  - edit() - Edit department form
+  - update() - Update department with validation
+  - destroy() - Delete department (prevents deletion if courses exist)
+
+- [x] **Department Views** created
+  - index.blade.php - Department list with course count
+  - create.blade.php - Department creation form
+  - edit.blade.php - Department edit form
+
+- [x] **Department Routes** registered
+  - Resource routes: admin.departments.*
+
+- [x] **Features Implemented**
+  - Form validation (code unique, name required)
+  - Status management (active, inactive)
+  - Course count display (withCount relationship)
+  - Prevent deletion if courses exist
+  - Optional description field
+  - Success/error flash messages
+  - Pagination (15 per page)
+
+### 4.3 Course Management ✅ COMPLETED
+- [x] **CourseController** created with full CRUD
+  - index() - List courses with department, subjects, and students count
+  - create() - Course creation form with department dropdown
+  - store() - Save course with validation
+  - edit() - Edit course form
+  - update() - Update course with validation
+  - destroy() - Delete course (prevents deletion if subjects/students exist)
+
+- [x] **Course Views** created
+  - index.blade.php - Course list with department, years, subjects/students count
+  - create.blade.php - Course creation form with department selection
+  - edit.blade.php - Course edit form
+
+- [x] **Course Routes** registered
+  - Resource routes: admin.courses.*
+
+- [x] **Features Implemented**
+  - Form validation (code unique, department exists, years 1-10)
+  - Department relationship (belongsTo)
+  - Subject and student count display (withCount)
+  - Prevent deletion if subjects or students exist
+  - Years field (1-10 numeric)
+  - Status management (active, inactive)
+  - Optional description field
+  - Success/error flash messages
+  - Pagination (15 per page)
+
+### 4.4 Admin Dashboard Enhancement ✅ COMPLETED
+- [x] **Quick Navigation Menu** added
+  - User Management link
+  - Department Management link
+  - Course Management link
+  - Hover effects and transitions
+  - Icons and descriptions
+
+- [x] **Dashboard Stats** displaying
+  - Total Users
+  - Active Users
+  - Pending Users
+  - Total Students
+
+- [x] **Recent Users Table** showing
+  - Name, Email, Role, Status
+  - Color-coded status badges
+  - Latest 5 users
+
+### 4.5 Remaining Tasks 📅 TODO
+- [ ] Subject Management CRUD
+- [ ] School Year Management CRUD
+- [ ] Semester Management CRUD
+- [ ] Student Management CRUD (assign to courses)
+- [ ] Academic year activation/deactivation
+- [ ] Bulk import features (CSV/Excel)
+
+**Deliverables (So Far):**
+- ✅ User Management System (CRUD + Approval)
+- ✅ Department Management System (CRUD)
+- ✅ Course Management System (CRUD)
+- ✅ Dashboard Quick Navigation Menu
+- ✅ Form validation on all forms
+- ✅ Relationship constraints (prevent orphaned data)
+- ✅ Flash messages for user feedback
+- ✅ Pagination on all list views
+
+---
+
+## PHASE 5: FACULTY MODULE 📅 PLANNED
+**Status:** 📅 Not Started (0%)
 
 ### Planned Tasks:
-- [ ] User Management (CRUD for Faculty, Dean, Registrar)
-- [ ] User approval/rejection system
-- [ ] Department Management (CRUD)
-- [ ] Course Management (CRUD)
-- [ ] Subject Management (CRUD)
-- [ ] School Year & Semester Management
-- [ ] System settings and configuration
+- [ ] View assigned subjects
+- [ ] Student enrollment list per subject
+- [ ] Grade encoding interface
+- [ ] Grade submission workflow
+- [ ] View submission status and history
+- [ ] Receive Dean feedback/remarks
+- [ ] Grade editing (before submission)
+
+---
+
+## PHASE 6: DEAN MODULE 📅 PLANNED
+**Status:** 📅 Not Started (0%)
+
+### Planned Tasks:
+- [ ] Student enrollment management
+- [ ] Assign students to subjects/sections
+- [ ] View submitted grades from faculty
+- [ ] Approve grades (with validation)
+- [ ] Reject grades (with remarks/feedback)
+- [ ] Forward approved grades to Registrar
+- [ ] Department performance reports
+
+---
+
+## PHASE 7: REGISTRAR MODULE 📅 PLANNED
+**Status:** 📅 Not Started (0%)
+
+### Planned Tasks:
+- [ ] Receive approved grades from Dean
+- [ ] Finalize and store official grades
+- [ ] Generate COG (Certificate of Grades)
+- [ ] Generate TOR (Transcript of Records)
+- [ ] Compute semester GWA
+- [ ] Compute cumulative GWA
+- [ ] Print/download official documents
+- [ ] Archive management
 
 ---
 
@@ -304,29 +324,27 @@
 - Foreign key constraints properly configured
 - Soft deletes on all main models
 
-**User Roles and Permissions**
-- Admin: Full system access (manage users, academic structure)
-- Faculty: Grade encoding and submission
-- Dean: Student enrollment, grade approval
-- Registrar: Grade finalization, COG/TOR generation
+**Department → Course → Subject → Enrollment**
+- Academic structure hierarchy working
+- Cascade prevention on deletions
+- withCount eager loading for performance
 
 ### Helper Methods Implemented
-- **Grade Conversion:** `Grade::convertToGrade()` - Percentage to Philippine scale (1.0-5.0)
-- **Full Name Display:** `Student::getFullName()` - Proper name formatting with suffix
-- **Status Checks:** `isActive()`, `isPending()`, `isFinalized()` across multiple models
-- **Scopes:** Query scopes for common filters (active, pending, by role, by semester)
-
-### Model Features
-- **Soft Deletes:** All main models support soft deletion
-- **Timestamps:** Automatic created_at and updated_at tracking
-- **Type Casting:** Proper date and decimal casting
-- **Activity Logging:** User model configured for audit trail
-- **Fillable Mass Assignment:** Protected against mass assignment vulnerabilities
+- **Grade Conversion:** `Grade::convertToGrade()` - Percentage to Philippine scale
+- **Full Name Display:** `Student::getFullName()` - Proper name formatting
+- **Status Checks:** `isActive()`, `isPending()`, `isFinalized()` across models
+- **Scopes:** Query scopes for common filters
 
 ### Middleware Features
 - **CheckRole:** Role-based access control with multiple role support
 - **CheckStatus:** Account status validation (pending/inactive blocking)
-- **Session Security:** Automatic logout and session invalidation for blocked users
+- **Session Security:** Automatic logout and session invalidation
+
+### Form Validation Patterns
+- **Unique validation:** Email, course code, department code
+- **Relationship validation:** Foreign key checks (exists:table,id)
+- **Conditional validation:** Optional password on edit
+- **Custom validation:** Prevent self-deletion, prevent deletion with dependencies
 
 ---
 
@@ -337,7 +355,7 @@
 | Phase 1: Foundation & Database | ✅ Complete | 100% | 2 hours |
 | Phase 2: Models & Seeders | ✅ Complete | 100% | 2 hours |
 | Phase 3: Auth & Authorization | ✅ Complete | 100% | 2 hours |
-| Phase 4: Admin Module | 📅 Next | 0% | ~4 hours |
+| Phase 4: Admin Module | 🔄 Partial | 60% | ~3 hours |
 | Phase 5: Faculty Module | 📅 Planned | 0% | ~4 hours |
 | Phase 6: Dean Module | 📅 Planned | 0% | ~4 hours |
 | Phase 7: Registrar Module | 📅 Planned | 0% | ~5 hours |
@@ -345,36 +363,36 @@
 | Phase 9: Reporting & Analytics | 📅 Planned | 0% | ~3 hours |
 | Phase 10: UI/UX & Testing | 📅 Planned | 0% | ~3 hours |
 
-**Overall Project Completion:** 30%
+**Overall Project Completion:** 36%
 
 ---
 
 ## NEXT STEPS
 
-### Immediate Actions (Phase 4):
-1. Create User Management CRUD (list, create, edit, delete)
-2. Implement user approval/rejection workflow
-3. Create Department Management CRUD
-4. Create Course Management CRUD
-5. Create Subject Management CRUD
-6. Create School Year/Semester Management
-7. Add form validation and error handling
+### Immediate Actions (Complete Phase 4):
+1. Create Subject Management CRUD
+2. Create School Year Management CRUD
+3. Create Semester Management CRUD
+4. Create Student Management with course assignment
+5. Test all CRUD operations together
+6. Add quick stats to admin dashboard
 
 ---
 
 ## LESSONS LEARNED
 
-### Phase 3 Insights:
-1. **Middleware order matters** - `auth` before `status` before `role`
-2. **Role-based redirects improve UX** - Users land on their relevant dashboard immediately
-3. **Status checking is critical** - Prevents pending/inactive users from accessing system
-4. **Query scopes are powerful** - `User::active()->count()` is clean and reusable
-5. **Blade layouts are efficient** - `<x-app-layout>` provides consistent UI across dashboards
-6. **Testing each role individually** - Caught edge cases early in development
-7. **Session invalidation for security** - Blocked users fully logged out, not just redirected
+### Phase 4 Insights:
+1. **Resource controllers save time** - Laravel's resource routes handle 7 CRUD actions automatically
+2. **withCount() is powerful** - Display relationship counts without N+1 queries
+3. **Prevent orphaned records** - Check for dependencies before deletion
+4. **Flash messages improve UX** - User feedback on every action is essential
+5. **Form validation centralizes logic** - Validation rules in controller keep views clean
+6. **Pagination improves performance** - 15 items per page prevents memory issues
+7. **Relationship eager loading** - with() prevents N+1 query problems
+8. **Unique validation with ignore** - Allow updating without triggering unique constraint on own record
 
 ---
 
-**Last Updated:** February 15, 2026 - 5:30 PM  
-**Next Milestone:** Complete Phase 4 - Admin Module  
-**Target Completion:** February 2026
+**Last Updated:** February 15, 2026 - 6:30 PM  
+**Next Milestone:** Complete Phase 4 - Subject, School Year, Semester Management  
+**Target Completion:** March 2026
