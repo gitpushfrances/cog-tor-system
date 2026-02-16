@@ -356,11 +356,9 @@ We welcome contributions! Please follow these steps:
 
 For questions or issues:
 - **GitHub:** https://github.com/gitpushfrances/cog-tor-system
-- **Email:** support@cogtor.test
 - **Documentation:** See PROGRESS.md and CHANGELOG.md
 
 ---
 
 **Last Updated:** February 15, 2026  
 **Maintained By:** Frances Igop  
-**License:** MIT
