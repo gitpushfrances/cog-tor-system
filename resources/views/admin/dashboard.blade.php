@@ -7,6 +7,22 @@
 
     <div class="py-12">
         <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+            <!-- Quick Navigation -->
+            <div class="grid grid-cols-1 gap-4 mb-6 md:grid-cols-3">
+                <a href="{{ route('admin.users.index') }}" class="p-6 transition bg-white rounded-lg shadow hover:shadow-lg">
+                    <h3 class="mb-2 text-lg font-semibold text-gray-800">👥 User Management</h3>
+                    <p class="text-sm text-gray-600">Manage faculty, dean, and registrar accounts</p>
+                </a>
+                <a href="{{ route('admin.departments.index') }}" class="p-6 transition bg-white rounded-lg shadow hover:shadow-lg">
+                    <h3 class="mb-2 text-lg font-semibold text-gray-800">🏢 Departments</h3>
+                    <p class="text-sm text-gray-600">Manage academic departments</p>
+                </a>
+                <a href="{{ route('admin.courses.index') }}" class="p-6 transition bg-white rounded-lg shadow hover:shadow-lg">
+                    <h3 class="mb-2 text-lg font-semibold text-gray-800">📚 Courses</h3>
+                    <p class="text-sm text-gray-600">Manage degree programs</p>
+                </a>
+            </div>
+
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 gap-6 mb-6 md:grid-cols-4">
                 <div class="overflow-hidden bg-white shadow-sm sm:rounded-lg">
