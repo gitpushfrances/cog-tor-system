@@ -31,6 +31,18 @@
                         @error('course_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700">Assign Faculty <span class="text-gray-400">(optional)</span></label>
+                        <select name="faculty_id" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                            <option value="">-- Unassigned --</option>
+                            @foreach($faculties as $faculty)
+                                <option value="{{ $faculty->id }}" {{ old('faculty_id') == $faculty->id ? 'selected' : '' }}>
+                                    {{ $faculty->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('faculty_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700">Units</label>
                         <input type="number" name="units" value="{{ old('units') }}" min="1" max="10" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
                         @error('units')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror

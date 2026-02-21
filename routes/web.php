@@ -70,6 +70,12 @@ Route::middleware('auth')->group(function () {
     // Faculty Routes
     Route::middleware(['auth', 'status', 'role:faculty'])->prefix('faculty')->name('faculty.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Faculty\FacultyController::class, 'index'])->name('dashboard');
+        Route::get('/subjects', [App\Http\Controllers\Faculty\FacultyController::class, 'subjects'])->name('subjects');
+        Route::get('/subjects/{subject}/grades', [App\Http\Controllers\Faculty\GradeController::class, 'index'])->name('subjects.grades');
+        Route::post('/subjects/{subject}/grades', [App\Http\Controllers\Faculty\GradeController::class, 'store'])->name('subjects.grades.store');
+        Route::get('/subjects/{subject}/grades/{grade}/edit', [App\Http\Controllers\Faculty\GradeController::class, 'edit'])->name('subjects.grades.edit');
+        Route::put('/subjects/{subject}/grades/{grade}', [App\Http\Controllers\Faculty\GradeController::class, 'update'])->name('subjects.grades.update');
+        Route::post('/subjects/{subject}/submit', [App\Http\Controllers\Faculty\GradeController::class, 'submit'])->name('subjects.grades.submit');
     });
 
     // Registrar Routes

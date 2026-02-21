@@ -12,18 +12,24 @@ class Subject extends Model
 
     protected $fillable = [
         'course_id',
+        'faculty_id',
         'code',
         'name',
         'description',
         'units',
         'year_level',
+        'semester',
         'status',
     ];
 
-    // Relationships
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function faculty()
+    {
+        return $this->belongsTo(User::class, 'faculty_id');
     }
 
     public function enrollments()
@@ -31,7 +37,6 @@ class Subject extends Model
         return $this->hasMany(Enrollment::class);
     }
 
-    // Helper Methods
     public function isActive()
     {
         return $this->status === 'active';
@@ -42,10 +47,14 @@ class Subject extends Model
         return $this->code . ' - ' . $this->name;
     }
 
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function scopeByFaculty($query, $facultyId)
+    {
+        return $query->where('faculty_id', $facultyId);
     }
 
     public function scopeByYearLevel($query, $yearLevel)

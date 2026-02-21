@@ -1,0 +1,121 @@
+<?php
+namespace App\Http\Controllers\Faculty;
+
+use App\Http\Controllers\Controller;
+use App\Models\Subject;
+use App\Models\Grade;
+use App\Models\GradeSubmission;
+use App\Models\Enrollment;
+use Illuminate\Http\Request;
+
+class GradeController extends Controller
+{
+    public function index(Subject $subject)
+    {
+        $user = auth()->user();
+        if ($subject->faculty_id !== $user->id) {
+            abort(403, 'You are not assigned to this subject.');
+        }
+        $enrollments = Enrollment::where('subject_id', $subject->id)
+            ->with(['student', 'grade.submission'])
+            ->get();
+        return view('faculty.grades.index', compact('subject', 'enrollments'));
+    }
+
+    public function store(Request $request, Subject $subject)
+    {
+        $user = auth()->user();
+        if ($subject->faculty_id !== $user->id) abort(403);
+
+        $request->validate([
+            'grades'              => 'required|array',
+            'grades.*.enrollment_id' => 'required|exists:enrollments,id',
+            'grades.*.percentage' => 'required|numeric|min:0|max:100',
+        ]);
+
+        foreach ($request->grades as $item) {
+            $grade_value = Grade::convertToGrade($item['percentage']);
+            Grade::updateOrCreate(
+                ['enrollment_id' => $item['enrollment_id']],
+                [
+                    'faculty_id'  => $user->id,
+                    'grade'       => $grade_value,
+                    'percentage'  => $item['percentage'],
+                    'status'      => 'pending',
+                    'remarks'     => $item['remarks'] ?? null,
+                ]
+            );
+        }
+
+        return redirect()->route('faculty.subjects.grades', $subject)
+            ->with('success', 'Grades saved successfully.');
+    }
+
+    public function edit(Subject $subject, Grade $grade)
+    {
+        $user = auth()->user();
+        if ($subject->faculty_id !== $user->id) abort(403);
+        if ($grade->status !== 'pending') {
+            return redirect()->route('faculty.subjects.grades', $subject)
+                ->with('error', 'Only pending grades can be edited.');
+        }
+        $enrollment = $grade->enrollment()->with('student')->first();
+        return view('faculty.grades.edit', compact('subject', 'grade', 'enrollment'));
+    }
+
+    public function update(Request $request, Subject $subject, Grade $grade)
+    {
+        $user = auth()->user();
+        if ($subject->faculty_id !== $user->id) abort(403);
+        if ($grade->status !== 'pending') {
+            return redirect()->route('faculty.subjects.grades', $subject)
+                ->with('error', 'Only pending grades can be edited.');
+        }
+
+        $request->validate([
+            'percentage' => 'required|numeric|min:0|max:100',
+            'remarks'    => 'nullable|string|max:500',
+        ]);
+
+        $grade->update([
+            'grade'      => Grade::convertToGrade($request->percentage),
+            'percentage' => $request->percentage,
+            'remarks'    => $request->remarks,
+        ]);
+
+        return redirect()->route('faculty.subjects.grades', $subject)
+            ->with('success', 'Grade updated successfully.');
+    }
+
+    public function submit(Request $request, Subject $subject)
+    {
+        $user = auth()->user();
+        if ($subject->faculty_id !== $user->id) abort(403);
+
+        $grades = Grade::whereHas('enrollment', function ($q) use ($subject) {
+            $q->where('subject_id', $subject->id);
+        })->where('faculty_id', $user->id)->where('status', 'pending')->get();
+
+        if ($grades->isEmpty()) {
+            return redirect()->route('faculty.subjects.grades', $subject)
+                ->with('error', 'No pending grades to submit.');
+        }
+
+        foreach ($grades as $grade) {
+            GradeSubmission::updateOrCreate(
+                ['grade_id' => $grade->id],
+                [
+                    'submitted_by' => $user->id,
+                    'submitted_at' => now(),
+                    'dean_action'  => null,
+                    'dean_remarks' => null,
+                    'reviewed_at'  => null,
+                    'reviewed_by'  => null,
+                ]
+            );
+        }
+
+        return redirect()->route('faculty.subjects.grades', $subject)
+            ->with('success', 'Grades submitted to Dean for approval.');
+    }
+}

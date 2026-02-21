@@ -20,6 +20,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Faculty</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Semester</th>
@@ -33,6 +34,7 @@
                         <td class="px-6 py-4 font-mono text-sm">{{ $subject->code }}</td>
                         <td class="px-6 py-4 text-sm">{{ $subject->name }}</td>
                         <td class="px-6 py-4 text-sm">{{ $subject->course->code ?? '-' }}</td>
+                        <td class="px-6 py-4 text-sm">{{ $subject->faculty->name ?? '<span class="text-gray-400">Unassigned</span>' }}</td>
                         <td class="px-6 py-4 text-sm">{{ $subject->units }}</td>
                         <td class="px-6 py-4 text-sm">Year {{ $subject->year_level }}</td>
                         <td class="px-6 py-4 text-sm">{{ $subject->semester }}</td>
@@ -50,7 +52,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="px-6 py-4 text-center text-gray-400">No subjects found.</td></tr>
+                    <tr><td colspan="9" class="px-6 py-4 text-center text-gray-400">No subjects found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
