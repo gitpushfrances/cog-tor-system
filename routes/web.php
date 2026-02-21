@@ -19,6 +19,11 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', function () {
+    $user = auth()->user();
+    if ($user->hasRole('admin')) return redirect()->route('admin.dashboard');
+    if ($user->hasRole('dean')) return redirect()->route('dean.dashboard');
+    if ($user->hasRole('faculty')) return redirect()->route('faculty.dashboard');
+    if ($user->hasRole('registrar')) return redirect()->route('registrar.dashboard');
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -41,6 +46,20 @@ Route::middleware('auth')->group(function () {
 
         // Course Management
         Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);
+
+        // Subject Management
+        Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class);
+
+        // School Year Management
+        Route::resource('school-years', App\Http\Controllers\Admin\SchoolYearController::class);
+        Route::post('/school-years/{schoolYear}/set-active', [App\Http\Controllers\Admin\SchoolYearController::class, 'setActive'])->name('school-years.set-active');
+
+        // Semester Management
+        Route::resource('semesters', App\Http\Controllers\Admin\SemesterController::class);
+        Route::post('/semesters/{semester}/set-active', [App\Http\Controllers\Admin\SemesterController::class, 'setActive'])->name('semesters.set-active');
+
+        // Student Management
+        Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
     });
 
     // Dean Routes
