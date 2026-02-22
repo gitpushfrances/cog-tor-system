@@ -10,6 +10,18 @@ use Illuminate\Http\Request;
 
 class RegistrarController extends Controller
 {
+    public function finalize(Request $request, \App\Models\GradeSubmission $submission)
+    {
+        $submission->update([
+            'finalized_at' => now(),
+            'finalized_by' => auth()->id(),
+        ]);
+
+        $submission->grade->update(['status' => 'finalized']);
+
+        return redirect()->route('registrar.dashboard')->with('success', 'Grade finalized successfully.');
+    }
+
     public function index()
     {
         $stats = [

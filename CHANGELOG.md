@@ -390,9 +390,9 @@
 
 ---
 
-## PHASE 6: DEAN MODULE 🔄 IN PROGRESS
-**Date:** February 21, 2026
-**Status:** 🔄 In Progress (30%)
+## PHASE 6: DEAN MODULE ✅ COMPLETED
+**Date:** February 21–22, 2026
+**Status:** ✅ Complete (100%)
 
 ### 6.1 Dean Dashboard ✅ COMPLETED
 - [x] Dashboard showing 4 stat cards: Total Students, Active Enrollments, Pending Grades, Approved Grades
@@ -407,42 +407,140 @@
 - [x] **`pendingReview()` scope verified working** — returns correct count of 10
 - [x] **Dean user confirmed** — dean@cogtor.test exists and can log in
 
-### 6.3 Grade Review & Approval ⏸️ NEXT SESSION
-**Status:** ⏸️ Paused — to be completed next session
+### 6.3 Grade Review & Approval ✅ COMPLETED
+**Date:** February 22, 2026
 
-**Planned — DeanController methods to add:**
-- [ ] review() - Show single submission with full grade details for Dean to inspect
-- [ ] approve() - Set dean_action = approved, fill reviewed_at and reviewed_by, update grade status
-- [ ] reject() - Set dean_action = rejected, save dean_remarks, update grade status, notify faculty
+- [x] **3 methods added to DeanController**
+  - review() - Loads full submission with student, subject, and submittedBy relationships → renders dean/review.blade.php
+  - approve() - Sets dean_action = approved_by_dean, fills reviewed_at and reviewed_by, updates grade status to approved_by_dean
+  - reject() - Validates dean_remarks, sets dean_action = rejected, updates grade status back to pending, saves remarks
 
-**Planned — Routes to add inside Dean route group:**
-- [ ] `dean.submissions.review` - GET /dean/submissions/{submission}/review
-- [ ] `dean.submissions.approve` - POST /dean/submissions/{submission}/approve
-- [ ] `dean.submissions.reject` - POST /dean/submissions/{submission}/reject
+- [x] **3 routes added to Dean route group**
+  - `dean.submissions.review` - GET /dean/submissions/{submission}/review
+  - `dean.submissions.approve` - POST /dean/submissions/{submission}/approve
+  - `dean.submissions.reject` - POST /dean/submissions/{submission}/reject
 
-**Planned — Views to create:**
-- [ ] `resources/views/dean/review.blade.php` - Full grade review page with approve/reject form
-- [ ] Update `dean/dashboard.blade.php` to add "Review" action button per submission row
+- [x] **Views created/updated**
+  - `resources/views/dean/review.blade.php` - Full review page: student info, grade details, approve button, reject form with remarks textarea
+  - `dean/dashboard.blade.php` - Added Action column header, Review button per row, fixed colspan from 4 to 5
 
-**Remaining Dean Module tasks (Phase 6 full scope):**
-- [ ] Student enrollment management (add/remove students from subjects)
-- [ ] Assign subjects to faculty
-- [ ] Department performance reports
+- [x] **Bug fixes during implementation**
+  - DeanController methods were not saved initially — file only had index(); methods had to be re-added
+  - Grade status ENUM values confirmed via tinker: `pending`, `approved_by_dean`, `finalized` — NOT `approved`/`rejected`
+  - Fixed approve() to use `approved_by_dean` instead of `approved`
+  - Fixed reject() to revert grade status to `pending` instead of `rejected`
+  - bootstrap/cache permission error fixed with `chmod -R 777 bootstrap/cache storage`
+
+- [x] **4 dean routes confirmed** via `php artisan route:list --path=dean`
+- [x] **Full approve/reject flow tested and working**
+  - Approve: grade status updates to approved_by_dean, redirects to dashboard with green flash
+  - Reject: grade returns to pending with dean remarks saved, redirects with red flash
+
+**Deliverables:**
+- ✅ DeanController with review, approve, reject methods
+- ✅ dean/review.blade.php — full review and action page
+- ✅ Dean dashboard updated with Review button and Action column
+- ✅ 4 dean routes registered and verified
+- ✅ Approve/reject flow tested end-to-end
 
 ---
 
-## PHASE 7: REGISTRAR MODULE 📅 PLANNED
+## PHASE 7: REGISTRAR MODULE ✅ COMPLETED
+**Date:** February 22, 2026
+**Status:** ✅ Complete (100%)
+
+### 7.1 Controllers Created
+
+- [x] **RegistrarController** updated
+  - index() - Dashboard with 4 stats: pending finalization, finalized grades, COG generated, TOR generated
+  - finalize() - Sets finalized_at and finalized_by on submission, updates grade status to `finalized`
+
+- [x] **DocumentController** created (`app/Http/Controllers/Registrar/DocumentController.php`)
+  - students() - Lists all active students paginated (15/page) for document generation
+  - cogForm() - Shows semester selector for COG generation (only semesters with finalized grades)
+  - generateCog() - Computes semester GWA, creates CogRecord, generates and downloads PDF
+  - torForm() - Checks if student has any finalized grades, shows TOR confirmation page
+  - generateTor() - Computes cumulative GWA across all semesters, creates TorRecord, generates and downloads PDF
+  - downloadCog() - Downloads existing COG PDF from storage
+  - downloadTor() - Downloads existing TOR PDF from storage
+
+### 7.2 Routes Added
+- [x] 9 registrar routes registered and confirmed:
+  - `registrar.dashboard` - GET /registrar/dashboard
+  - `registrar.submissions.finalize` - POST /registrar/submissions/{submission}/finalize
+  - `registrar.students` - GET /registrar/students
+  - `registrar.students.cog` - GET /registrar/students/{student}/cog
+  - `registrar.students.cog.generate` - POST /registrar/students/{student}/cog
+  - `registrar.students.tor` - GET /registrar/students/{student}/tor
+  - `registrar.students.tor.generate` - POST /registrar/students/{student}/tor
+  - `registrar.cog.download` - GET /registrar/cog/{cog}/download
+  - `registrar.tor.download` - GET /registrar/tor/{tor}/download
+
+### 7.3 Views Created
+- [x] `resources/views/registrar/dashboard.blade.php` - Stats cards, flash messages, pending finalization table with Finalize button, Generate COG/TOR nav button
+- [x] `resources/views/registrar/students.blade.php` - Active students list with COG and TOR buttons per row
+- [x] `resources/views/registrar/cog.blade.php` - Semester selector form for COG generation per student
+- [x] `resources/views/registrar/tor.blade.php` - TOR confirmation page per student
+- [x] `resources/views/registrar/pdf/cog.blade.php` - Official COG PDF template (institution header, student info, grades table, GWA, registrar signature line)
+- [x] `resources/views/registrar/pdf/tor.blade.php` - Official TOR PDF template (institution header, student info, all semesters grouped, cumulative GWA, registrar signature line)
+
+### 7.4 Bug Fixes & Notes
+- [x] **`\Storage::` replaced with proper `Storage::` facade** — Intelephense warnings resolved by adding `use Illuminate\Support\Facades\Storage` import and replacing all `\Storage::` calls
+- [x] **`subject_code` vs `code` bug** — registrar dashboard was calling `->subject->subject_code`, fixed to `->subject->code`
+- [x] **TOR route restructured** — originally GET generateTor, split into GET torForm (confirmation page) + POST generateTor (actual generation) to avoid accidental generation on page load
+- [x] **TOR button in students.blade.php updated** — changed from `registrar.students.tor.generate` to `registrar.students.tor` to point to form instead of direct generation
+- [x] **Institution name set** — PDF templates updated to `Eastern Samar State University - Guiuan Campus`
+- [x] **`finalize.blade.php`** — file exists but is intentionally empty; finalize is a POST action handled directly from the dashboard, no separate view needed
+
+### 7.5 Verified Working
+- [x] Registrar dashboard shows approved grades pending finalization
+- [x] Finalize button works — grade status updates to `finalized`, stat counts update
+- [x] Students list shows all 10 active students with COG/TOR buttons
+- [x] COG generation — semester selector appears, PDF generates and downloads correctly
+- [x] TOR generation — confirmation page appears, PDF generates and downloads correctly
+- [x] Institution name `Eastern Samar State University - Guiuan Campus` appears on both PDF documents
+
+**Deliverables:**
+- ✅ RegistrarController with finalize and index
+- ✅ DocumentController with full COG/TOR generation pipeline
+- ✅ 9 registrar routes registered and verified
+- ✅ 6 registrar views (dashboard, students, cog, tor, pdf/cog, pdf/tor)
+- ✅ PDF generation working end-to-end for both COG and TOR
+- ✅ GWA computation working (semester GWA for COG, cumulative GWA for TOR)
+
+---
+
+## PHASE 8: EXCEL FEATURES 📅 PLANNED
 **Status:** 📅 Not Started (0%)
 
 ### Planned Tasks:
-- [ ] Receive approved grades from Dean
-- [ ] Finalize and store official grades
-- [ ] Generate COG (Certificate of Grades)
-- [ ] Generate TOR (Transcript of Records)
-- [ ] Compute semester GWA
-- [ ] Compute cumulative GWA
-- [ ] Print/download official documents
-- [ ] Archive management
+- [ ] Import students via Excel
+- [ ] Export grades to Excel
+- [ ] Grade template download for faculty
+- [ ] Bulk grade upload
+
+---
+
+## PHASE 9: REPORTING & ANALYTICS 📅 PLANNED
+**Status:** 📅 Not Started (0%)
+
+### Planned Tasks:
+- [ ] Department performance reports
+- [ ] Per-subject grade distribution
+- [ ] Faculty submission tracking
+- [ ] School year/semester summary reports
+
+---
+
+## PHASE 10: UI/UX & TESTING 📅 PLANNED
+**Status:** 📅 Not Started (0%)
+
+### Planned Tasks:
+- [ ] UI polish and consistency pass across all roles
+- [ ] Mobile responsiveness review
+- [ ] End-to-end testing (full workflow Faculty → Dean → Registrar)
+- [ ] Error handling improvements
+- [ ] Loading states and empty state improvements
 
 ---
 
@@ -479,6 +577,13 @@
 ### Known Column Name Notes
 - Subject code column is `code` (NOT `subject_code`) — use `->subject->code` in views
 - Grade table columns: `id, enrollment_id, faculty_id, grade, percentage, status, remarks`
+- Grade status ENUM values: `pending`, `approved_by_dean`, `finalized` — no other values accepted
+- Student ID display column is `student_number` (NOT `student_id`) — `student_id` is the FK on enrollments table
+
+### Storage Notes
+- COG PDFs saved to `storage/app/cog/{document_number}.pdf`
+- TOR PDFs saved to `storage/app/tor/{document_number}.pdf`
+- Always use `Storage::` facade with proper import — never `\Storage::`
 
 ---
 
@@ -491,41 +596,29 @@
 | Phase 3: Auth & Authorization | ✅ Complete | 100% | 2 hours |
 | Phase 4: Admin Module | ✅ Complete | 100% | ~6 hours |
 | Phase 5: Faculty Module | ✅ Complete | 100% | ~4 hours |
-| Phase 6: Dean Module | 🔄 In Progress | 30% | ongoing |
-| Phase 7: Registrar Module | 📅 Planned | 0% | ~5 hours |
+| Phase 6: Dean Module | ✅ Complete | 100% | ~3 hours |
+| Phase 7: Registrar Module | ✅ Complete | 100% | ~4 hours |
 | Phase 8: Excel Features | 📅 Planned | 0% | ~3 hours |
 | Phase 9: Reporting & Analytics | 📅 Planned | 0% | ~3 hours |
 | Phase 10: UI/UX & Testing | 📅 Planned | 0% | ~3 hours |
 
-**Overall Project Completion:** ~55%
+**Overall Project Completion:** ~70%
 
 ---
 
 ## NEXT STEPS — RESUME HERE NEXT SESSION
 
-### ⏸️ Pick up at: Phase 6 — Dean Grade Review & Approval
+### 📅 Pick up at: Phase 8 — Excel Features
 
-**Step 1:** Add 3 methods to `app/Http/Controllers/Dean/DeanController.php`
-- review(GradeSubmission $submission)
-- approve(Request $request, GradeSubmission $submission)
-- reject(Request $request, GradeSubmission $submission)
+**Option A — Excel Import/Export:**
+- Import students from Excel template
+- Export grade sheets per subject for faculty
+- Bulk grade upload via Excel
 
-**Step 2:** Add 3 routes to the Dean route group in `routes/web.php`
-```php
-Route::get('/submissions/{submission}/review', [DeanController::class, 'review'])->name('submissions.review');
-Route::post('/submissions/{submission}/approve', [DeanController::class, 'approve'])->name('submissions.approve');
-Route::post('/submissions/{submission}/reject', [DeanController::class, 'reject'])->name('submissions.reject');
-```
-
-**Step 3:** Create `resources/views/dean/review.blade.php`
-- Show student name, subject, grade, percentage, remarks
-- Approve button (POST to approve route)
-- Reject form with dean_remarks textarea (POST to reject route)
-
-**Step 4:** Update `resources/views/dean/dashboard.blade.php`
-- Add "Review" button/link per row in the pending submissions table
-
-**Step 5:** Test full Dean approval flow end-to-end
+**Option B — Skip to Phase 10 UI/UX polish first:**
+- Consistent flash messages across all roles
+- Empty state improvements
+- Mobile responsiveness check
 
 ---
 
@@ -550,14 +643,23 @@ Route::post('/submissions/{submission}/reject', [DeanController::class, 'reject'
 14. **--execute flag limitations on Windows** - Complex chained tinker commands fail on Git Bash; use simple single-expression commands instead
 15. **Duplicate route blocks break silently** - Nested route groups don't throw errors but cause unpredictable behavior
 
-### Phase 6 Insights (so far):
+### Phase 6 Insights:
 16. **Always verify column names against the model** - `subject_code` vs `code` caused the Dean dashboard to show nothing despite correct data
 17. **Check the log before assuming code is broken** - `storage/logs/laravel.log` shows the real error, not just the browser message
+18. **Always verify controller file was actually saved** - Methods can exist in chat history but not in the actual file; always `cat` the file to confirm
+19. **Grade ENUM values are strict** - MySQL will throw a truncation warning/error if you try to insert a value not defined in the ENUM; always check with `SHOW COLUMNS` via tinker before assuming status values
+20. **bootstrap/cache permissions** - On Windows with Git Bash, `optimize:clear` can fail with "Access is denied"; fix with `chmod -R 777 bootstrap/cache storage`
+
+### Phase 7 Insights:
+21. **Split GET/POST for document generation** - Using GET to generate PDFs risks accidental regeneration on page refresh; always use a confirmation view (GET) + form POST for actual generation
+22. **`\Storage::` vs `Storage::`** - Always import the facade with `use Illuminate\Support\Facades\Storage` and use `Storage::` — the global `\Storage::` alias causes Intelephense errors and is not best practice
+23. **TOR needs all semesters grouped** - groupBy('semester_id') on enrollments then mapping to nested array structure is the cleanest approach for multi-semester TOR data
+24. **GWA formula** - Weighted average: sum(grade × units) / sum(units) — not a simple average of grades
 
 ---
 
-**Last Updated:** February 21, 2026
-**Phase 5 Completed:** ✅ Faculty Module — 100%
-**Phase 6 Status:** 🔄 In Progress — Dean dashboard working, review/approve/reject to be built next session
-**Next Milestone:** Complete Phase 6 Dean Module (Grade Review & Approval)
+**Last Updated:** February 22, 2026
+**Phase 6 Completed:** ✅ Dean Module — 100%
+**Phase 7 Completed:** ✅ Registrar Module — 100%
+**Next Milestone:** Phase 8 — Excel Features or Phase 10 UI/UX Polish
 **Target Completion:** March 2026

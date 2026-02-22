@@ -47,19 +47,26 @@
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Subject</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Submitted By</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Date</th>
+                                    <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
                                 @forelse($pending_submissions as $submission)
                                 <tr>
                                     <td class="px-6 py-4">{{ $submission->grade->enrollment->student->getFullName() }}</td>
-                                    <td class="px-6 py-4">{{ $submission->grade->enrollment->subject->subject_code }}</td>
+                                    <td class="px-6 py-4">{{ $submission->grade->enrollment->subject->code }}</td>
                                     <td class="px-6 py-4">{{ $submission->submittedBy->name }}</td>
                                     <td class="px-6 py-4">{{ $submission->submitted_at->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4">
+                                        <a href="{{ route('dean.submissions.review', $submission) }}"
+                                           class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">
+                                            Review
+                                        </a>
+                                    </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">No pending submissions</td>
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">No pending submissions</td>
                                 </tr>
                                 @endforelse
                             </tbody>

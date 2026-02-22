@@ -65,6 +65,9 @@ Route::middleware('auth')->group(function () {
     // Dean Routes
     Route::middleware(['auth', 'status', 'role:dean'])->prefix('dean')->name('dean.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Dean\DeanController::class, 'index'])->name('dashboard');
+        Route::get('/submissions/{submission}/review', [App\Http\Controllers\Dean\DeanController::class, 'review'])->name('submissions.review');
+        Route::post('/submissions/{submission}/approve', [App\Http\Controllers\Dean\DeanController::class, 'approve'])->name('submissions.approve');
+        Route::post('/submissions/{submission}/reject', [App\Http\Controllers\Dean\DeanController::class, 'reject'])->name('submissions.reject');
     });
 
     // Faculty Routes
@@ -81,7 +84,14 @@ Route::middleware('auth')->group(function () {
     // Registrar Routes
     Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->name('registrar.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Registrar\RegistrarController::class, 'index'])->name('dashboard');
+        Route::post('/submissions/{submission}/finalize', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalize'])->name('submissions.finalize');
+        Route::get('/students', [App\Http\Controllers\Registrar\DocumentController::class, 'students'])->name('students');
+        Route::get('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'cogForm'])->name('students.cog');
+        Route::post('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'generateCog'])->name('students.cog.generate');
+        Route::get('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'torForm'])->name('students.tor');
+        Route::post('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'generateTor'])->name('students.tor.generate');
+        Route::get('/cog/{cog}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadCog'])->name('cog.download');
+        Route::get('/tor/{tor}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadTor'])->name('tor.download');
     });
-
 
 require __DIR__.'/auth.php';
