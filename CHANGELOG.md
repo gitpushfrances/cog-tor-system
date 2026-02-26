@@ -491,6 +491,7 @@
 - [x] **TOR button in students.blade.php updated** — changed from `registrar.students.tor.generate` to `registrar.students.tor` to point to form instead of direct generation
 - [x] **Institution name set** — PDF templates updated to `Eastern Samar State University - Guiuan Campus`
 - [x] **`finalize.blade.php`** — file exists but is intentionally empty; finalize is a POST action handled directly from the dashboard, no separate view needed
+- [x] **`.tmp` file fix** — DomPDF's `->download()` method writes a temp buffer file to Downloads during generation; fixed by calling `->output()` first to capture PDF bytes, then returning a raw `response()` with `Content-Type: application/pdf` header — bypasses temp file creation entirely, storage save still works correctly
 
 ### 7.5 Verified Working
 - [x] Registrar dashboard shows approved grades pending finalization
@@ -510,14 +511,63 @@
 
 ---
 
-## PHASE 8: EXCEL FEATURES 📅 PLANNED
-**Status:** 📅 Not Started (0%)
+## PHASE 8: EXCEL FEATURES ✅ COMPLETED
+**Date:** February 26, 2026
+**Status:** ✅ Complete (100%)
 
-### Planned Tasks:
-- [ ] Import students via Excel
-- [ ] Export grades to Excel
-- [ ] Grade template download for faculty
-- [ ] Bulk grade upload
+### 8.1 Files Generated via Artisan
+- [x] `app/Exports/StudentsExport.php` — generated and fully implemented
+- [x] `app/Imports/StudentsImport.php` — generated and fully implemented
+- [x] `app/Exports/GradeTemplateExport.php` — generated and fully implemented
+- [x] `app/Imports/GradesImport.php` — generated and fully implemented
+- [x] `app/Http/Controllers/Admin/ExcelController.php` — generated and fully implemented
+- [x] `app/Http/Controllers/Faculty/ExcelController.php` — generated and fully implemented
+
+### 8.2 Admin Excel Features ✅ COMPLETED
+- [x] **studentTemplate()** — Downloads a CSV template with headers and 1 sample row for bulk student import
+- [x] **exportStudents()** — Exports all students to a styled `.xlsx` file with proper column mapping
+- [x] **importStudents()** — Validates and bulk-imports students from uploaded CSV/Excel file
+  - Validates: student_number unique, email unique, course exists, year level 1-5, status valid
+  - Skips rows with validation errors, reports count of successful imports
+
+### 8.3 Faculty Excel Features ✅ COMPLETED
+- [x] **downloadTemplate()** — Downloads a pre-filled Excel sheet with enrolled students for a subject
+  - Columns A–E: student info (read-only hint in header), Column F: percentage to fill
+  - Only shows students enrolled in the selected subject
+- [x] **uploadGrades()** — Reads uploaded grade template and saves grades to database
+  - Matches students by student_number column
+  - Auto-converts percentage to Philippine grade scale
+  - Updates existing grades or creates new ones
+
+### 8.4 Routes Added
+- [x] 3 admin Excel routes registered:
+  - `admin.excel.student-template` - GET /admin/excel/student-template
+  - `admin.excel.export-students` - GET /admin/excel/export-students
+  - `admin.excel.import-students` - POST /admin/excel/import-students
+- [x] 2 faculty Excel routes registered:
+  - `faculty.subjects.grades.template` - GET /faculty/subjects/{subject}/grades/template
+  - `faculty.subjects.grades.upload` - POST /faculty/subjects/{subject}/grades/upload
+
+### 8.5 Route Order Bug Fixed
+- [x] **Static routes before wildcard routes** — `/grades/template` moved above `/grades/{grade}` to prevent Laravel treating "template" as a grade ID
+- [x] Verified via `route('faculty.subjects.grades.template', ['subject' => 1])` returning correct URL
+
+### 8.6 Bug Fixes
+- [x] **`student_id` vs `student_number` bug** — StudentController validation and Blade views were referencing `student_id` (the FK column on enrollments) instead of `student_number` (the display column on students table). Fixed in both controller and index view.
+
+### 8.7 UI Updates
+- [x] **Admin students/index.blade.php** updated — added 4 action buttons: Download Template, Export to Excel, Import Students (with file upload modal), Add Student
+- [x] **Faculty grades/index.blade.php** updated — added Download Grade Template and Upload Grades (Excel) buttons alongside existing Submit to Dean button
+
+**Deliverables:**
+- ✅ StudentsExport — styled xlsx with all student data
+- ✅ StudentsImport — validated bulk student import with error reporting
+- ✅ GradeTemplateExport — pre-filled per-subject grade sheet for faculty
+- ✅ GradesImport — grade upload from Excel template
+- ✅ Admin ExcelController — 3 actions (template, export, import)
+- ✅ Faculty ExcelController — 2 actions (download template, upload grades)
+- ✅ 5 new routes registered and verified
+- ✅ Route ordering conflict resolved
 
 ---
 
@@ -532,15 +582,73 @@
 
 ---
 
-## PHASE 10: UI/UX & TESTING 📅 PLANNED
-**Status:** 📅 Not Started (0%)
+## PHASE 10: UI/UX & TESTING 🔄 IN PROGRESS
+**Date:** February 26, 2026
+**Status:** 🔄 In Progress (~30%)
 
-### Planned Tasks:
-- [ ] UI polish and consistency pass across all roles
-- [ ] Mobile responsiveness review
-- [ ] End-to-end testing (full workflow Faculty → Dean → Registrar)
-- [ ] Error handling improvements
-- [ ] Loading states and empty state improvements
+### 10.1 Login Page — Complete Redesign ✅ COMPLETED
+**Date:** February 26, 2026
+
+- [x] **Root route `/` fixed** — was showing Laravel welcome page; now redirects to `/login` if unauthenticated, or to role dashboard if already logged in
+- [x] **`resources/views/layouts/guest.blade.php`** — fully redesigned
+  - Split-screen layout: dark navy left panel (42%) + cream right panel (58%)
+  - Left panel: brand seal with graduation cap icon, system name in Playfair Display serif font, custom SVG document illustration (animated float), tagline with gold highlights, decorative geometric rings and dot grid
+  - SVG illustration: hand-built official document with gold header bar, seal circle, document lines, signature zones, corner fold, and "OFFICIAL" badge — no external dependencies
+  - Right panel: white form card with layered box-shadow, gold accent stripe on card top edge, subtle radial glow on cream background
+  - Fonts: Playfair Display (headings) + DM Sans (body) from Google Fonts
+  - Icons: Font Awesome 6.5.1 via CDN
+  - Lottie-ready: auto-loads `/animations/login.json` from public folder if file exists, falls back to SVG illustration
+  - Fully responsive — stacks vertically on mobile
+- [x] **`resources/views/auth/login.blade.php`** — fully redesigned
+  - Font Awesome icons on email (envelope) and password (lock) inputs
+  - Password show/hide toggle with eye button
+  - Custom styled inputs with focus ring and icon color transition
+  - Redesigned Remember Me checkbox and Forgot Password link row
+  - Submit button with icon wrap, gradient background, lift-on-hover animation
+  - Card footer with shield icon and campus attribution text separated by a proper divider line
+  - All Breeze auth logic preserved: CSRF token, `@error` validation display, session status, old() values
+
+### 10.2 All Role Dashboards — Navigation Overhaul ✅ COMPLETED
+**Date:** February 26, 2026
+
+- [x] **Admin dashboard** fully rewritten
+  - Expanded stat cards: Total Users, Active Users, Pending Users, Total Students, Total Subjects, Total Departments
+  - Current active school year and semester displayed
+  - Full navigation grid covering all accessible routes: User Management, Departments, Courses, Subjects, School Years, Semesters, Students, Excel (Download Template, Export, Import)
+  - Recent users table retained
+- [x] **Dean dashboard** fully rewritten
+  - 4 stat cards: Total Students, Active Enrollments, Pending Review, Approved Grades
+  - Pending submissions table with grade value column added
+  - Review button per row linking to submission review page
+- [x] **Faculty dashboard** fully rewritten
+  - Stats: Assigned Subjects, Total Students, Encoded Grades, Pending Submissions
+  - Quick links to each assigned subject's grade page directly from dashboard
+  - Recent grades table
+- [x] **Registrar dashboard** fully rewritten
+  - Stats: Pending Finalization, Finalized Grades, COG Generated, TOR Generated
+  - Pending finalization table with grade value and Dean approval date
+  - Quick Generate COG/TOR navigation button
+
+### 10.3 Known Issues Still Flagged
+- [ ] `dean_action: "approved"` vs grade status `approved_by_dean` — these two status strings are out of sync; needs a unified status constant or ENUM audit
+- [ ] No notification system — Faculty has no alert when Dean rejects grades; must manually check dashboard
+- [ ] No student portal — Students cannot view their own grades or request documents
+- [ ] No audit log UI — Spatie Activity Log is installed and logging but there is no view to display the log
+- [ ] No document request workflow — Registrar generates COG/TOR manually with no formal student request system
+- [ ] PDF storage access — COG/TOR saved to `storage/app/` which is not publicly accessible; needs `storage:link` and signed URL review for production
+
+### 10.4 Remaining Planned Tasks
+- [ ] End-to-end testing — full workflow Faculty → Dean → Registrar → PDF
+- [ ] Excel import/export end-to-end testing with real data
+- [ ] Mobile responsiveness review across all role views
+- [ ] Error handling improvements — empty states, 404 pages, form error UX
+- [ ] Loading states for PDF generation
+- [ ] UI consistency pass across all Admin/Dean/Faculty/Registrar views
+
+**Deliverables so far:**
+- ✅ Root route fixed — no more Laravel welcome page on first load
+- ✅ Login page fully redesigned — professional, production-grade
+- ✅ All 4 role dashboards rewritten with full navigation and improved stats
 
 ---
 
@@ -587,41 +695,6 @@
 
 ---
 
-## PROGRESS SUMMARY
-
-| Phase | Status | Completion | Duration |
-|-------|--------|------------|----------|
-| Phase 1: Foundation & Database | ✅ Complete | 100% | 2 hours |
-| Phase 2: Models & Seeders | ✅ Complete | 100% | 2 hours |
-| Phase 3: Auth & Authorization | ✅ Complete | 100% | 2 hours |
-| Phase 4: Admin Module | ✅ Complete | 100% | ~6 hours |
-| Phase 5: Faculty Module | ✅ Complete | 100% | ~4 hours |
-| Phase 6: Dean Module | ✅ Complete | 100% | ~3 hours |
-| Phase 7: Registrar Module | ✅ Complete | 100% | ~4 hours |
-| Phase 8: Excel Features | 📅 Planned | 0% | ~3 hours |
-| Phase 9: Reporting & Analytics | 📅 Planned | 0% | ~3 hours |
-| Phase 10: UI/UX & Testing | 📅 Planned | 0% | ~3 hours |
-
-**Overall Project Completion:** ~70%
-
----
-
-## NEXT STEPS — RESUME HERE NEXT SESSION
-
-### 📅 Pick up at: Phase 8 — Excel Features
-
-**Option A — Excel Import/Export:**
-- Import students from Excel template
-- Export grade sheets per subject for faculty
-- Bulk grade upload via Excel
-
-**Option B — Skip to Phase 10 UI/UX polish first:**
-- Consistent flash messages across all roles
-- Empty state improvements
-- Mobile responsiveness check
-
----
-
 ## LESSONS LEARNED
 
 ### Phase 4 Insights:
@@ -655,11 +728,61 @@
 22. **`\Storage::` vs `Storage::`** - Always import the facade with `use Illuminate\Support\Facades\Storage` and use `Storage::` — the global `\Storage::` alias causes Intelephense errors and is not best practice
 23. **TOR needs all semesters grouped** - groupBy('semester_id') on enrollments then mapping to nested array structure is the cleanest approach for multi-semester TOR data
 24. **GWA formula** - Weighted average: sum(grade × units) / sum(units) — not a simple average of grades
+25. **DomPDF `.tmp` file issue** - `->download()` writes a temp buffer to disk before streaming; avoid by using `->output()` to get raw bytes and returning a manual `response()` — cleaner, no leftover temp files
+
+### Phase 8 Insights:
+26. **Route order matters for static vs wildcard segments** - `/grades/template` must come before `/grades/{grade}` or Laravel matches "template" as a grade ID — always put static routes above wildcard routes
+27. **maatwebsite/excel was already installed** - No need to composer install separately; always check composer.json before running install commands
+28. **Column name consistency is critical for imports** - One wrong column name in an import class causes silent failures; always verify against the actual migration before writing import logic
+29. **`student_id` vs `student_number` is a recurring trap** - `student_id` is the foreign key on the enrollments table; `student_number` is the human-readable student identifier on the students table — never mix these up in validation or views
+
+### Phase 10 Insights:
+30. **Root route must redirect, never render** - Showing the Laravel welcome page to users of a role-based system breaks first impressions; always redirect `/` based on auth state
+31. **Split-screen login layouts need intentional illustration** - Floating placeholder icons look unfinished; a hand-built SVG illustration reads as designed, not generated
+32. **Card depth on light backgrounds requires layered shadows** - A single `box-shadow` on a white card over a cream background disappears; use 2–3 layered shadows at different blur radii for visible, natural depth
+33. **Wrong file paste in dashboards breaks silently** - Pasting Admin dashboard content into Dean dashboard.blade.php causes a runtime error (`$stats['current_school_year']` undefined) with no obvious indicator of the cause; always verify file identity before saving
 
 ---
 
-**Last Updated:** February 22, 2026
-**Phase 6 Completed:** ✅ Dean Module — 100%
-**Phase 7 Completed:** ✅ Registrar Module — 100%
-**Next Milestone:** Phase 8 — Excel Features or Phase 10 UI/UX Polish
+## PROGRESS SUMMARY
+
+| Phase | Status | Completion | Duration |
+|-------|--------|------------|----------|
+| Phase 1: Foundation & Database | ✅ Complete | 100% | 2 hours |
+| Phase 2: Models & Seeders | ✅ Complete | 100% | 2 hours |
+| Phase 3: Auth & Authorization | ✅ Complete | 100% | 2 hours |
+| Phase 4: Admin Module | ✅ Complete | 100% | ~6 hours |
+| Phase 5: Faculty Module | ✅ Complete | 100% | ~4 hours |
+| Phase 6: Dean Module | ✅ Complete | 100% | ~3 hours |
+| Phase 7: Registrar Module | ✅ Complete | 100% | ~4 hours |
+| Phase 8: Excel Features | ✅ Complete | 100% | ~3 hours |
+| Phase 9: Reporting & Analytics | 📅 Planned | 0% | ~3 hours |
+| Phase 10: UI/UX & Testing | 🔄 In Progress | ~30% | ~3 hours |
+
+**Overall Project Completion:** ~85%
+
+---
+
+## NEXT STEPS — RESUME HERE NEXT SESSION
+
+### 🔄 Currently In: Phase 10 — UI/UX & Testing
+
+**Immediate priorities:**
+1. End-to-end workflow test: Faculty encodes → Dean approves → Registrar finalizes → PDF generates
+2. Excel import/export testing with real data
+3. Fix `dean_action` vs `approved_by_dean` status sync bug
+4. UI consistency pass across all Admin/Dean/Faculty/Registrar module views
+
+**Then Phase 9 — Reporting & Analytics:**
+- Department performance reports
+- Per-subject grade distribution
+- Faculty submission tracking
+- School year/semester summary reports
+
+---
+
+**Last Updated:** February 26, 2026
+**Phase 8 Completed:** ✅ Excel Features — 100%
+**Phase 10 Started:** 🔄 UI/UX & Testing — ~30% (Login + Dashboards done)
+**Next Milestone:** Phase 10 completion → Phase 9 Reporting
 **Target Completion:** March 2026

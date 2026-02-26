@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    if (auth()->check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
@@ -60,6 +63,9 @@ Route::middleware('auth')->group(function () {
 
         // Student Management
         Route::resource('students', App\Http\Controllers\Admin\StudentController::class);
+        Route::get('/excel/student-template', [App\Http\Controllers\Admin\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
+        Route::get('/excel/export-students', [App\Http\Controllers\Admin\ExcelController::class, 'exportStudents'])->name('excel.export-students');
+        Route::post('/excel/import-students', [App\Http\Controllers\Admin\ExcelController::class, 'importStudents'])->name('excel.import-students');
     });
 
     // Dean Routes
@@ -74,6 +80,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth', 'status', 'role:faculty'])->prefix('faculty')->name('faculty.')->group(function () {
         Route::get('/dashboard', [App\Http\Controllers\Faculty\FacultyController::class, 'index'])->name('dashboard');
         Route::get('/subjects', [App\Http\Controllers\Faculty\FacultyController::class, 'subjects'])->name('subjects');
+        Route::get('/subjects/{subject}/grades/template', [App\Http\Controllers\Faculty\ExcelController::class, 'downloadTemplate'])->name('subjects.grades.template');
+        Route::post('/subjects/{subject}/grades/upload', [App\Http\Controllers\Faculty\ExcelController::class, 'uploadGrades'])->name('subjects.grades.upload');
         Route::get('/subjects/{subject}/grades', [App\Http\Controllers\Faculty\GradeController::class, 'index'])->name('subjects.grades');
         Route::post('/subjects/{subject}/grades', [App\Http\Controllers\Faculty\GradeController::class, 'store'])->name('subjects.grades.store');
         Route::get('/subjects/{subject}/grades/{grade}/edit', [App\Http\Controllers\Faculty\GradeController::class, 'edit'])->name('subjects.grades.edit');
