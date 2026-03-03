@@ -13,24 +13,32 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+    <body class="font-sans antialiased bg-gray-50">
+        <div class="flex min-h-screen">
 
-            <!-- Page Heading -->
-            @if (isset($header))
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            @auth
+                @include('layouts.navigation')
+            @endauth
+
+            <div x-data="{ collapsed: localStorage.getItem('sidebar_collapsed') === 'true' }"
+                 x-on:storage.window="collapsed = localStorage.getItem('sidebar_collapsed') === 'true'"
+                 :class="collapsed ? 'ml-[72px]' : 'ml-[260px]'"
+                 class="flex flex-col flex-1 min-h-screen transition-all duration-300 ease-in-out">
+
+                @if (isset($header))
+                    <header class="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">
                         {{ $header }}
-                    </div>
-                </header>
-            @endif
+                    </header>
+                @endif
 
-            <!-- Page Content -->
-            <main>
-                {{ $slot }}
-            </main>
+                <main class="flex-1 p-6">
+                    {{ $slot }}
+                </main>
+
+            </div>
         </div>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     </body>
 </html>

@@ -8,15 +8,12 @@ use Spatie\Permission\Models\Permission;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeder.
-     */
     public function run(): void
     {
         // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create permissions
+        // Create permissions (firstOrCreate prevents duplicate crash on re-seed)
         $permissions = [
             // User Management
             'manage users',
@@ -31,12 +28,15 @@ class RoleSeeder extends Seeder
 
             // Student Management
             'manage students',
+            'import students',
+            'export students',
             'enroll students',
             'view students',
 
             // Grade Management
             'encode grades',
             'submit grades',
+            'resubmit grades',
             'review grades',
             'approve grades',
             'reject grades',
@@ -54,13 +54,13 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles and assign permissions
 
         // Admin Role
-        $admin = Role::create(['name' => 'admin']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->givePermissionTo([
             'manage users',
             'approve users',
@@ -69,7 +69,6 @@ class RoleSeeder extends Seeder
             'manage subjects',
             'manage school years',
             'manage semesters',
-            'manage students',
             'view students',
             'view grades',
             'view reports',
@@ -77,18 +76,21 @@ class RoleSeeder extends Seeder
         ]);
 
         // Faculty Role
-        $faculty = Role::create(['name' => 'faculty']);
+        $faculty = Role::firstOrCreate(['name' => 'faculty']);
         $faculty->givePermissionTo([
             'view students',
             'encode grades',
             'submit grades',
+            'resubmit grades',
             'view grades',
         ]);
 
         // Dean Role
-        $dean = Role::create(['name' => 'dean']);
+        $dean = Role::firstOrCreate(['name' => 'dean']);
         $dean->givePermissionTo([
             'manage students',
+            'import students',
+            'export students',
             'enroll students',
             'view students',
             'review grades',
@@ -100,7 +102,7 @@ class RoleSeeder extends Seeder
         ]);
 
         // Registrar Role
-        $registrar = Role::create(['name' => 'registrar']);
+        $registrar = Role::firstOrCreate(['name' => 'registrar']);
         $registrar->givePermissionTo([
             'view students',
             'finalize grades',
@@ -112,6 +114,6 @@ class RoleSeeder extends Seeder
             'export data',
         ]);
 
-        $this->command->info('Roles and permissions created successfully!');
+        $this->command->info('Roles and permissions seeded successfully!');
     }
 }

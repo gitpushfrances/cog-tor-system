@@ -12,9 +12,26 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
+    protected ?int $departmentId;
+
+    // departmentId null = export all (kept for any future admin use)
+    // departmentId set = export only that department's students
+    public function __construct(?int $departmentId = null)
+    {
+        $this->departmentId = $departmentId;
+    }
+
     public function collection()
     {
-        return Student::with('course')->get();
+        $query = Student::with('course');
+
+        if ($this->departmentId) {
+            $query->whereHas('course', function ($q) {
+                $q->where('department_id', $this->departmentId);
+            });
+        }
+
+        return $query->orderBy('last_name')->get();
     }
 
     public function headings(): array

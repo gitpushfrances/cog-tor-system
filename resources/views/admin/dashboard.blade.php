@@ -119,40 +119,6 @@
                 </div>
             </div>
 
-            {{-- STUDENT MANAGEMENT --}}
-            <div class="mb-6">
-                <h3 class="mb-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">Student Management</h3>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <a href="{{ route('admin.students.index') }}" class="p-5 transition bg-white border-l-4 border-orange-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">🎓</span>
-                            <div>
-                                <div class="font-semibold text-gray-800">Students</div>
-                                <div class="text-xs text-gray-500">Add, edit, import and export students</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.excel.student-template') }}" class="p-5 transition bg-white border-l-4 border-gray-400 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">⬇️</span>
-                            <div>
-                                <div class="font-semibold text-gray-800">Download Import Template</div>
-                                <div class="text-xs text-gray-500">Get blank CSV template for bulk import</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.excel.export-students') }}" class="p-5 transition bg-white border-l-4 border-yellow-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <span class="text-2xl">📊</span>
-                            <div>
-                                <div class="font-semibold text-gray-800">Export Students to Excel</div>
-                                <div class="text-xs text-gray-500">Download all students as .xlsx</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            </div>
-
             {{-- Recent Users Table --}}
             <div class="overflow-hidden bg-white rounded-lg shadow">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">

@@ -14,6 +14,7 @@
                 <div class="px-4 py-3 mb-4 text-red-800 bg-red-100 rounded">{{ session('error') }}</div>
             @endif
 
+            {{-- Stats --}}
             <div class="grid grid-cols-2 gap-4 mb-6 md:grid-cols-4">
                 <div class="p-5 bg-white rounded-lg shadow">
                     <div class="mb-1 text-xs text-gray-500 uppercase">Total Students</div>
@@ -33,13 +34,14 @@
                 </div>
             </div>
 
+            {{-- Pending Submissions grouped by subject --}}
             <div class="overflow-hidden bg-white rounded-lg shadow">
                 <div class="px-6 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-800">
                         Pending Grade Submissions
-                        @if($stats['pending_grades'] > 0)
+                        @if($pending_submissions->count() > 0)
                             <span class="ml-2 px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                                {{ $stats['pending_grades'] }} pending
+                                {{ $pending_submissions->count() }} subject(s)
                             </span>
                         @endif
                     </h3>
@@ -47,32 +49,38 @@
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Student</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Subject</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Grade</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Submitted By</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Date</th>
+                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Faculty</th>
+                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Students</th>
+                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Submitted</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Action</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200">
-                        @forelse($pending_submissions as $submission)
-                        <tr>
-                            <td class="px-6 py-4 text-sm">{{ $submission->grade->enrollment->student->getFullName() }}</td>
-                            <td class="px-6 py-4 font-mono text-sm">{{ $submission->grade->enrollment->subject->code }}</td>
-                            <td class="px-6 py-4 text-sm font-bold">{{ number_format($submission->grade->grade, 2) }}</td>
-                            <td class="px-6 py-4 text-sm">{{ $submission->submittedBy->name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $submission->submitted_at->format('M d, Y') }}</td>
+                        @forelse($pending_submissions as $subjectId => $group)
+                        @php $first = $group->first(); @endphp
+                        <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4">
-                                <a href="{{ route('dean.submissions.review', $submission) }}"
+                                <div class="text-sm font-medium text-gray-900">{{ $first->grade->enrollment->subject->name }}</div>
+                                <div class="font-mono text-xs text-gray-500">{{ $first->grade->enrollment->subject->code }}</div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-700">{{ $first->submittedBy->name }}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                    {{ $group->count() }} students
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">{{ $first->submitted_at->format('M d, Y') }}</td>
+                            <td class="px-6 py-4">
+                                <a href="{{ route('dean.submissions.review', $first) }}"
                                    class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
-                                    Review
+                                    Review All
                                 </a>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="px-6 py-8 text-center text-gray-400">
+                            <td colspan="5" class="px-6 py-8 text-center text-gray-400">
                                 ✅ No pending submissions. All caught up.
                             </td>
                         </tr>

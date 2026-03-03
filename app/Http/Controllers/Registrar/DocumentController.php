@@ -20,6 +20,59 @@ class DocumentController extends Controller
         return view('registrar.students', compact('students'));
     }
 
+    public function studentProfile(Student $student)
+    {
+        // Load all finalized enrollments grouped by school year → semester
+        $enrollments = Enrollment::with(['subject', 'grade', 'semester.schoolYear'])
+            ->where('student_id', $student->id)
+            ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
+            ->get();
+
+        // Group: school_year_id → semester_id → enrollments
+        $grouped = $enrollments
+            ->groupBy(fn($e) => $e->semester->schoolYear->id)
+            ->map(function ($byYear) {
+                $schoolYear = $byYear->first()->semester->schoolYear;
+                $semesters  = $byYear->groupBy('semester_id')->map(function ($bySem) {
+                    $semester    = $bySem->first()->semester;
+                    $totalUnits  = $bySem->sum(fn($e) => $e->subject->units);
+                    $semesterGwa = $totalUnits > 0
+                        ? $bySem->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
+                        : null;
+
+                    // Check if COG already generated for this semester
+                    $cogRecord = CogRecord::where('student_id', $bySem->first()->student_id)
+                        ->where('semester_id', $semester->id)
+                        ->latest()
+                        ->first();
+
+                    return [
+                        'semester'    => $semester,
+                        'enrollments' => $bySem,
+                        'totalUnits'  => $totalUnits,
+                        'semesterGwa' => $semesterGwa,
+                        'cogRecord'   => $cogRecord,
+                    ];
+                });
+
+                return [
+                    'schoolYear' => $schoolYear,
+                    'semesters'  => $semesters,
+                ];
+            });
+
+        // Latest TOR record
+        $torRecord = TorRecord::where('student_id', $student->id)->latest()->first();
+
+        // Cumulative GWA across all finalized
+        $totalUnits    = $enrollments->sum(fn($e) => $e->subject->units);
+        $cumulativeGwa = $totalUnits > 0
+            ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
+            : null;
+
+        return view('registrar.student-profile', compact('student', 'grouped', 'torRecord', 'cumulativeGwa'));
+    }
+
     public function cogForm(Student $student)
     {
         $semesters = Semester::whereHas('enrollments', function ($q) use ($student) {
