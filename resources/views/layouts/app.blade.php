@@ -15,17 +15,23 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     </head>
-    <body class="font-sans antialiased bg-gray-50">
-        <div class="flex min-h-screen">
+    <body class="font-sans antialiased bg-gray-50" style="overflow-y:auto;">
+        <script>
+            // Apply margin before paint — zero flicker
+            document.documentElement.style.setProperty(
+                '--sidebar-w',
+                localStorage.getItem('sidebar_collapsed') === 'true' ? '72px' : '260px'
+            );
+        </script>
+        <div class="flex" style="min-height:100vh;">
 
             @auth
-                @include('layouts.navigation')
+                @include('layouts.partials.sidebar')
             @endauth
 
-            <div x-data="{ collapsed: localStorage.getItem('sidebar_collapsed') === 'true' }"
-                 x-on:storage.window="collapsed = localStorage.getItem('sidebar_collapsed') === 'true'"
-                 :class="collapsed ? 'ml-[72px]' : 'ml-[260px]'"
-                 class="flex flex-col flex-1 min-h-screen transition-all duration-300 ease-in-out">
+            <div id="main-content"
+                 class="flex flex-col flex-1"
+                 style="min-height:100vh; margin-left:var(--sidebar-w); transition:margin-left 0.3s ease;">
 
                 @if (isset($header))
                     <header class="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200">

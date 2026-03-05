@@ -18,10 +18,13 @@
 
             <div class="flex flex-wrap gap-2">
                 @if(!$isLocked)
+                    {{-- Download template --}}
                     <a href="{{ route('faculty.subjects.grades.template', $subject) }}"
                        class="px-4 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200">
                         ↓ Download Grade Template
                     </a>
+
+                    {{-- Upload grades --}}
                     <button onclick="document.getElementById('uploadModal').classList.remove('hidden')"
                             class="px-4 py-2 text-sm text-white bg-yellow-500 rounded hover:bg-yellow-600">
                         ↑ Upload Grades (Excel)
@@ -29,6 +32,7 @@
                 @endif
 
                 @if(!$isLocked && !$isRejected)
+                    {{-- Submit to Dean --}}
                     <form action="{{ route('faculty.subjects.grades.submit', $subject) }}" method="POST" id="submitForm">
                         @csrf
                         <button type="button" onclick="confirmSubmit()"
@@ -39,6 +43,7 @@
                 @endif
 
                 @if($isRejected)
+                    {{-- Resubmit trigger --}}
                     <button onclick="document.getElementById('resubmitModal').classList.remove('hidden')"
                             class="px-4 py-2 text-sm text-white bg-orange-500 rounded hover:bg-orange-600">
                         ↩ Update & Resubmit
@@ -50,6 +55,7 @@
 
     <div class="px-4 py-6 mx-auto max-w-7xl">
 
+        {{-- Flash messages --}}
         @if(session('success'))
             <div class="px-4 py-3 mb-4 text-green-800 bg-green-100 rounded">{{ session('success') }}</div>
         @endif
@@ -70,6 +76,7 @@
             </div>
         @endif
 
+        {{-- Rejection Banner — shown prominently when Dean rejects --}}
         @if($isRejected && $latestSubmission?->dean_remarks)
             <div class="px-5 py-4 mb-5 border border-red-300 rounded-lg bg-red-50">
                 <div class="flex items-center gap-2 mb-1">
@@ -81,27 +88,31 @@
             </div>
         @endif
 
+        {{-- Pending lock notice --}}
         @if($isPending)
             <div class="px-5 py-4 mb-5 border border-yellow-300 rounded-lg bg-yellow-50">
-                <span class="text-sm font-semibold text-yellow-800">Awaiting Dean Review</span>
+                <span class="text-sm font-semibold text-yellow-800">⏳ Awaiting Dean Review</span>
                 <p class="mt-1 text-xs text-yellow-700">Grades are locked while pending Dean approval. You will be notified if rejected.</p>
             </div>
         @endif
 
+        {{-- Approved notice --}}
         @if($isApproved)
             <div class="px-5 py-4 mb-5 border border-green-300 rounded-lg bg-green-50">
-                <span class="text-sm font-semibold text-green-800">Approved by Dean</span>
+                <span class="text-sm font-semibold text-green-800">✅ Approved by Dean</span>
                 <p class="mt-1 text-xs text-green-700">Grades have been approved and forwarded to the Registrar for finalization.</p>
             </div>
         @endif
 
+        {{-- Finalized notice --}}
         @if($isFinalized)
             <div class="px-5 py-4 mb-5 border border-blue-300 rounded-lg bg-blue-50">
-                <span class="text-sm font-semibold text-blue-800">Finalized</span>
+                <span class="text-sm font-semibold text-blue-800">🔒 Finalized</span>
                 <p class="mt-1 text-xs text-blue-700">Grades have been permanently finalized by the Registrar.</p>
             </div>
         @endif
 
+        {{-- Grades Table --}}
         <div class="overflow-hidden bg-white rounded-lg shadow">
             <form action="{{ route('faculty.subjects.grades.store', $subject) }}" method="POST">
                 @csrf
@@ -181,6 +192,7 @@
                     </tbody>
                 </table>
 
+                {{-- Save button — only when not locked --}}
                 @if(!$isLocked)
                 <div class="px-6 py-4 border-t bg-gray-50">
                     <button type="submit" class="px-6 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">
@@ -192,7 +204,7 @@
         </div>
     </div>
 
-    {{-- Upload Modal --}}
+    {{-- Upload Grades Modal --}}
     <div id="uploadModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
         <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
             <h3 class="mb-1 text-lg font-semibold text-gray-800">Upload Grades from Excel</h3>
@@ -206,7 +218,8 @@
                     <p class="mt-1 text-xs text-gray-400">Accepted: .xlsx, .xls, .csv — Max 2MB</p>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('uploadModal').classList.add('hidden')"
+                    <button type="button"
+                            onclick="document.getElementById('uploadModal').classList.add('hidden')"
                             class="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
                         Cancel
                     </button>
@@ -223,7 +236,7 @@
         <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
             <h3 class="mb-1 text-lg font-semibold text-gray-800">Resubmit Grades to Dean</h3>
             <p class="mb-4 text-sm text-gray-500">Explain what corrections you made. The Dean will see this note.</p>
-            <form action="{{ route('faculty.subjects.grades.resubmit', $subject) }}" method="POST" id="resubmitForm">
+            <form action="{{ route('faculty.subjects.grades.resubmit', $subject) }}" method="POST">
                 @csrf
                 <div class="mb-4">
                     <label class="block mb-1 text-sm font-medium text-gray-700">Your Remarks <span class="text-red-500">*</span></label>
@@ -232,7 +245,8 @@
                               placeholder="Describe what was corrected..."></textarea>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('resubmitModal').classList.add('hidden')"
+                    <button type="button"
+                            onclick="document.getElementById('resubmitModal').classList.add('hidden')"
                             class="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50">
                         Cancel
                     </button>
@@ -245,7 +259,7 @@
         </div>
     </div>
 
-    <script>
+<script>
         function confirmSubmit() {
             Swal.fire({
                 title: 'Submit to Dean?',
@@ -264,7 +278,7 @@
         }
 
         function confirmResubmit() {
-            const remarks = document.querySelector('#resubmitForm textarea[name="faculty_remarks"]').value.trim();
+            const remarks = document.querySelector('#resubmitModal textarea[name="faculty_remarks"]').value.trim();
             if (!remarks) {
                 Swal.fire({
                     title: 'Remarks Required',
@@ -285,7 +299,7 @@
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    document.getElementById('resubmitForm').submit();
+                    document.querySelector('#resubmitModal form').submit();
                 }
             });
         }
