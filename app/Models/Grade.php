@@ -46,7 +46,7 @@ class Grade extends Model
         return $this->status === 'pending';
     }
 
-    public function isApprovedByDean()
+    public function isApprovedByHeadOfDepartment()
     {
         return $this->status === 'approved_by_dean';
     }
@@ -84,7 +84,7 @@ class Grade extends Model
         return $query->where('status', 'pending');
     }
 
-    public function scopeApprovedByDean($query)
+    public function scopeApprovedByHeadOfDepartment($query)
     {
         return $query->where('status', 'approved_by_dean');
     }

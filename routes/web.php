@@ -12,10 +12,10 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    if ($user->hasRole('admin')) return redirect()->route('admin.dashboard');
-    if ($user->hasRole('dean')) return redirect()->route('dean.dashboard');
-    if ($user->hasRole('faculty')) return redirect()->route('faculty.dashboard');
-    if ($user->hasRole('registrar')) return redirect()->route('registrar.dashboard');
+    if ($user->hasRole('admin'))              return redirect()->route('admin.dashboard');
+    if ($user->hasRole('head_of_department')) return redirect()->route('head_of_department.dashboard');
+    if ($user->hasRole('faculty'))            return redirect()->route('faculty.dashboard');
+    if ($user->hasRole('registrar'))          return redirect()->route('registrar.dashboard');
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -52,20 +52,29 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
     Route::post('/semesters/{semester}/set-active', [App\Http\Controllers\Admin\SemesterController::class, 'setActive'])->name('semesters.set-active');
 });
 
-// Dean Routes
-Route::middleware(['auth', 'status', 'role:dean'])->prefix('dean')->name('dean.')->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\Dean\DeanController::class, 'index'])->name('dashboard');
+// Head of Department Routes
+Route::middleware(['auth', 'status', 'role:head_of_department'])->prefix('head-of-department')->name('head_of_department.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'index'])->name('dashboard');
 
     // Grade Submissions
-    Route::get('/submissions/{submission}/review', [App\Http\Controllers\Dean\DeanController::class, 'review'])->name('submissions.review');
-    Route::post('/submissions/{submission}/approve', [App\Http\Controllers\Dean\DeanController::class, 'approve'])->name('submissions.approve');
-    Route::post('/submissions/{submission}/reject', [App\Http\Controllers\Dean\DeanController::class, 'reject'])->name('submissions.reject');
+    Route::get('/submissions/{submission}/review', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'review'])->name('submissions.review');
+    Route::post('/submissions/{submission}/approve', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'approve'])->name('submissions.approve');
+    Route::post('/submissions/{submission}/reject', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'reject'])->name('submissions.reject');
+
+    // Enrollment Management
+    Route::get('/enrollments', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'index'])->name('enrollments.index');
+    Route::post('/enrollments', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'store'])->name('enrollments.store');
+    Route::delete('/enrollments/{enrollment}', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+
+    // Subject Assignment
+    Route::get('/assignments', [App\Http\Controllers\HeadOfDepartment\SubjectAssignmentController::class, 'index'])->name('assignments.index');
+    Route::put('/assignments/{subject}', [App\Http\Controllers\HeadOfDepartment\SubjectAssignmentController::class, 'update'])->name('assignments.update');
 
     // Student Management
-    Route::resource('students', App\Http\Controllers\Dean\StudentController::class);
-    Route::get('/excel/student-template', [App\Http\Controllers\Dean\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
-    Route::get('/excel/export-students', [App\Http\Controllers\Dean\ExcelController::class, 'exportStudents'])->name('excel.export-students');
-    Route::post('/excel/import-students', [App\Http\Controllers\Dean\ExcelController::class, 'importStudents'])->name('excel.import-students');
+    Route::resource('students', App\Http\Controllers\HeadOfDepartment\StudentController::class);
+    Route::get('/excel/student-template', [App\Http\Controllers\HeadOfDepartment\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
+    Route::get('/excel/export-students', [App\Http\Controllers\HeadOfDepartment\ExcelController::class, 'exportStudents'])->name('excel.export-students');
+    Route::post('/excel/import-students', [App\Http\Controllers\HeadOfDepartment\ExcelController::class, 'importStudents'])->name('excel.import-students');
 });
 
 // Faculty Routes
@@ -86,6 +95,7 @@ Route::middleware(['auth', 'status', 'role:faculty'])->prefix('faculty')->name('
 Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->name('registrar.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Registrar\RegistrarController::class, 'index'])->name('dashboard');
     Route::post('/submissions/{submission}/finalize', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalize'])->name('submissions.finalize');
+    Route::post('/submissions/finalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalizeSubject'])->name('submissions.finalize-subject');
     Route::get('/students/{student}/profile', [App\Http\Controllers\Registrar\DocumentController::class, 'studentProfile'])->name('students.profile');
     Route::get('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'cogForm'])->name('students.cog');
     Route::post('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'generateCog'])->name('students.cog.generate');

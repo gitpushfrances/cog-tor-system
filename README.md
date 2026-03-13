@@ -6,31 +6,33 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red)
 ![PHP](https://img.shields.io/badge/PHP-8.4-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Progress](https://img.shields.io/badge/Progress-93%25-brightgreen)
+![Progress](https://img.shields.io/badge/Progress-98%25-brightgreen)
 ![Phases](https://img.shields.io/badge/Phases-11%20Total-blue)
 
 ---
 
 ## Project Overview
 
-This system streamlines the academic grading workflow with a multi-tier approval system: **Faculty → Dean → Registrar**, automated GWA computation, and official document generation (COG/TOR).
+This system streamlines the academic grading workflow with a multi-tier approval system: **Faculty → Head of Department → Registrar**, automated GWA computation, and official document generation (COG/TOR).
 
-> **v2 Restructure — Phase 9 at 91%:** All major restructure work is done. Only SweetAlert2 integration and end-to-end test remain. See CHANGELOG.md Phase 9 for exact resume point (Step 33).
+> **v2 Restructure — Phase 9 at 98%:** All major restructure work is done. Only 5 remaining SweetAlert actions and end-to-end test remain. See CHANGELOG.md for exact resume point (Step 44).
 
 ### Key Features
-- **Four-Role System** — Admin, Faculty, Dean, Registrar
-- **Grade Submission Workflow** — Faculty submits → Dean bulk approves → Registrar finalizes
-- **Department-Scoped Dean** — Each Dean manages their department only via `department_id`
-- **Student Management under Dean** — CRUD + bulk import/export per department
-- **Rejection & Resubmission Flow** — Dean rejects with remarks → Faculty corrects → resubmits with remarks
+- **Four-Role System** — Admin, Faculty, Head of Department, Registrar
+- **Grade Submission Workflow** — Faculty submits → Head of Department bulk approves → Registrar bulk finalizes per subject
+- **Department-Scoped Head of Department** — Each Head of Department manages their department only via `department_id`
+- **Student Management under Head of Department** — CRUD + bulk import/export per department
+- **Enrollment Management under Head of Department** — Enroll/remove students per active semester
+- **Faculty Assignment under Head of Department** — Assign subjects to faculty scoped by department
+- **Rejection & Resubmission Flow** — Head of Department rejects with remarks → Faculty corrects → resubmits with remarks
 - **Automated GWA Calculation** — Semester and cumulative weighted average
-- **COG & TOR Generation** — PDF documents with official formatting
+- **COG & TOR Generation** — PDF documents with official formatting, correct semester + school year labels
 - **Search-First Document Flow** — Registrar searches student → Academic Profile → generates COG/TOR
+- **Bulk Finalization** — Registrar finalizes all grades per subject at once with preview modal
 - **Complete Audit Trail** — Spatie Activity Log tracks all grade changes
-- **Excel Import/Export** — Dean: bulk student import/export | Faculty: grade template
+- **Excel Import/Export** — Head of Department: bulk student import/export | Faculty: grade template
 - **Font Awesome 6.5** — Clean icon set throughout, no emoji rendering issues
-- **SweetAlert2 Confirmations** — Pending (Phase 9.7, Step 33)
-- **Reporting & Analytics** — Planned Phase 10
+- **SweetAlert2 Confirmations** — Registrar finalize confirmed; remaining 5 actions pending (Step 44)
 
 ---
 
@@ -38,14 +40,14 @@ This system streamlines the academic grading workflow with a multi-tier approval
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1–8 | Foundation through Excel Features | Complete |
-| **Phase 9** | **System Restructure — YOU ARE HERE (91%)** | In Progress |
-| Phase 10 | Reporting & Analytics | Planned |
-| Phase 11 | UI/UX Polish & Testing | 30% Done |
+| Phase 1–8 | Foundation through Excel Features | ✅ Complete |
+| **Phase 9** | **System Restructure — YOU ARE HERE (98%)** | 🔄 In Progress |
+| Phase 10 | Reporting & Analytics | 📅 Planned |
+| Phase 11 | UI/UX Polish & Testing | 🔄 30% Done |
 
-**Overall Progress: ~93%**
+**Overall Progress: ~98%**
 
-> **Resume point:** Step 33 — add SweetAlert2. See CHANGELOG.md for exact checklist.
+> **Resume point:** Step 44 — SweetAlert2 on remaining 5 actions. See CHANGELOG.md for exact checklist.
 
 ---
 
@@ -54,37 +56,42 @@ This system streamlines the academic grading workflow with a multi-tier approval
 ```
 ADMIN
   Scope: System configuration only. No student/grade access.
-  - Manage Users (assign department_id when creating Dean accounts)
+  - Manage Users (Faculty, Head of Department, Registrar)
+    - Assign department_id when creating Faculty or Head of Department accounts (REQUIRED)
+    - Tab filter by role (All / Faculty / Head of Department / Registrar)
+    - Department column shows assignment or "Unassigned"
   - Manage Departments, Courses, Subjects
-  - Configure School Years & Semesters (set active)
+  - Configure School Years & Semesters
+    - Status flow: upcoming → active → completed
+    - Confirmation modal on activation
 
-DEAN (per department — scoped by department_id)
+HEAD OF DEPARTMENT (per department — scoped by department_id)
   Scope: Full academic management, own department only.
   - Manage Students (CRUD + bulk Excel import/export)
-  - Manage Enrollment (enroll students into subjects)
-  - Assign Subjects to Faculty
+  - Manage Enrollment (enroll/remove students per active semester)
+  - Assign Subjects to Faculty (faculty scoped to same department)
   - Review Grade Submissions (bulk — full class table at once)
     - Approve All → forwards batch to Registrar
     - Reject → returns to Faculty with remarks
     - Resubmissions show Faculty remarks prominently
+  - Dashboard stats (students, enrollments, pending/approved grades) all scoped to department
 
 FACULTY
   Scope: Assigned subjects only.
   - Encode Grades (manual or Excel template upload)
-  - Submit Full Class Batch to Dean
+  - Submit Full Class Batch to Head of Department
   - Grade table locks after submission
-  - If rejected: red banner shows Dean's remarks, "Update & Resubmit" unlocks grades
+  - If rejected: red banner shows Head of Department's remarks, "Update & Resubmit" unlocks grades
   - Add Faculty remarks when resubmitting
 
 REGISTRAR
   Scope: Official records and document generation only.
-  - Finalize Dean-approved batches (locks permanently)
-  - Search student by name or student number
-  - Academic Profile per student:
-    - All finalized grades grouped by School Year → Semester
+  - Finalization Queue tab — subjects grouped with student count
+    - Preview modal — see all students + grades before finalizing
+    - Finalize All per subject — SweetAlert2 confirm before locking permanently
+  - Generate COG / TOR tab — search students, click → Academic Profile
     - Generate COG per semester → PDF download
-    - Generate TOR at top → full record, cumulative GWA
-    - Download buttons for previously generated documents
+    - Generate TOR (full record, cumulative GWA, correct semester + school year label)
 ```
 
 ---
@@ -93,14 +100,24 @@ REGISTRAR
 
 ```
 [Faculty encodes]      →  saved               (draft, editable)
-[Faculty submits]      →  pending_dean_review  (locked for Faculty)
-[Dean approves bulk]   →  approved_by_dean     (forwarded to Registrar)
-[Dean rejects]         →  rejected             (Faculty can edit & resubmit)
-[Faculty resubmits]    →  pending_dean_review  (cycle repeats until approved)
+[Faculty submits]      →  pending_head of department_review  (locked for Faculty)
+[Head of Department approves bulk]   →  approved_by_head of department     (forwarded to Registrar)
+[Head of Department rejects]         →  rejected             (Faculty can edit & resubmit)
+[Faculty resubmits]    →  pending_head of department_review  (cycle repeats until approved)
 [Registrar finalizes]  →  finalized            (permanently locked)
 ```
 
 > These are the **only 5 valid ENUM values** for `grades.status`. No others accepted by MySQL.
+
+---
+
+## School Year & Semester Status Chain
+
+```
+upcoming  →  active  →  completed
+```
+
+> `inactive` is **NOT** a valid ENUM value. Always use `upcoming` for new/future and `completed` for past.
 
 ---
 
@@ -113,12 +130,11 @@ REGISTRAR
 
 ### Frontend
 - **Blade Templates** — Laravel templating
-- **Tailwind CSS** — Utility-first CSS
-- **Alpine.js** — Minimal JS interactions
+- **Tailwind CSS** — Utility-first CSS (CDN — use inline styles for critical colors)
 - **Vite** — Asset bundler
 - **Font Awesome 6.5** — Icons (via CDN in app.blade.php)
 - **Google Fonts** — Playfair Display + DM Sans
-- **SweetAlert2** — Confirmation dialogs (pending Phase 9.7)
+- **SweetAlert2** — Confirmation dialogs (CDN in app.blade.php)
 
 ### Key Packages
 | Package | Version | Purpose |
@@ -188,8 +204,8 @@ REGISTRAR
    | Role | Email | Password | Notes |
    |------|-------|----------|-------|
    | Admin | admin@cogtor.test | password | Full system config access |
-   | Dean | dean@cogtor.test | password | Scoped to College of Computer Studies |
-   | Faculty | faculty@cogtor.test | password | Assigned to Subject 1 |
+   | Head of Department | head of department@cogtor.test | password | Scoped to College of Computer Studies (department_id=1) |
+   | Faculty | faculty@cogtor.test | password | Assigned to Subject 1, department_id=1 |
    | Registrar | registrar@cogtor.test | password | Document generation |
    | Pending | pending@cogtor.test | password | Blocked by status middleware |
 
@@ -212,54 +228,53 @@ Visit `http://localhost:8000` — redirects to login automatically.
 ### Admin — System Configurator Only
 Does NOT manage students, grades, or enrollments.
 
-- Manage user accounts (Faculty, Dean, Registrar) — create, edit, approve, reject, deactivate
-- **Assign `department_id` when creating Dean accounts** — required for department scoping to work
+- Manage user accounts — create, edit, approve, reject, deactivate
+- **Assign `department_id` when creating Faculty or Head of Department accounts** — required for department scoping
+- Tab filter: All / Faculty / Head of Department / Registrar with live counts
+- Department column shows code + name or "Unassigned"
 - Manage Departments, Courses, Subjects
-- Configure School Years and Semesters (set active)
+- Configure School Years and Semesters (upcoming → active → completed)
 
 ### Faculty — Grade Encoder
 Sees only their assigned subjects for the active semester.
 
-- Encode grades manually (percentage → auto PH grade scale conversion)
-- Download pre-filled Excel grade template per subject, fill offline, upload back
-- Submit full class batch to Dean
-- Grade table **locks** after submission
-- If Dean rejects: rejection remarks shown prominently on subjects page
-- "Update & Resubmit" unlocks grades → make corrections → add Faculty remarks → resubmit
+- Encode grades manually (percentage → PH grade scale auto-conversion)
+- Download Excel grade template per subject, fill offline, upload back
+- Submit full class batch to Head of Department (grade table locks after submit)
+- If Head of Department rejects: rejection remarks shown prominently → "Update & Resubmit" unlocks grades → add Faculty remarks → resubmit
 
-### Dean — Department Academic Manager
-Scoped to their assigned department only. Cannot access other departments.
+### Head of Department — Department Academic Manager
+Scoped to their assigned department only.
 
-- **Manage Students** (CRUD — department-scoped)
-  - Bulk import via Excel template (validates course belongs to department)
-  - Export student roster to Excel
-- Manage student enrollment into subjects
-- Assign subjects to Faculty
-- **Review grade submissions in bulk** — full class table visible at once
-  - Approve All → forwards entire batch to Registrar
-  - Reject with remarks → returns to Faculty
-  - Resubmissions flagged with Faculty remarks visible
+- **Manage Students** (CRUD, department-scoped, Excel import/export)
+- **Manage Enrollment** — enroll students per active semester only
+- **Faculty Assignment** — assign subjects to faculty scoped by department
+- **Review grade submissions in bulk** — full class table, Approve All or Reject with remarks
+- **Dashboard stats** — all 4 cards (students, enrollments, pending, approved) scoped to department
 
 ### Registrar — Official Records & Documents
-Does NOT manage people.
+Does NOT manage people or grades directly.
 
-- Finalize Dean-approved grade batches (permanently locks)
-- **Search student** by name or student number (paginated directory — all students shown by default)
-- **Academic Profile** per student — all finalized grades by school year/semester
-- Generate **COG** per semester (semester GWA, immediate PDF download)
-- Generate **TOR** (full record always — cumulative GWA across all finalized semesters)
-- Re-download previously generated COG/TOR from Academic Profile
+- **Finalization Queue tab**
+  - Subjects grouped with count of pending students
+  - Preview button → modal showing all students + grades for that subject
+  - Finalize All → SweetAlert2 confirm → permanently locks all grades in subject
+- **Generate COG / TOR tab**
+  - Search student by name or number
+  - Academic Profile → grades grouped by school year → semester
+  - Generate COG per semester (semester GWA, PDF download)
+  - Generate TOR (full record, cumulative GWA, label: "Semester Name — SY YYYY-YYYY")
 
 ---
 
 ## Database Structure
 
-**Tables: 24 total (all migrations ran)**
+**Tables: 24 total**
 
 | Group | Tables |
 |-------|--------|
 | Academic Structure | school_years, semesters, departments, courses, subjects |
-| Users | users (includes department_id) |
+| Users | users (includes `department_id` for Faculty and Head of Department) |
 | Students | students, enrollments |
 | Grades | grades (5-value ENUM), grade_submissions (faculty_remarks, resubmission_count) |
 | Documents | cog_records, tor_records |
@@ -288,20 +303,20 @@ Does NOT manage people.
 Semester GWA    = Σ(Grade × Units) / Σ(Units)
 Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finalized semesters
 ```
-TOR always uses full cumulative GWA. No partial semester selection on TOR.
 
 ---
 
-## Excel Features
-
-### Dean — Student Import/Export
-- **Download Template** — CSV with correct headers and 1 sample row (department-scoped course codes)
-- **Import Students** — Upload CSV/Excel to bulk-create (validates: student_number unique, email unique, course within Dean's department, year level 1–5)
-- **Export Students** — Styled `.xlsx` roster scoped to Dean's department
-
-### Faculty — Grade Template
-- **Download Grade Template** — Pre-filled `.xlsx` per subject (student info + percentage column)
-- **Upload Grades** — Auto-saves grades, converts percentage → PH grade scale
+## Column Name Quick Reference
+| Table | Correct | Wrong |
+|-------|---------|-------|
+| subjects | `code` | `subject_code` |
+| students | `student_number` | `student_id` |
+| school_years | `year_code` | `year_start`, `year_end` |
+| semesters | `semester_name`, `semester_order` | `name` |
+| grades.status | `saved`, `pending_head of department_review`, `approved_by_head of department`, `rejected`, `finalized` | `pending`, `approved` |
+| school_years.status | `upcoming`, `active`, `completed` | `inactive` |
+| grade_submissions.head of department_action | `approved_by_head of department`, `rejected` | `approved` |
+| Storage facade | `Storage::` (with import) | `\Storage::` |
 
 ---
 
@@ -309,17 +324,17 @@ TOR always uses full cumulative GWA. No partial semester selection on TOR.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | Complete | Foundation + Database Architecture |
-| Phase 2 | Complete | Models, Seeders, Relationships |
-| Phase 3 | Complete | Authentication & Authorization |
-| Phase 4 | Complete | Admin Module (student mgmt removed in Phase 9) |
-| Phase 5 | Complete | Faculty Module (Grade Encoding + Resubmit Flow) |
-| Phase 6 | Complete | Dean Module (Bulk Approval + Student Management) |
-| Phase 7 | Complete | Registrar Module (Search-First + Academic Profile) |
-| Phase 8 | Complete | Excel Import/Export (Dean + Faculty) |
-| **Phase 9** | **91%** | **System Restructure — SweetAlert + E2E test remaining** |
-| Phase 10 | Planned | Reporting & Analytics |
-| Phase 11 | 30% Done | UI/UX Polish & Testing |
+| Phase 1 | ✅ Complete | Foundation + Database Architecture |
+| Phase 2 | ✅ Complete | Models, Seeders, Relationships |
+| Phase 3 | ✅ Complete | Authentication & Authorization |
+| Phase 4 | ✅ Complete | Admin Module |
+| Phase 5 | ✅ Complete | Faculty Module (Grade Encoding + Resubmit Flow) |
+| Phase 6 | ✅ Complete | Head of Department Module (Bulk Approval + Student + Enrollment + Faculty Assignment) |
+| Phase 7 | ✅ Complete | Registrar Module (Bulk Finalize + Preview Modal + TOR Fix) |
+| Phase 8 | ✅ Complete | Excel Import/Export |
+| **Phase 9** | 🔄 **98%** | System Restructure — 5 SweetAlert actions + E2E test remaining |
+| Phase 10 | 📅 Planned | Reporting & Analytics |
+| Phase 11 | 🔄 30% | UI/UX Polish & Testing |
 
 ---
 
@@ -327,25 +342,12 @@ TOR always uses full cumulative GWA. No partial semester selection on TOR.
 
 | Issue | Status |
 |-------|--------|
-| SweetAlert2 not yet integrated on destructive actions | Pending Phase 9.7 (Step 33) |
-| End-to-end 12-step test not yet run | Pending Phase 9.8 (Step 37) |
-| Admin dashboard still shows student nav links | Cleanup deferred to Phase 11 |
-| PDF storage not publicly accessible | Fix before production deploy |
-| No student portal | Planned post-Phase 11 |
-| Audit log has no UI | Planned post-Phase 11 |
-
----
-
-## Column Name Quick Reference
-Common sources of bugs — check before writing any query or view.
-
-| Table | Correct | Wrong |
-|-------|---------|-------|
-| subjects | `code` | `subject_code` |
-| students | `student_number` | `student_id` |
-| grades.status | `saved`, `pending_dean_review`, `approved_by_dean`, `rejected`, `finalized` | `pending`, `approved` |
-| grade_submissions.dean_action | `approved_by_dean`, `rejected` | `approved` |
-| Storage facade | `Storage::` (with import) | `\Storage::` |
+| SweetAlert2 pending on 5 actions (Head of Department approve/reject, Faculty submit/resubmit, Registrar generate TOR) | Step 44 |
+| End-to-end 12-step test not yet run | Step 47 |
+| Admin dashboard still shows student nav links | Cleanup Phase 11 |
+| PDF storage not publicly accessible | Fix before production |
+| No student portal | Post-Phase 11 |
+| Audit log has no UI | Post-Phase 11 |
 
 ---
 
@@ -358,21 +360,20 @@ Common sources of bugs — check before writing any query or view.
 - [x] Validate all Excel file uploads
 - [ ] Run `php artisan storage:link` before production deploy
 - [ ] Review signed URL strategy for PDF access control
-- [ ] Environment variable encryption
 
 ---
 
 ## Project Stats
 
 - **Started:** February 15, 2026
-- **Last Updated:** March 3, 2026
-- **Version:** 1.0.0-alpha (Phase 9 at 91%)
-- **Database Tables:** 24 (all migrations ran)
+- **Last Updated:** March 12, 2026
+- **Version:** 1.0.0-alpha (Phase 9 at 98%)
+- **Database Tables:** 24
 - **Models:** 11 (+ User)
 - **Middleware:** 2 custom (CheckRole, CheckStatus)
-- **Controllers:** 17
-- **Routes:** 111 verified clean
-- **Views:** 35+ Blade views
+- **Controllers:** 19
+- **Routes:** ~126 verified clean
+- **Views:** 40+ Blade views
 - **Test Accounts:** 5
 - **Total Phases:** 11
 
@@ -395,6 +396,6 @@ Common sources of bugs — check before writing any query or view.
 
 ---
 
-**Last Updated:** March 3, 2026
+**Last Updated:** March 12, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus

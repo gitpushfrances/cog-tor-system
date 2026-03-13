@@ -32,12 +32,12 @@
                 @endif
 
                 @if(!$isLocked && !$isRejected)
-                    {{-- Submit to Dean --}}
+                    {{-- Submit to Head of Department --}}
                     <form action="{{ route('faculty.subjects.grades.submit', $subject) }}" method="POST" id="submitForm">
                         @csrf
                         <button type="button" onclick="confirmSubmit()"
                                 class="px-4 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700">
-                            ✓ Submit to Dean
+                            ✓ Submit to Head of Department
                         </button>
                     </form>
                 @endif
@@ -76,12 +76,12 @@
             </div>
         @endif
 
-        {{-- Rejection Banner — shown prominently when Dean rejects --}}
+        {{-- Rejection Banner — shown prominently when Head of Department rejects --}}
         @if($isRejected && $latestSubmission?->dean_remarks)
             <div class="px-5 py-4 mb-5 border border-red-300 rounded-lg bg-red-50">
                 <div class="flex items-center gap-2 mb-1">
                     <span class="px-2 py-0.5 text-xs font-bold bg-red-200 text-red-800 rounded-full">REJECTED</span>
-                    <span class="text-sm font-semibold text-red-800">Dean's Remarks:</span>
+                    <span class="text-sm font-semibold text-red-800">Head of Department's Remarks:</span>
                 </div>
                 <p class="text-sm text-red-900">{{ $latestSubmission->dean_remarks }}</p>
                 <p class="mt-2 text-xs text-red-600">Please correct the grades below, then click "Update & Resubmit".</p>
@@ -91,15 +91,15 @@
         {{-- Pending lock notice --}}
         @if($isPending)
             <div class="px-5 py-4 mb-5 border border-yellow-300 rounded-lg bg-yellow-50">
-                <span class="text-sm font-semibold text-yellow-800">⏳ Awaiting Dean Review</span>
-                <p class="mt-1 text-xs text-yellow-700">Grades are locked while pending Dean approval. You will be notified if rejected.</p>
+                <span class="text-sm font-semibold text-yellow-800">⏳ Awaiting Head of Department Review</span>
+                <p class="mt-1 text-xs text-yellow-700">Grades are locked while pending Head of Department approval. You will be notified if rejected.</p>
             </div>
         @endif
 
         {{-- Approved notice --}}
         @if($isApproved)
             <div class="px-5 py-4 mb-5 border border-green-300 rounded-lg bg-green-50">
-                <span class="text-sm font-semibold text-green-800">✅ Approved by Dean</span>
+                <span class="text-sm font-semibold text-green-800">✅ Approved by Head of Department</span>
                 <p class="mt-1 text-xs text-green-700">Grades have been approved and forwarded to the Registrar for finalization.</p>
             </div>
         @endif
@@ -234,8 +234,8 @@
     {{-- Resubmit Modal --}}
     <div id="resubmitModal" class="fixed inset-0 z-50 flex items-center justify-center hidden bg-black bg-opacity-50">
         <div class="w-full max-w-md p-6 mx-4 bg-white rounded-lg shadow-xl">
-            <h3 class="mb-1 text-lg font-semibold text-gray-800">Resubmit Grades to Dean</h3>
-            <p class="mb-4 text-sm text-gray-500">Explain what corrections you made. The Dean will see this note.</p>
+            <h3 class="mb-1 text-lg font-semibold text-gray-800">Resubmit Grades to Head of Department</h3>
+            <p class="mb-4 text-sm text-gray-500">Explain what corrections you made. The Head of Department will see this note.</p>
             <form action="{{ route('faculty.subjects.grades.resubmit', $subject) }}" method="POST">
                 @csrf
                 <div class="mb-4">
@@ -252,7 +252,7 @@
                     </button>
                     <button type="button" onclick="confirmResubmit()"
                             class="px-4 py-2 text-sm text-white bg-orange-500 rounded hover:bg-orange-600">
-                        Resubmit to Dean
+                        Resubmit to Head of Department
                     </button>
                 </div>
             </form>
@@ -262,8 +262,8 @@
 <script>
         function confirmSubmit() {
             Swal.fire({
-                title: 'Submit to Dean?',
-                text: 'Submit all saved grades for {{ $subject->code }}? You will not be able to edit until Dean reviews.',
+                title: 'Submit to Head of Department?',
+                text: 'Submit all saved grades for {{ $subject->code }}? You will not be able to edit until Head of Department reviews.',
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#16a34a',
@@ -289,7 +289,7 @@
                 return;
             }
             Swal.fire({
-                title: 'Resubmit to Dean?',
+                title: 'Resubmit to Head of Department?',
                 text: 'Resubmit corrected grades for {{ $subject->code }}?',
                 icon: 'question',
                 showCancelButton: true,

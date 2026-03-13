@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\DB;
 use App\Models\SchoolYear;
 use Illuminate\Http\Request;
 
@@ -27,10 +28,15 @@ class SchoolYearController extends Controller
         ]);
 
         if ($request->status === 'active') {
-            SchoolYear::where('status', 'active')->update(['status' => 'inactive']);
+            SchoolYear::where('status', 'active')->update(['status' => 'upcoming']);
         }
 
-        SchoolYear::create($request->all());
+        SchoolYear::create([
+            'year_code'  => $request->year_start . '-' . $request->year_end,
+            'start_date' => $request->year_start . '-06-01',
+            'end_date'   => $request->year_end . '-05-31',
+            'status'     => $request->status,
+        ]);
 
         return redirect()->route('admin.school-years.index')
             ->with('success', 'School year created successfully.');
@@ -50,10 +56,17 @@ class SchoolYearController extends Controller
         ]);
 
         if ($request->status === 'active') {
-            SchoolYear::where('status', 'active')->where('id', '!=', $schoolYear->id)->update(['status' => 'inactive']);
+            SchoolYear::where('status', 'active')
+                ->where('id', '!=', $schoolYear->id)
+                ->update(['status' => 'upcoming']);
         }
 
-        $schoolYear->update($request->all());
+        $schoolYear->update([
+            'year_code'  => $request->year_start . '-' . $request->year_end,
+            'start_date' => $request->year_start . '-06-01',
+            'end_date'   => $request->year_end . '-05-31',
+            'status'     => $request->status,
+        ]);
 
         return redirect()->route('admin.school-years.index')
             ->with('success', 'School year updated successfully.');
@@ -74,7 +87,7 @@ class SchoolYearController extends Controller
 
     public function setActive(SchoolYear $schoolYear)
     {
-        SchoolYear::where('status', 'active')->update(['status' => 'inactive']);
+        SchoolYear::where('status', 'active')->update(['status' => 'upcoming']);
         $schoolYear->update(['status' => 'active']);
 
         return redirect()->route('admin.school-years.index')

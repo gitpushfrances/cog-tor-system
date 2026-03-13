@@ -127,7 +127,7 @@ class GradeController extends Controller
         }
 
         return redirect()->route('faculty.subjects.grades', $subject)
-            ->with('success', 'Grades submitted to Dean for approval.');
+            ->with('success', 'Grades submitted to Head of Department for approval.');
     }
 
     public function resubmit(Request $request, Subject $subject)
@@ -150,7 +150,7 @@ class GradeController extends Controller
         }
 
         foreach ($grades as $grade) {
-            // Update submission — save faculty remarks, increment count, reset dean action
+            // Update submission — save faculty remarks, increment count, reset hod action
             $submission = $grade->submission;
             if ($submission) {
                 $submission->update([
@@ -167,6 +167,6 @@ class GradeController extends Controller
         }
 
         return redirect()->route('faculty.subjects.grades', $subject)
-            ->with('success', 'Grades resubmitted to Dean for review.');
+            ->with('success', 'Grades resubmitted to Head of Department for review.');
     }
 }

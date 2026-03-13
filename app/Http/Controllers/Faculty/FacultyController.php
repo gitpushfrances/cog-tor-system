@@ -16,7 +16,7 @@ class FacultyController extends Controller
             'assigned_subjects' => $subjects->count(),
             'total_grades'      => Grade::where('faculty_id', $user->id)->count(),
             'pending_grades'    => Grade::where('faculty_id', $user->id)->pending()->count(),
-            'approved_grades'   => Grade::where('faculty_id', $user->id)->approvedByDean()->count(),
+            'approved_grades'   => Grade::where('faculty_id', $user->id)->approvedByHeadOfDepartment()->count(),
         ];
         $recent_grades = Grade::with(['enrollment.student', 'enrollment.subject'])
             ->where('faculty_id', $user->id)

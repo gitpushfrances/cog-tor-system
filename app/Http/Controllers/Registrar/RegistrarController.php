@@ -11,6 +11,26 @@ use Illuminate\Http\Request;
 
 class RegistrarController extends Controller
 {
+    public function finalizeSubject(Request $request, $subjectId)
+    {
+        $submissions = GradeSubmission::whereHas('grade.enrollment', fn($q) =>
+                $q->where('subject_id', $subjectId))
+            ->approved()
+            ->whereNull('finalized_at')
+            ->get();
+
+        foreach ($submissions as $sub) {
+            $sub->update([
+                'finalized_at' => now(),
+                'finalized_by' => auth()->id(),
+            ]);
+            $sub->grade->update(['status' => 'finalized']);
+        }
+
+        return redirect()->route('registrar.dashboard', ['tab' => 'finalization'])
+            ->with('success', count($submissions) . ' grades finalized successfully.');
+    }
+
     public function finalize(Request $request, \App\Models\GradeSubmission $submission)
     {
         $submission->update([
@@ -32,12 +52,17 @@ class RegistrarController extends Controller
             'tor_generated'        => TorRecord::count(),
         ];
 
-        $pending_submissions = GradeSubmission::with(['grade.enrollment.student', 'grade.enrollment.subject', 'reviewedBy'])
+        // Group pending submissions by subject
+        $pending_submissions = GradeSubmission::with([
+                'grade.enrollment.student',
+                'grade.enrollment.subject',
+                'reviewedBy'
+            ])
             ->approved()
             ->whereNull('finalized_at')
             ->latest()
-            ->take(10)
-            ->get();
+            ->get()
+            ->groupBy(fn($s) => $s->grade->enrollment->subject_id);
 
         $search   = $request->input('search');
         $students = Student::with('course')

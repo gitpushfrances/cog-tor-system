@@ -15,11 +15,6 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles, LogsActivity;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -28,27 +23,18 @@ class User extends Authenticatable
         'status',
         'approved_by',
         'approved_at',
+        'department_id',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'approved_at' => 'datetime',
-        'password' => 'hashed',
+        'approved_at'       => 'datetime',
+        'password'          => 'hashed',
     ];
 
     // Activity Log Configuration
@@ -61,6 +47,11 @@ class User extends Authenticatable
     }
 
     // Relationships
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class);
+    }
+
     public function enrollmentsCreated()
     {
         return $this->hasMany(Enrollment::class, 'enrolled_by');
@@ -117,9 +108,9 @@ class User extends Authenticatable
         return $this->role === 'faculty';
     }
 
-    public function isDean()
+    public function isHeadOfDepartment()
     {
-        return $this->role === 'dean';
+        return $this->role === 'head_of_department';
     }
 
     public function isRegistrar()
@@ -169,9 +160,9 @@ class User extends Authenticatable
         return $query->where('role', 'faculty');
     }
 
-    public function scopeDeans($query)
+    public function scopeHeadsOfDepartment($query)
     {
-        return $query->where('role', 'dean');
+        return $query->where('role', 'head_of_department');
     }
 
     public function scopeRegistrars($query)

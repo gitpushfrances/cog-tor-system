@@ -2,14 +2,10 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $this->call([
@@ -27,7 +23,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info('');
         $this->command->info('TEST ACCOUNTS:');
         $this->command->info('Admin:     admin@cogtor.test / password');
-        $this->command->info('Dean:      dean@cogtor.test / password');
+        $this->command->info('HOD:       hod@cogtor.test / password');
         $this->command->info('Faculty:   faculty@cogtor.test / password');
         $this->command->info('Registrar: registrar@cogtor.test / password');
         $this->command->info('');

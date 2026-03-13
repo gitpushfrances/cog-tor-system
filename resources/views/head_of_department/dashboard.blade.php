@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold leading-tight text-gray-800">Dean Dashboard</h2>
+        <h2 class="text-xl font-semibold leading-tight text-gray-800">Head of Department Dashboard</h2>
         <p class="mt-1 text-sm text-gray-500">Grade review and approval management</p>
     </x-slot>
 
@@ -72,7 +72,7 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500">{{ $first->submitted_at->format('M d, Y') }}</td>
                             <td class="px-6 py-4">
-                                <a href="{{ route('dean.submissions.review', $first) }}"
+                                <a href="{{ route('head_of_department.submissions.review', $first) }}"
                                    class="inline-flex items-center px-3 py-1 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
                                     Review All
                                 </a>

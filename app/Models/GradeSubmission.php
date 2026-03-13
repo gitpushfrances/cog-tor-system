@@ -52,7 +52,7 @@ class GradeSubmission extends Model
     // Helper Methods
     public function isApproved()
     {
-        return $this->dean_action === 'approved';
+        return $this->dean_action === 'approved_by_dean';
     }
 
     public function isRejected()
@@ -84,7 +84,7 @@ class GradeSubmission extends Model
 
     public function scopeApproved($query)
     {
-        return $query->where('dean_action', 'approved');
+        return $query->where('dean_action', 'approved_by_dean');
     }
 
     public function scopeRejected($query)

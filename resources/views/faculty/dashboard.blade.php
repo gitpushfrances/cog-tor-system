@@ -30,7 +30,7 @@
                     <div class="text-3xl font-bold text-yellow-600">{{ $stats['pending_grades'] }}</div>
                 </div>
                 <div class="p-5 bg-white rounded-lg shadow">
-                    <div class="mb-1 text-xs text-gray-500 uppercase">Approved by Dean</div>
+                    <div class="mb-1 text-xs text-gray-500 uppercase">Approved by Head of Department</div>
                     <div class="text-3xl font-bold text-green-600">{{ $stats['approved_grades'] }}</div>
                 </div>
             </div>

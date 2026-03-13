@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Dean;
+namespace App\Http\Controllers\HeadOfDepartment;
 
 use App\Http\Controllers\Controller;
 use App\Exports\StudentsExport;
@@ -11,26 +11,14 @@ use Illuminate\Http\Request;
 
 class ExcelController extends Controller
 {
-    // Download blank student import template (CSV)
     public function studentTemplate()
     {
         $headers = [
-            'Student Number',
-            'First Name',
-            'Middle Name',
-            'Last Name',
-            'Suffix',
-            'Birth Date (YYYY-MM-DD)',
-            'Gender (Male/Female)',
-            'Email',
-            'Phone',
-            'Address',
-            'Year Level',
-            'Course Code',
-            'Status',
+            'Student Number', 'First Name', 'Middle Name', 'Last Name',
+            'Suffix', 'Birth Date (YYYY-MM-DD)', 'Gender (Male/Female)',
+            'Email', 'Phone', 'Address', 'Year Level', 'Course Code', 'Status',
         ];
 
-        // Get course codes scoped to Dean's department
         $courseCodes = Course::where('department_id', auth()->user()->department_id)
                              ->where('status', 'active')
                              ->pluck('code')
@@ -39,7 +27,6 @@ class ExcelController extends Controller
         $callback = function () use ($headers, $courseCodes) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $headers);
-            // Sample row showing valid course codes for this department
             fputcsv($file, [
                 '2024-00001', 'Juan', 'Santos', 'Dela Cruz', '',
                 '2004-05-15', 'Male', 'juan@example.com', '09171234567',
@@ -54,7 +41,6 @@ class ExcelController extends Controller
         ]);
     }
 
-    // Export student roster scoped to Dean's department
     public function exportStudents()
     {
         $departmentId = auth()->user()->department_id;
@@ -65,7 +51,6 @@ class ExcelController extends Controller
         );
     }
 
-    // Import students — validates course belongs to Dean's department
     public function importStudents(Request $request)
     {
         $request->validate([
@@ -73,7 +58,7 @@ class ExcelController extends Controller
         ]);
 
         $departmentId = auth()->user()->department_id;
-        $import = new StudentsImport($departmentId);
+        $import       = new StudentsImport($departmentId);
         Excel::import($import, $request->file('file'));
 
         $failures = $import->failures();
@@ -88,12 +73,12 @@ class ExcelController extends Controller
                 $messages[] = $error->getMessage();
             }
 
-            return redirect()->route('dean.students.index')
+            return redirect()->route('head_of_department.students.index')
                 ->with('import_errors', $messages)
                 ->with('warning', count($messages) . ' row(s) had errors and were skipped.');
         }
 
-        return redirect()->route('dean.students.index')
-            ->with('success', 'Students imported successfully.');
+        return redirect()->route('head_of_department.students.index')
+                         ->with('success', 'Students imported successfully.');
     }
 }

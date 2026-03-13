@@ -131,15 +131,28 @@ html, body { height: 100%; }
 
         @endif
 
-        @if(auth()->user()->hasRole('dean'))
-            <a href="{{ route('dean.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('dean.dashboard') ? 'sdb-active' : '' }}"
+        @if(auth()->user()->hasRole('head_of_department'))
+            <a href="{{ route('head_of_department.dashboard') }}" title="Dashboard"
+               class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}"
                :class="collapsed ? 'sdb-collapsed' : ''">
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span x-show="!collapsed" class="sdb-label">Dashboard</span>
             </a>
-            <a href="{{ route('dean.students.index') }}" title="Students"
-               class="sdb-link {{ request()->routeIs('dean.students.*') ? 'sdb-active' : '' }}"
+            <a href="{{ route('head_of_department.students.index') }}" title="Students"
+               class="sdb-link {{ request()->routeIs('head_of_department.students.*') ? 'sdb-active' : '' }}"
+               :class="collapsed ? 'sdb-collapsed' : ''">
+                <i class="fa-solid fa-user-graduate sdb-icon"></i>
+                <span x-show="!collapsed" class="sdb-label">Students</span>
+            </a>
+        @endif
+            <a href="{{ route('head_of_department.dashboard') }}" title="Dashboard"
+               class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}"
+               :class="collapsed ? 'sdb-collapsed' : ''">
+                <i class="fa-solid fa-gauge-high sdb-icon"></i>
+                <span x-show="!collapsed" class="sdb-label">Dashboard</span>
+            </a>
+            <a href="{{ route('head_of_department.students.index') }}" title="Students"
+               class="sdb-link {{ request()->routeIs('head_of_department.students.*') ? 'sdb-active' : '' }}"
                :class="collapsed ? 'sdb-collapsed' : ''">
                 <i class="fa-solid fa-user-graduate sdb-icon"></i>
                 <span x-show="!collapsed" class="sdb-label">Students</span>

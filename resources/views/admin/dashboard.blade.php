@@ -60,7 +60,7 @@
                             <span class="text-2xl">👥</span>
                             <div>
                                 <div class="font-semibold text-gray-800">Users</div>
-                                <div class="text-xs text-gray-500">Manage faculty, dean, registrar accounts</div>
+                                <div class="text-xs text-gray-500">Manage faculty, heads of department, registrar accounts</div>
                             </div>
                         </div>
                     </a>

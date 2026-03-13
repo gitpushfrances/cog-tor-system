@@ -218,16 +218,39 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
 
         @endif
 
-        @if(auth()->user()->hasRole('dean'))
-            <a href="{{ route('dean.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('dean.dashboard') ? 'sdb-active' : '' }}">
+        @if(auth()->user()->hasRole('head_of_department'))
+            <a href="{{ route('head_of_department.dashboard') }}" title="Dashboard"
+            class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Dashboard</span>
             </a>
-            <a href="{{ route('dean.students.index') }}" title="Students"
-               class="sdb-link {{ request()->routeIs('dean.students.*') ? 'sdb-active' : '' }}">
+
+            <div class="sdb-section-label sidebar-section-label">Academic</div>
+
+            <a href="{{ route('head_of_department.students.index') }}" title="Students"
+            class="sdb-link {{ request()->routeIs('head_of_department.students.*') ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-user-graduate sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Students</span>
+            </a>
+
+            <a href="{{ route('head_of_department.enrollments.index') }}" title="Enrollment"
+            class="sdb-link {{ request()->routeIs('head_of_department.enrollments.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-clipboard-list sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Enrollment</span>
+            </a>
+
+            <a href="{{ route('head_of_department.assignments.index') }}" title="Faculty Assignment"
+            class="sdb-link {{ request()->routeIs('head_of_department.assignments.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-chalkboard-user sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Faculty Assignment</span>
+            </a>
+
+            <div class="sdb-section-label sidebar-section-label">Grades</div>
+
+            <a href="{{ route('head_of_department.dashboard') }}" title="Grade Submissions"
+            class="sdb-link {{ request()->routeIs('head_of_department.submissions.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-file-circle-check sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Grade Submissions</span>
             </a>
         @endif
 

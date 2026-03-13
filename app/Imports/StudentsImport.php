@@ -34,7 +34,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
 
         $course = $query->first();
 
-        // Skip row if course not found or not in Dean's department
+        // Skip row if course not found or not in Head of Department's department
         if (!$course) return null;
 
         return new Student([

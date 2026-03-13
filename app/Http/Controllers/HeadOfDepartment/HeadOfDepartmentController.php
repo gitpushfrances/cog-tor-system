@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Dean;
+namespace App\Http\Controllers\HeadOfDepartment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
@@ -9,7 +9,7 @@ use App\Models\GradeSubmission;
 use App\Models\Grade;
 use Illuminate\Http\Request;
 
-class DeanController extends Controller
+class HeadOfDepartmentController extends Controller
 {
     public function index()
     {
@@ -19,28 +19,38 @@ class DeanController extends Controller
             'total_students' => Student::whereHas('course', function ($q) use ($departmentId) {
                 $q->where('department_id', $departmentId);
             })->count(),
-            'active_enrollments' => Enrollment::enrolled()->count(),
-            'pending_grades'     => GradeSubmission::pendingReview()->count(),
-            'approved_grades'    => GradeSubmission::approved()->count(),
+
+            'active_enrollments' => Enrollment::whereHas('subject', function ($q) use ($departmentId) {
+                $q->whereHas('course', fn($q2) => $q2->where('department_id', $departmentId));
+            })->enrolled()->count(),
+
+            'pending_grades' => GradeSubmission::whereHas('grade.enrollment.subject', function ($q) use ($departmentId) {
+                $q->whereHas('course', fn($q2) => $q2->where('department_id', $departmentId));
+            })->pendingReview()->count(),
+
+            'approved_grades' => GradeSubmission::whereHas('grade.enrollment.subject', function ($q) use ($departmentId) {
+                $q->whereHas('course', fn($q2) => $q2->where('department_id', $departmentId));
+            })->approved()->count(),
         ];
 
-        // Group pending submissions by subject so dashboard shows one row per subject
         $pending_submissions = GradeSubmission::with([
                 'grade.enrollment.student',
                 'grade.enrollment.subject',
                 'submittedBy'
             ])
+            ->whereHas('grade.enrollment.subject', function ($q) use ($departmentId) {
+                $q->whereHas('course', fn($q2) => $q2->where('department_id', $departmentId));
+            })
             ->pendingReview()
             ->latest()
             ->get()
             ->groupBy(fn($s) => $s->grade->enrollment->subject_id);
 
-        return view('dean.dashboard', compact('stats', 'pending_submissions'));
+        return view('head_of_department.dashboard', compact('stats', 'pending_submissions'));
     }
 
     public function review(GradeSubmission $submission)
     {
-        // Load ALL submissions for the same subject + same faculty
         $subjectId   = $submission->grade->enrollment->subject_id;
         $submittedBy = $submission->submitted_by;
 
@@ -57,7 +67,7 @@ class DeanController extends Controller
         $subject = $submission->grade->enrollment->subject;
         $faculty = $submission->submittedBy;
 
-        return view('dean.review', compact('submissions', 'subject', 'faculty', 'submission'));
+        return view('head_of_department.review', compact('submissions', 'subject', 'faculty', 'submission'));
     }
 
     public function approve(Request $request, GradeSubmission $submission)
@@ -80,7 +90,7 @@ class DeanController extends Controller
             $sub->grade->update(['status' => 'approved_by_dean']);
         }
 
-        return redirect()->route('dean.dashboard')
+        return redirect()->route('head_of_department.dashboard')
             ->with('success', count($submissions) . ' grades approved and forwarded to Registrar.');
     }
 
@@ -109,7 +119,7 @@ class DeanController extends Controller
             $sub->grade->update(['status' => 'rejected']);
         }
 
-        return redirect()->route('dean.dashboard')
+        return redirect()->route('head_of_department.dashboard')
             ->with('error', count($submissions) . ' grades rejected and returned to faculty.');
     }
 }

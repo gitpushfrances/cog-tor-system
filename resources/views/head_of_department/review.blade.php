@@ -7,7 +7,7 @@
                     {{ $subject->code }} — {{ $subject->name }} &nbsp;·&nbsp; Submitted by {{ $faculty->name }}
                 </p>
             </div>
-            <a href="{{ route('dean.dashboard') }}"
+            <a href="{{ route('head_of_department.dashboard') }}"
                class="text-sm text-gray-500 hover:text-gray-800">← Back to Dashboard</a>
         </div>
     </x-slot>
@@ -84,7 +84,7 @@
                 <p class="mb-4 text-sm text-gray-500">
                     This will approve all {{ $submissions->count() }} grades for {{ $subject->code }} and forward them to the Registrar. This cannot be undone.
                 </p>
-                <form method="POST" action="{{ route('dean.submissions.approve', $submission) }}" id="approveForm">
+                <form method="POST" action="{{ route('head_of_department.submissions.approve', $submission) }}" id="approveForm">
                     @csrf
                     <button type="button" onclick="confirmApprove()"
                             class="w-full px-4 py-2 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">
@@ -96,7 +96,7 @@
             {{-- Reject --}}
             <div class="p-6 bg-white rounded-lg shadow">
                 <h3 class="mb-3 font-semibold text-gray-800">Reject & Return to Faculty</h3>
-                <form method="POST" action="{{ route('dean.submissions.reject', $submission) }}" id="rejectForm">
+                <form method="POST" action="{{ route('head_of_department.submissions.reject', $submission) }}" id="rejectForm">
                     @csrf
                     <div class="mb-4">
                         <label class="block mb-1 text-sm font-medium text-gray-700">

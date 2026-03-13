@@ -142,15 +142,18 @@ class DocumentController extends Controller
 
     public function generateTor(Request $request, Student $student)
     {
-        $enrollments = Enrollment::with(['subject', 'grade', 'semester'])
+        $enrollments = Enrollment::with(['subject', 'grade', 'semester.schoolYear'])
             ->where('student_id', $student->id)
             ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
             ->get();
 
         $allGradesData = $enrollments->groupBy('semester_id')->map(function ($group) {
             $first = $group->first();
+            $semester = $first->semester;
+            $schoolYear = $semester->schoolYear->year_code ?? 'N/A';
+            $semLabel = ($semester->semester_name ?? 'N/A') . ' — SY ' . $schoolYear;
             return [
-                'semester'  => $first->semester->name ?? 'N/A',
+                'semester'  => $semLabel,
                 'subjects'  => $group->map(fn($e) => [
                     'subject_code' => $e->subject->code,
                     'subject_name' => $e->subject->name,

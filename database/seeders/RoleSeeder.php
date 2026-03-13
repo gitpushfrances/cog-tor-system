@@ -10,10 +10,8 @@ class RoleSeeder extends Seeder
 {
     public function run(): void
     {
-        // Reset cached roles and permissions
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Create permissions (firstOrCreate prevents duplicate crash on re-seed)
         $permissions = [
             // User Management
             'manage users',
@@ -57,8 +55,6 @@ class RoleSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permission]);
         }
 
-        // Create roles and assign permissions
-
         // Admin Role
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $admin->givePermissionTo([
@@ -85,9 +81,9 @@ class RoleSeeder extends Seeder
             'view grades',
         ]);
 
-        // Dean Role
-        $dean = Role::firstOrCreate(['name' => 'dean']);
-        $dean->givePermissionTo([
+        // Head of Department Role
+        $hod = Role::firstOrCreate(['name' => 'head_of_department']);
+        $hod->givePermissionTo([
             'manage students',
             'import students',
             'export students',

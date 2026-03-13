@@ -17,12 +17,6 @@
 
             {{-- TOR Button --}}
             <div>
-                @if($torRecord && $torRecord->hasFile())
-                    <a href="{{ route('registrar.tor.download', $torRecord) }}"
-                       class="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
-                        ↓ Download TOR
-                    </a>
-                @endif
                 <form method="POST" action="{{ route('registrar.students.tor.generate', $student) }}" id="torForm">
                     @csrf
                     <button type="button" onclick="confirmTor()"

@@ -6,11 +6,11 @@
                 <p class="mt-1 text-sm text-gray-500">Manage students in your department</p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('dean.excel.student-template') }}"
+                <a href="{{ route('head_of_department.excel.student-template') }}"
                    class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
                     ⬇ Download Template
                 </a>
-                <form action="{{ route('dean.excel.import-students') }}" method="POST" enctype="multipart/form-data" class="inline">
+                <form action="{{ route('head_of_department.excel.import-students') }}" method="POST" enctype="multipart/form-data" class="inline">
                     @csrf
                     <label class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
                         📥 Import Excel
@@ -18,11 +18,11 @@
                                onchange="this.form.submit()">
                     </label>
                 </form>
-                <a href="{{ route('dean.excel.export-students') }}"
+                <a href="{{ route('head_of_department.excel.export-students') }}"
                    class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
                     📤 Export Excel
                 </a>
-                <a href="{{ route('dean.students.create') }}"
+                <a href="{{ route('head_of_department.students.create') }}"
                    class="inline-flex items-center px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
                     + Add Student
                 </a>
@@ -56,7 +56,7 @@
 
             {{-- Filters --}}
             <div class="p-4 mb-4 bg-white rounded-lg shadow">
-                <form method="GET" action="{{ route('dean.students.index') }}" class="flex flex-wrap gap-3">
+                <form method="GET" action="{{ route('head_of_department.students.index') }}" class="flex flex-wrap gap-3">
                     <input type="text" name="search" value="{{ request('search') }}"
                            placeholder="Search name, number, email..."
                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded min-w-48 focus:outline-none focus:ring-1 focus:ring-blue-500">
@@ -90,7 +90,7 @@
                     </button>
 
                     @if(request()->hasAny(['search','course_id','year_level','status']))
-                        <a href="{{ route('dean.students.index') }}"
+                        <a href="{{ route('head_of_department.students.index') }}"
                            class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200">
                             Clear
                         </a>
@@ -141,11 +141,11 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <a href="{{ route('dean.students.edit', $student) }}"
+                                    <a href="{{ route('head_of_department.students.edit', $student) }}"
                                        class="px-3 py-1 text-xs font-medium text-blue-700 rounded bg-blue-50 hover:bg-blue-100">
                                         Edit
                                     </a>
-                                    <form action="{{ route('dean.students.destroy', $student) }}" method="POST"
+                                    <form action="{{ route('head_of_department.students.destroy', $student) }}" method="POST"
                                           onsubmit="return confirm('Delete {{ $student->getFullName() }}? This cannot be undone.')">
                                         @csrf
                                         @method('DELETE')
@@ -160,7 +160,7 @@
                         @empty
                         <tr>
                             <td colspan="6" class="px-6 py-10 text-center text-gray-400">
-                                No students found. <a href="{{ route('dean.students.create') }}" class="text-blue-600 hover:underline">Add one</a> or import via Excel.
+                                No students found. <a href="{{ route('head_of_department.students.create') }}" class="text-blue-600 hover:underline">Add one</a> or import via Excel.
                             </td>
                         </tr>
                         @endforelse

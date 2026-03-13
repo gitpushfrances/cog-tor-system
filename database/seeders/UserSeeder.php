@@ -15,44 +15,44 @@ class UserSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@cogtor.test'],
             [
-                'name' => 'System Administrator',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'status' => 'active',
+                'name'              => 'System Administrator',
+                'password'          => Hash::make('password'),
+                'role'              => 'admin',
+                'status'            => 'active',
                 'email_verified_at' => now(),
             ]
         );
         $admin->assignRole('admin');
 
-        // Get first department for Dean — adjust name if your seeder uses different names
+        // Get first department for Head of Department
         $department = Department::first();
 
-        // Dean User
-        $dean = User::firstOrCreate(
-            ['email' => 'dean@cogtor.test'],
+        // Head of Department User
+        $hod = User::firstOrCreate(
+            ['email' => 'hod@cogtor.test'],
             [
-                'name' => 'Dean of CCS',
-                'password' => Hash::make('password'),
-                'role' => 'dean',
-                'status' => 'active',
-                'department_id' => $department?->id,
-                'approved_by' => $admin->id,
-                'approved_at' => now(),
+                'name'              => 'Head of CCS',
+                'password'          => Hash::make('password'),
+                'role'              => 'head_of_department',
+                'status'            => 'active',
+                'department_id'     => $department?->id,
+                'approved_by'       => $admin->id,
+                'approved_at'       => now(),
                 'email_verified_at' => now(),
             ]
         );
-        $dean->assignRole('dean');
+        $hod->assignRole('head_of_department');
 
         // Faculty User
         $faculty = User::firstOrCreate(
             ['email' => 'faculty@cogtor.test'],
             [
-                'name' => 'Juan Dela Cruz',
-                'password' => Hash::make('password'),
-                'role' => 'faculty',
-                'status' => 'active',
-                'approved_by' => $dean->id,
-                'approved_at' => now(),
+                'name'              => 'Juan Dela Cruz',
+                'password'          => Hash::make('password'),
+                'role'              => 'faculty',
+                'status'            => 'active',
+                'approved_by'       => $hod->id,
+                'approved_at'       => now(),
                 'email_verified_at' => now(),
             ]
         );
@@ -62,12 +62,12 @@ class UserSeeder extends Seeder
         $registrar = User::firstOrCreate(
             ['email' => 'registrar@cogtor.test'],
             [
-                'name' => 'University Registrar',
-                'password' => Hash::make('password'),
-                'role' => 'registrar',
-                'status' => 'active',
-                'approved_by' => $admin->id,
-                'approved_at' => now(),
+                'name'              => 'University Registrar',
+                'password'          => Hash::make('password'),
+                'role'              => 'registrar',
+                'status'            => 'active',
+                'approved_by'       => $admin->id,
+                'approved_at'       => now(),
                 'email_verified_at' => now(),
             ]
         );
@@ -77,20 +77,20 @@ class UserSeeder extends Seeder
         $pendingFaculty = User::firstOrCreate(
             ['email' => 'pending@cogtor.test'],
             [
-                'name' => 'Maria Santos',
-                'password' => Hash::make('password'),
-                'role' => 'faculty',
-                'status' => 'pending',
+                'name'              => 'Maria Santos',
+                'password'          => Hash::make('password'),
+                'role'              => 'faculty',
+                'status'            => 'pending',
                 'email_verified_at' => now(),
             ]
         );
         $pendingFaculty->assignRole('faculty');
 
         $this->command->info('Test user accounts seeded successfully!');
-        $this->command->info('Admin: admin@cogtor.test / password');
-        $this->command->info('Dean: dean@cogtor.test / password (department: ' . ($department?->name ?? 'NONE - run AcademicStructureSeeder first') . ')');
-        $this->command->info('Faculty: faculty@cogtor.test / password');
+        $this->command->info('Admin:     admin@cogtor.test / password');
+        $this->command->info('HOD:       hod@cogtor.test / password (department: ' . ($department?->name ?? 'NONE - run AcademicStructureSeeder first') . ')');
+        $this->command->info('Faculty:   faculty@cogtor.test / password');
         $this->command->info('Registrar: registrar@cogtor.test / password');
-        $this->command->info('Pending: pending@cogtor.test / password (cannot login)');
+        $this->command->info('Pending:   pending@cogtor.test / password (cannot login)');
     }
 }

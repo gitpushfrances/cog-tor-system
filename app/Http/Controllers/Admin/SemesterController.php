@@ -16,23 +16,40 @@ class SemesterController extends Controller
 
     public function create()
     {
-        $schoolYears = SchoolYear::all();
+        $schoolYears = SchoolYear::orderBy('year_code', 'desc')->get();
         return view('admin.semesters.create', compact('schoolYears'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'school_year_id' => 'required|exists:school_years,id',
-            'name'           => 'required|in:1st,2nd,Summer',
-            'status'         => 'required|in:active,inactive',
+            'school_year_id'  => 'required|exists:school_years,id',
+            'semester_order'  => 'required|in:1,2,3',
+            'status'          => 'required|in:active,completed,upcoming',
         ]);
 
-        if ($request->status === 'active') {
-            Semester::where('status', 'active')->update(['status' => 'inactive']);
+        $names = ['1' => '1st Semester', '2' => '2nd Semester', '3' => 'Summer'];
+
+        $exists = Semester::where('school_year_id', $request->school_year_id)
+            ->where('semester_order', $request->semester_order)
+            ->exists();
+
+        if ($exists) {
+            return back()->withInput()->with('error', 'This semester already exists for the selected school year.');
         }
 
-        Semester::create($request->all());
+        if ($request->status === 'active') {
+            Semester::where('status', 'active')->update(['status' => 'completed']);
+        }
+
+        Semester::create([
+            'school_year_id' => $request->school_year_id,
+            'semester_name'  => $names[$request->semester_order],
+            'semester_order' => $request->semester_order,
+            'start_date'     => $request->start_date,
+            'end_date'       => $request->end_date,
+            'status'         => $request->status,
+        ]);
 
         return redirect()->route('admin.semesters.index')
             ->with('success', 'Semester created successfully.');
@@ -40,7 +57,7 @@ class SemesterController extends Controller
 
     public function edit(Semester $semester)
     {
-        $schoolYears = SchoolYear::all();
+        $schoolYears = SchoolYear::orderBy('year_code', 'desc')->get();
         return view('admin.semesters.edit', compact('semester', 'schoolYears'));
     }
 
@@ -48,15 +65,26 @@ class SemesterController extends Controller
     {
         $request->validate([
             'school_year_id' => 'required|exists:school_years,id',
-            'name'           => 'required|in:1st,2nd,Summer',
-            'status'         => 'required|in:active,inactive',
+            'semester_order' => 'required|in:1,2,3',
+            'status'         => 'required|in:active,completed,upcoming',
         ]);
 
+        $names = ['1' => '1st Semester', '2' => '2nd Semester', '3' => 'Summer'];
+
         if ($request->status === 'active') {
-            Semester::where('status', 'active')->where('id', '!=', $semester->id)->update(['status' => 'inactive']);
+            Semester::where('status', 'active')
+                ->where('id', '!=', $semester->id)
+                ->update(['status' => 'completed']);
         }
 
-        $semester->update($request->all());
+        $semester->update([
+            'school_year_id' => $request->school_year_id,
+            'semester_name'  => $names[$request->semester_order],
+            'semester_order' => $request->semester_order,
+            'start_date'     => $request->start_date,
+            'end_date'       => $request->end_date,
+            'status'         => $request->status,
+        ]);
 
         return redirect()->route('admin.semesters.index')
             ->with('success', 'Semester updated successfully.');
@@ -77,7 +105,7 @@ class SemesterController extends Controller
 
     public function setActive(Semester $semester)
     {
-        Semester::where('status', 'active')->update(['status' => 'inactive']);
+        Semester::where('status', 'active')->update(['status' => 'completed']);
         $semester->update(['status' => 'active']);
 
         return redirect()->route('admin.semesters.index')

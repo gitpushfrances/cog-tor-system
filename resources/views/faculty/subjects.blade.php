@@ -46,7 +46,7 @@
                 {{-- Rejection remarks shown prominently on card --}}
                 @if($isRejected && $submission?->dean_remarks)
                     <div class="px-3 py-2 mb-3 text-xs text-red-800 border border-red-200 rounded bg-red-50">
-                        <span class="font-semibold">Dean's Remarks:</span> {{ $submission->dean_remarks }}
+                        <span class="font-semibold">Head of Department's Remarks:</span> {{ $submission->dean_remarks }}
                     </div>
                 @endif
 
@@ -64,7 +64,7 @@
             </div>
             @empty
             <div class="col-span-3 p-12 text-center text-gray-400 bg-white rounded-lg shadow">
-                No subjects assigned to you yet. Contact your Dean.
+                No subjects assigned to you yet. Contact your Head of Department.
             </div>
             @endforelse
         </div>

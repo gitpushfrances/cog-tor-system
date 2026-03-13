@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Dean;
+namespace App\Http\Controllers\HeadOfDepartment;
 
 use App\Http\Controllers\Controller;
 use App\Models\Student;
@@ -9,7 +9,6 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    // Get department-scoped courses for the logged-in Dean
     private function getDepartmentCourses()
     {
         return Course::where('department_id', auth()->user()->department_id)
@@ -17,7 +16,6 @@ class StudentController extends Controller
                      ->get();
     }
 
-    // Get department-scoped student query
     private function departmentStudents()
     {
         return Student::whereHas('course', function ($q) {
@@ -29,7 +27,6 @@ class StudentController extends Controller
     {
         $query = $this->departmentStudents()->with('course');
 
-        // Search
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -40,31 +37,20 @@ class StudentController extends Controller
             });
         }
 
-        // Filter by course
-        if ($request->filled('course_id')) {
-            $query->where('course_id', $request->course_id);
-        }
-
-        // Filter by year level
-        if ($request->filled('year_level')) {
-            $query->where('year_level', $request->year_level);
-        }
-
-        // Filter by status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+        if ($request->filled('course_id'))  $query->where('course_id', $request->course_id);
+        if ($request->filled('year_level')) $query->where('year_level', $request->year_level);
+        if ($request->filled('status'))     $query->where('status', $request->status);
 
         $students = $query->orderBy('last_name')->paginate(20)->withQueryString();
-        $courses = $this->getDepartmentCourses();
+        $courses  = $this->getDepartmentCourses();
 
-        return view('dean.students.index', compact('students', 'courses'));
+        return view('head_of_department.students.index', compact('students', 'courses'));
     }
 
     public function create()
     {
         $courses = $this->getDepartmentCourses();
-        return view('dean.students.create', compact('courses'));
+        return view('head_of_department.students.create', compact('courses'));
     }
 
     public function store(Request $request)
@@ -85,46 +71,33 @@ class StudentController extends Controller
             'status'         => 'required|in:active,inactive,graduated',
         ]);
 
-        // Ensure course belongs to Dean's department
-        $course = Course::where('id', $request->course_id)
-                        ->where('department_id', auth()->user()->department_id)
-                        ->firstOrFail();
+        Course::where('id', $request->course_id)
+              ->where('department_id', auth()->user()->department_id)
+              ->firstOrFail();
 
         Student::create($request->all());
 
-        return redirect()->route('dean.students.index')
+        return redirect()->route('head_of_department.students.index')
                          ->with('success', 'Student added successfully.');
     }
 
     public function show(Student $student)
     {
-        // Ensure student belongs to Dean's department
-        abort_unless(
-            $student->course->department_id === auth()->user()->department_id,
-            403
-        );
-
+        abort_unless($student->course->department_id === auth()->user()->department_id, 403);
         $student->load('course', 'enrollments');
-        return view('dean.students.show', compact('student'));
+        return view('head_of_department.students.show', compact('student'));
     }
 
     public function edit(Student $student)
     {
-        abort_unless(
-            $student->course->department_id === auth()->user()->department_id,
-            403
-        );
-
+        abort_unless($student->course->department_id === auth()->user()->department_id, 403);
         $courses = $this->getDepartmentCourses();
-        return view('dean.students.edit', compact('student', 'courses'));
+        return view('head_of_department.students.edit', compact('student', 'courses'));
     }
 
     public function update(Request $request, Student $student)
     {
-        abort_unless(
-            $student->course->department_id === auth()->user()->department_id,
-            403
-        );
+        abort_unless($student->course->department_id === auth()->user()->department_id, 403);
 
         $request->validate([
             'student_number' => 'required|string|max:20|unique:students,student_number,' . $student->id,
@@ -142,33 +115,28 @@ class StudentController extends Controller
             'status'         => 'required|in:active,inactive,graduated',
         ]);
 
-        // Ensure new course also belongs to Dean's department
         Course::where('id', $request->course_id)
               ->where('department_id', auth()->user()->department_id)
               ->firstOrFail();
 
         $student->update($request->all());
 
-        return redirect()->route('dean.students.index')
+        return redirect()->route('head_of_department.students.index')
                          ->with('success', 'Student updated successfully.');
     }
 
     public function destroy(Student $student)
     {
-        abort_unless(
-            $student->course->department_id === auth()->user()->department_id,
-            403
-        );
+        abort_unless($student->course->department_id === auth()->user()->department_id, 403);
 
-        // Block delete if enrollments exist
         if ($student->enrollments()->count() > 0) {
-            return redirect()->route('dean.students.index')
+            return redirect()->route('head_of_department.students.index')
                              ->with('error', 'Cannot delete student with existing enrollments.');
         }
 
         $student->delete();
 
-        return redirect()->route('dean.students.index')
+        return redirect()->route('head_of_department.students.index')
                          ->with('success', 'Student deleted successfully.');
     }
 }
