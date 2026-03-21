@@ -28,7 +28,7 @@ class SchoolYearController extends Controller
         ]);
 
         if ($request->status === 'active') {
-            SchoolYear::where('status', 'active')->update(['status' => 'upcoming']);
+            SchoolYear::where('status', 'active')->update(['status' => 'completed']);
         }
 
         SchoolYear::create([
@@ -58,7 +58,7 @@ class SchoolYearController extends Controller
         if ($request->status === 'active') {
             SchoolYear::where('status', 'active')
                 ->where('id', '!=', $schoolYear->id)
-                ->update(['status' => 'upcoming']);
+                ->update(['status' => 'completed']);
         }
 
         $schoolYear->update([
@@ -87,7 +87,7 @@ class SchoolYearController extends Controller
 
     public function setActive(SchoolYear $schoolYear)
     {
-        SchoolYear::where('status', 'active')->update(['status' => 'upcoming']);
+        SchoolYear::where('status', 'active')->update(['status' => 'completed']);
         $schoolYear->update(['status' => 'active']);
 
         return redirect()->route('admin.school-years.index')

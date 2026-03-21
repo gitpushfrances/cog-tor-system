@@ -53,7 +53,7 @@
                                 @foreach($roles as $roleOption)
                                     <option value="{{ $roleOption->name }}"
                                         {{ old('role', $user->roles->first()->name ?? '') === $roleOption->name ? 'selected' : '' }}>
-                                        {{ ucfirst($roleOption->name) }}
+                                        {{ ['faculty'=>'Faculty','head_of_department'=>'Head of Department','registrar'=>'Registrar','admin'=>'Admin'][$roleOption->name] ?? ucwords(str_replace('_',' ',$roleOption->name)) }}
                                     </option>
                                 @endforeach
                             </select>

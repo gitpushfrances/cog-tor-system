@@ -52,11 +52,12 @@
                         <!-- Role -->
                         <div class="mb-4">
                             <label for="role" class="block text-sm font-medium text-gray-700">Role</label>
-                            <select name="role" id="role" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            <select name="role" id="role" onchange="toggleDepartment(this.value)"
+                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="">Select Role</option>
                                 @foreach($roles as $role)
                                     <option value="{{ $role->name }}" {{ old('role') === $role->name ? 'selected' : '' }}>
-                                        {{ ucfirst($role->name) }}
+                                        {{ ucwords(str_replace('_', ' ', $role->name)) }}
                                     </option>
                                 @endforeach
                             </select>
@@ -65,10 +66,30 @@
                             @enderror
                         </div>
 
+                        <!-- Department (Faculty & Head of Department only) -->
+                        <div class="mb-4" id="department_field" style="display: none;">
+                            <label for="department_id" class="block text-sm font-medium text-gray-700">
+                                Department <span class="text-red-500">*</span>
+                            </label>
+                            <select name="department_id" id="department_id"
+                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">Select Department</option>
+                                @foreach($departments as $department)
+                                    <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                                        {{ $department->code }} — {{ $department->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('department_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <!-- Status -->
                         <div class="mb-4">
                             <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                            <select name="status" id="status" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                            <select name="status" id="status"
+                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="pending" {{ old('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -92,4 +113,25 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function toggleDepartment(role) {
+            var field = document.getElementById('department_field');
+            var select = document.getElementById('department_id');
+            if (role === 'faculty' || role === 'head_of_department') {
+                field.style.display = 'block';
+                select.required = true;
+            } else {
+                field.style.display = 'none';
+                select.required = false;
+                select.value = '';
+            }
+        }
+
+        // Run on page load to restore state after validation error
+        document.addEventListener('DOMContentLoaded', function () {
+            var role = document.getElementById('role').value;
+            toggleDepartment(role);
+        });
+    </script>
 </x-app-layout>

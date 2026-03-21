@@ -9,7 +9,7 @@
                style="background:#c9a84c;color:#fff;padding:8px 18px;border-radius:8px;font-size:0.875rem;font-weight:600;text-decoration:none;transition:background 0.15s;"
                onmouseover="this.style.background='#a8872e'"
                onmouseout="this.style.background='#c9a84c'">
-                <i class="fa-solid fa-plus mr-1"></i> Add User
+                <i class="mr-1 fa-solid fa-plus"></i> Add User
             </a>
         </div>
     </x-slot>
@@ -92,7 +92,7 @@
                                 $rc = $roleColors[$userRole] ?? ['#f3f4f6','#374151'];
                             @endphp
                             <span style="background:{{ $rc[0] }};color:{{ $rc[1] }};padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;">
-                                {{ ucfirst($userRole) }}
+                                {{ ['faculty'=>'Faculty','head_of_department'=>'Head of Department','registrar'=>'Registrar','admin'=>'Admin'][$userRole] ?? ucwords(str_replace('_',' ',$userRole)) }}
                             </span>
                         </td>
                         <td style="padding:14px 20px;">
