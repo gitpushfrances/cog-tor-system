@@ -81,7 +81,7 @@
                         @empty
                         <tr>
                             <td colspan="5" class="px-6 py-8 text-center text-gray-400">
-                                ✅ No pending submissions. All caught up.
+                                <i class="fas fa-check-circle"></i> No pending submissions. All caught up.
                             </td>
                         </tr>
                         @endforelse

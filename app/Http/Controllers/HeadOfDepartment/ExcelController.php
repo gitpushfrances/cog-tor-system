@@ -19,18 +19,19 @@ class ExcelController extends Controller
             'Email', 'Phone', 'Address', 'Year Level', 'Course Code', 'Status',
         ];
 
-        $courseCodes = Course::where('department_id', auth()->user()->department_id)
-                             ->where('status', 'active')
-                             ->pluck('code')
-                             ->implode(' / ');
+        $firstCourseCode = Course::where('department_id', auth()->user()->department_id)
+                                 ->where('status', 'active')
+                                 ->value('code') ?: 'BSIT';
 
-        $callback = function () use ($headers, $courseCodes) {
+        $callback = function () use ($headers, $firstCourseCode) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $headers);
+            // Note row — explains the format, obviously not real data
             fputcsv($file, [
-                '2024-00001', 'Juan', 'Santos', 'Dela Cruz', '',
-                '2004-05-15', 'Male', 'juan@example.com', '09171234567',
-                'Guiuan, Eastern Samar', '1', $courseCodes ?: 'BSIT', 'active'
+                '# Use format: YYYY-NNNNN', 'First Name', 'Middle Name (optional)', 'Last Name',
+                'Suffix (optional)', 'YYYY-MM-DD e.g. 2003-01-15', 'Male or Female',
+                'Email address', '09XXXXXXXXX', 'Full address', '1 to 5 only',
+                $firstCourseCode, 'active / inactive / graduated / dropped',
             ]);
             fclose($file);
         };

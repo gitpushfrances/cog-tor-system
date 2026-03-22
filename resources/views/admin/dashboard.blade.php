@@ -57,7 +57,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <a href="{{ route('admin.users.index') }}" class="p-5 transition bg-white border-l-4 border-blue-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">👥</span>
+                            <i class="fas fa-users text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Users</div>
                                 <div class="text-xs text-gray-500">Manage faculty, heads of department, registrar accounts</div>
@@ -73,7 +73,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <a href="{{ route('admin.departments.index') }}" class="p-5 transition bg-white border-l-4 border-purple-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">🏢</span>
+                            <i class="fas fa-building text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Departments</div>
                                 <div class="text-xs text-gray-500">Manage academic departments</div>
@@ -82,7 +82,7 @@
                     </a>
                     <a href="{{ route('admin.courses.index') }}" class="p-5 transition bg-white border-l-4 border-indigo-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">📚</span>
+                            <i class="fas fa-book-open text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Courses</div>
                                 <div class="text-xs text-gray-500">Manage degree programs</div>
@@ -91,7 +91,7 @@
                     </a>
                     <a href="{{ route('admin.subjects.index') }}" class="p-5 transition bg-white border-l-4 rounded-lg shadow hover:shadow-md border-cyan-500">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">📖</span>
+                            <i class="fas fa-book text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Subjects</div>
                                 <div class="text-xs text-gray-500">Manage subjects and assign faculty</div>
@@ -100,7 +100,7 @@
                     </a>
                     <a href="{{ route('admin.school-years.index') }}" class="p-5 transition bg-white border-l-4 border-green-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">📅</span>
+                            <i class="fas fa-calendar-alt text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">School Years</div>
                                 <div class="text-xs text-gray-500">Set active school year</div>
@@ -109,7 +109,7 @@
                     </a>
                     <a href="{{ route('admin.semesters.index') }}" class="p-5 transition bg-white border-l-4 border-teal-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">🗓️</span>
+                            <i class="fas fa-calendar text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Semesters</div>
                                 <div class="text-xs text-gray-500">Set active semester</div>
@@ -141,7 +141,7 @@
                             <td class="px-6 py-4 text-sm text-gray-500">{{ $user->email }}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">
-                                    {{ $user->roles->first()->name ?? 'No Role' }}
+                                    {{ ucwords(str_replace('_', ' ', $user->roles->first()->name ?? 'No Role')) }}
                                 </span>
                             </td>
                             <td class="px-6 py-4">

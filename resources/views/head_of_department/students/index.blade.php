@@ -8,19 +8,19 @@
             <div class="flex gap-2">
                 <a href="{{ route('head_of_department.excel.student-template') }}"
                    class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                    ⬇ Download Template
+                    <i class="fas fa-download"></i> Download Template
                 </a>
                 <form action="{{ route('head_of_department.excel.import-students') }}" method="POST" enctype="multipart/form-data" class="inline">
                     @csrf
                     <label class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
-                        📥 Import Excel
+                        <i class="fas fa-file-import"></i> Import Excel
                         <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden"
                                onchange="this.form.submit()">
                     </label>
                 </form>
                 <a href="{{ route('head_of_department.excel.export-students') }}"
                    class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                    📤 Export Excel
+                    <i class="fas fa-file-export"></i> Export Excel
                 </a>
                 <a href="{{ route('head_of_department.students.create') }}"
                    class="inline-flex items-center px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
@@ -146,11 +146,12 @@
                                         Edit
                                     </a>
                                     <form action="{{ route('head_of_department.students.destroy', $student) }}" method="POST"
-                                          onsubmit="return confirm('Delete {{ $student->getFullName() }}? This cannot be undone.')">
+                                          class="delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit"
-                                                class="px-3 py-1 text-xs font-medium text-red-700 rounded bg-red-50 hover:bg-red-100">
+                                        <button type="button"
+                                                class="px-3 py-1 text-xs font-medium text-red-700 rounded delete-btn bg-red-50 hover:bg-red-100"
+                                                data-name="{{ $student->getFullName() }}">
                                             Delete
                                         </button>
                                     </form>
@@ -176,4 +177,29 @@
 
         </div>
     </div>
+    @push('scripts')
+<script>
+    document.querySelectorAll('.delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const name = this.dataset.name;
+            const form = this.closest('.delete-form');
+
+            Swal.fire({
+                title: 'Delete Student?',
+                text: name + ' will be permanently removed. This cannot be undone.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete',
+                cancelButtonText: 'Cancel',
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
+@endpush
 </x-app-layout>

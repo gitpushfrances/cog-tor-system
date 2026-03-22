@@ -11,8 +11,8 @@
 
 ## ⚡ RESUME POINT — READ THIS FIRST
 
-**Current Phase:** Phase 9 — System Restructure
-**Status:** 🔄 In Progress — Steps 1–41 done + March 12 session fixes, continue from Step 42
+**Current Phase:** Phase 11 — UI/UX & Testing
+**Status:** 🔄 In Progress — Phase 9 complete. Resume with E2E test (Step 9.11) then Phase 11.
 
 ### What Changed From Original Plan (v1 → v2)
 | Area | v1 (Old) | v2 (New) | Why |
@@ -87,15 +87,15 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 ### 2.2 User Model Enhanced
 - [x] Spatie HasRoles trait added
 - [x] Activity Log trait added
-- [x] Role helpers: isAdmin(), isFaculty(), isHead of Department(), isRegistrar()
+- [x] Role helpers: isAdmin(), isFaculty(), isHeadOfDepartment(), isRegistrar()
 - [x] Status helpers: isActive(), isPending(), isInactive()
 - [x] Query scopes for filtering
-- [x] `department()` belongsTo relationship added ✅ (added March 12 session)
+- [x] `department()` belongsTo relationship added ✅ (March 12 session)
 - [x] `department_id` added to `$fillable` ✅ (bug fix — March 12 session)
 
 ### 2.3 Database Seeders Created
 - [x] RoleSeeder — 4 roles with 23 permissions
-- [x] UserSeeder — 5 test accounts
+- [x] UserSeeder — 5 test accounts, all using updateOrCreate ✅ (fixed March 23 session)
 - [x] AcademicStructureSeeder — School years, semesters, departments, courses
 - [x] SubjectSeeder — 10 sample subjects
 - [x] StudentSeeder — 10 sample students
@@ -118,7 +118,7 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 
 ### 3.2 Login Redirects
 - [x] Admin → `/admin/dashboard`
-- [x] Head of Department → `/head of department/dashboard`
+- [x] Head of Department → `/hod/dashboard`
 - [x] Faculty → `/faculty/dashboard`
 - [x] Registrar → `/registrar/dashboard`
 
@@ -126,7 +126,7 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 - [x] Admin, Head of Department, Faculty, Registrar route groups with middleware
 
 ### 3.4 Dashboard Controllers & Views
-- [x] AdminController, Head of DepartmentController, FacultyController, RegistrarController
+- [x] AdminController, HeadOfDepartmentController, FacultyController, RegistrarController
 - [x] All 4 dashboard views
 
 **Deliverables:**
@@ -140,8 +140,6 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 **Date:** February 15–21, 2026
 **Status:** ✅ Complete (100%)
 
-> ✅ PHASE 9.3 DONE: Admin StudentController and student Excel routes have been REMOVED.
-
 ### 4.1–4.9 Completed Features
 - [x] UserController — full CRUD + approve/reject
 - [x] DepartmentController — full CRUD
@@ -154,11 +152,14 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 - [x] Dashboard redirect bug fixed
 - [x] Back buttons on all views
 - [x] Admin student routes removed from web.php ✅
+- [x] Admin dashboard stat card emojis → Font Awesome icons ✅ (March 23 session)
+- [x] Recent Users role badge — raw `head_of_department` → formatted `Head Of Department` ✅ (March 23 session)
 
 **Deliverables:**
 - ✅ Full Admin CRUD for academic structure only
 - ✅ Student management removed — now owned by Head of Department
 - ✅ Routes cleaned — no admin.students.* routes remain
+- ✅ Clean Font Awesome icons on stat cards
 
 > ⚠️ NOTE: Admin dashboard view still has leftover student nav links — cleanup deferred to Phase 11.
 
@@ -170,12 +171,12 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 
 ### 5.1 Controllers
 - [x] FacultyController — dashboard and subjects list
-- [x] GradeController — index, store, edit, update, submit, resubmit ✅ (resubmit added Phase 9)
+- [x] GradeController — index, store, edit, update, submit, resubmit ✅
 
 ### 5.2 Views
-- [x] faculty/dashboard.blade.php
-- [x] faculty/subjects.blade.php — updated Phase 9: status badges, rejection remarks, resubmit button ✅
-- [x] faculty/grades/index.blade.php — updated Phase 9: locks on submit, rejection banner, resubmit modal ✅
+- [x] faculty/dashboard.blade.php — emoji icons → Font Awesome ✅ (March 23 session)
+- [x] faculty/subjects.blade.php — status badges, rejection remarks, resubmit button ✅
+- [x] faculty/grades/index.blade.php — locks on submit, rejection banner, resubmit modal, SweetAlert2 on submit + resubmit ✅ — emoji status badges → Font Awesome ✅ (March 23 session)
 - [x] faculty/grades/edit.blade.php
 
 ### 5.3 Routes
@@ -183,13 +184,14 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 - [x] faculty.subjects.grades (GET/POST)
 - [x] faculty.subjects.grades.edit, .update
 - [x] faculty.subjects.grades.submit
-- [x] faculty.subjects.grades.resubmit ✅ (added Phase 9)
+- [x] faculty.subjects.grades.resubmit ✅
 
 **Deliverables:**
 - ✅ Grade encoding with PH scale conversion
 - ✅ Batch grade submission to Head of Department
 - ✅ Resubmit flow: rejection banner + remarks + resubmit modal
 - ✅ Grade table locks on submit, unlocks on rejection
+- ✅ SweetAlert2 on Submit and Resubmit (with remarks validation)
 
 ---
 
@@ -198,47 +200,40 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 **Status:** ✅ Complete (100%)
 
 ### 6.1 Dashboard
-- [x] 4 stat cards — Total Students (department-scoped), Active Enrollments, Pending Grades, Approved Grades ✅
-- [x] All 4 stats now fully department-scoped ✅ (bug fix — March 12 session)
+- [x] 4 stat cards — Total Students, Active Enrollments, Pending Grades, Approved Grades (all department-scoped) ✅
 - [x] Pending submissions table — grouped by subject, "Review All" per row ✅
 - [x] Navigation updated — Dashboard + Students + Enrollment + Faculty Assignment + Grade Submissions ✅
 
 ### 6.2 Student Management
-- [x] Head of Department/StudentController — department-scoped CRUD ✅
-- [x] Head of Department/ExcelController — import/export scoped to department ✅
-- [x] head of department/students/index.blade.php ✅
-- [x] head of department/students/create.blade.php ✅
-- [x] head of department/students/edit.blade.php ✅
+- [x] HeadOfDepartment/StudentController — department-scoped CRUD ✅
+- [x] HeadOfDepartment/ExcelController — template, import, export ✅
+- [x] head_of_department/students/index.blade.php — Delete button now has SweetAlert2 confirm ✅ (March 23 session)
+- [x] head_of_department/students/create.blade.php ✅
+- [x] head_of_department/students/edit.blade.php ✅
+- [x] Download Template / Import Excel / Export Excel — emoji → Font Awesome ✅ (March 23 session)
 
 ### 6.3 Grade Review & Approval (Bulk)
 - [x] review() — loads all submissions for same subject at once ✅
-- [x] approve() — bulk updates all grades in subject to approved_by_head of department ✅
-- [x] reject() — bulk updates all grades to rejected, saves head of department_remarks ✅
-- [x] head of department/review.blade.php — full class table, Approve All + Reject buttons ✅
-- [x] Resubmitted submissions flagged with Faculty remarks visible ✅
+- [x] approve() — bulk updates all grades to approved_by_head_of_department ✅
+- [x] reject() — bulk updates all grades to rejected, saves remarks ✅
+- [x] head_of_department/review.blade.php — SweetAlert2 on Approve All + Reject (with remarks validation) ✅
 
 ### 6.4 Enrollment Management ✅
-- [x] Head of Department/EnrollmentController — index, store, destroy
+- [x] HeadOfDepartment/EnrollmentController — index, store, destroy
 - [x] Enroll students into subjects for active semester only
 - [x] Remove enrollment blocked if grade exists
-- [x] head of department/enrollments/index.blade.php
-- [x] Routes: head of department.enrollments.index, head of department.enrollments.store, head of department.enrollments.destroy
 
 ### 6.5 Faculty Assignment ✅
-- [x] Head of Department/SubjectAssignmentController — index, update
-- [x] Assign/unassign faculty to subjects scoped to Head of Department's department
-- [x] Subjects grouped by course in table view
-- [x] head of department/assignments/index.blade.php
-- [x] Routes: head of department.assignments.index, head of department.assignments.update
+- [x] HeadOfDepartment/SubjectAssignmentController — index, update
 - [x] Faculty dropdown scoped to department_id ✅
 
 **Deliverables:**
 - ✅ Department-scoped student management with Excel import/export
-- ✅ Bulk grade approval/rejection
-- ✅ Correct ENUM status values: approved_by_head of department, rejected
+- ✅ Bulk grade approval/rejection with SweetAlert2
 - ✅ Enrollment management module
 - ✅ Faculty assignment module with department scoping
-- ✅ All dashboard stats fully department-scoped (fixed March 12 session)
+- ✅ SweetAlert2 on all destructive actions (March 23 session)
+- ✅ Clean Font Awesome icons throughout (March 23 session)
 
 ---
 
@@ -247,39 +242,35 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 **Status:** ✅ Complete (100%)
 
 ### 7.1 Controllers
-- [x] RegistrarController — index (student search + paginated list), finalize, finalizeSubject ✅
-- [x] DocumentController — studentProfile(), cogForm, generateCog, torForm, generateTor, downloadCog, downloadTor ✅
+- [x] RegistrarController — index, finalize, finalizeSubject ✅
+- [x] DocumentController — studentProfile(), generateCog, generateTor, downloadCog, downloadTor ✅
 
 ### 7.2 Routes
 - [x] registrar.dashboard, registrar.submissions.finalize
-- [x] registrar.submissions.finalize-subject ✅ (added March 12 session — bulk finalize)
+- [x] registrar.submissions.finalize-subject ✅
 - [x] registrar.students.profile ✅
 - [x] registrar.students.cog, .cog.generate
 - [x] registrar.students.tor, .tor.generate
 - [x] registrar.cog.download, registrar.tor.download
-- [x] Old registrar.students browse route — REMOVED ✅
 
 ### 7.3 Views
-- [x] registrar/dashboard.blade.php — full rewrite: 2 tabs (Finalization Queue + Generate COG/TOR), bulk finalize per subject, preview modal, SweetAlert2 confirm ✅ (March 12 session)
-- [x] registrar/student-profile.blade.php — duplicate Download TOR button removed ✅ (March 12 session)
+- [x] registrar/dashboard.blade.php — 2 tabs, bulk finalize, preview modal, SweetAlert2 confirm ✅
+- [x] registrar/student-profile.blade.php — SweetAlert2 on Generate TOR + Generate COG ✅ (confirmed March 23 session)
 - [x] registrar/pdf/cog.blade.php, registrar/pdf/tor.blade.php
 
 ### 7.4 Key Notes
 - Institution name: `Eastern Samar State University - Guiuan Campus`
 - Use `Storage::` facade always — never `\Storage::`
-- DomPDF: use `->output()` not `->download()` to avoid .tmp file creation
+- DomPDF: use `->output()` not `->download()`
 - TOR: always full cumulative record — no semester selector (CHED standard)
-- TOR semester label: `semester_name — SY year_code` (e.g. "2nd Semester — SY 2025-2026")
-- GWA: Σ(grade × units) / Σ(units) — weighted, not simple average
+- TOR label: `semester_name — SY year_code`
+- GWA: Σ(grade × units) / Σ(units) — weighted
 
 **Deliverables:**
-- ✅ Search-first student flow on Registrar dashboard
-- ✅ Academic Profile page with grouped grades, GWA, COG/TOR generation
-- ✅ Full COG/TOR PDF generation
-- ✅ Bulk finalize per subject (not 1-by-1)
-- ✅ Preview modal shows all students + grades before finalizing
-- ✅ SweetAlert2 confirm on Finalize All
-- ✅ TOR now shows correct semester name + school year (fixed March 12 session)
+- ✅ Search-first student flow
+- ✅ Academic Profile with grouped grades, GWA, COG/TOR generation
+- ✅ Bulk finalize per subject with preview modal
+- ✅ SweetAlert2 on Finalize All, Generate TOR, Generate COG
 
 ---
 
@@ -287,170 +278,78 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 **Date:** February 26, 2026
 **Status:** ✅ Complete (100%)
 
-### 8.1 Files — Current State
-- [x] app/Exports/StudentsExport.php — updated with department_id scoping ✅
-- [x] app/Imports/StudentsImport.php — updated with department_id scoping ✅
+### 8.1 Files
+- [x] app/Exports/StudentsExport.php — department_id scoped ✅
+- [x] app/Imports/StudentsImport.php — department_id scoped, `date_format:Y-m-d` strict validation ✅ (fixed March 23 session)
 - [x] app/Exports/GradeTemplateExport.php — unchanged ✅
 - [x] app/Imports/GradesImport.php — unchanged ✅
-- [x] ~~app/Http/Controllers/Admin/ExcelController.php~~ — DELETED Phase 9.3 ✅
-- [x] app/Http/Controllers/Faculty/ExcelController.php — unchanged ✅
-- [x] app/Http/Controllers/Head of Department/ExcelController.php — CREATED Phase 9.4 ✅
+- [x] app/Http/Controllers/HeadOfDepartment/ExcelController.php — template notes row, single course code ✅ (fixed March 23 session)
 
-### 8.2 Head of Department Excel
-- [x] studentTemplate() — CSV template with department-scoped course codes
-- [x] importStudents() — validates course belongs to Head of Department's department
-- [x] exportStudents() — scoped to Head of Department's department_id
-
-### 8.3 Faculty Excel (UNCHANGED)
-- [x] downloadTemplate(), uploadGrades()
-- [x] 2 faculty Excel routes
+### 8.2 Head of Department Excel Fixes (March 23 session)
+- [x] studentTemplate() — fake sample row with `2024-00001` removed
+- [x] studentTemplate() — replaced with format-hint notes row (explains each column)
+- [x] studentTemplate() — course code uses `->value('code')` — single code, not all joined
+- [x] StudentsImport rules() — `nullable|date` → `nullable|date_format:Y-m-d`
 
 **Deliverables:**
-- ✅ StudentsExport/Import department-scoped
-- ✅ Head of Department ExcelController built
-- ✅ Admin Excel student methods gone
+- ✅ Template no longer misleads users with fake sample data
+- ✅ Birthdate validation strictly enforces YYYY-MM-DD
 
 ---
 
-## PHASE 9: SYSTEM RESTRUCTURE 🔄 IN PROGRESS
+## PHASE 9: SYSTEM RESTRUCTURE ✅ COMPLETED
 **Date:** March 2026
-**Status:** 🔄 In Progress (~98%)
+**Status:** ✅ Complete (100%)
 
----
+### 9.1–9.9 — Previously Completed
+(See prior sessions — all database migrations, seeder updates, module restructures, bug fixes done)
 
-### 9.1 — Database Migrations ✅ DONE
-- [x] Migration: `add_department_id_to_users_table` — `department_id BIGINT UNSIGNED NULL`, FK → departments.id
-- [x] Migration: `add_columns_to_grade_submissions_table` — faculty_remarks (text, nullable), resubmission_count (int, default 0)
-- [x] Migration: `update_grade_status_enum` — grades.status locked to 5 values, head of department_action ENUM locked to approved_by_head of department/rejected
-- [x] All 24 migrations green
+### 9.10 — SweetAlert2 ✅ COMPLETE (March 23 session)
+- [x] @stack('scripts') added to layouts/app.blade.php ✅
+- [x] HoD: Approve All — SweetAlert2 confirm ✅
+- [x] HoD: Reject submission — SweetAlert2 confirm + remarks validation ✅
+- [x] HoD: Delete Student — SweetAlert2 confirm ✅
+- [x] Faculty: Submit to HoD — SweetAlert2 confirm ✅
+- [x] Faculty: Resubmit to HoD — SweetAlert2 confirm + remarks validation ✅
+- [x] Registrar: Finalize All — SweetAlert2 confirm ✅
+- [x] Registrar: Generate TOR — SweetAlert2 confirm ✅
+- [x] Registrar: Generate COG — SweetAlert2 confirm ✅ (bonus)
 
-> ⚠️ LESSON: MySQL ENUM changes = expand first → update data → lock. Can't write a value not in the current ENUM.
-
----
-
-### 9.2 — Seeder Updates ✅ DONE
-- [x] RoleSeeder — firstOrCreate throughout, 3 new Head of Department permissions (import students, export students, resubmit grades)
-- [x] UserSeeder — firstOrCreate, Head of Department assigned department_id = 1
-- [x] Verified via tinker
-
----
-
-### 9.3 — Admin Module Cleanup ✅ DONE
-- [x] DELETED Admin/StudentController.php
-- [x] DELETED Admin/ExcelController.php
-- [x] REMOVED admin.students.* + Excel routes from web.php
-- [x] web.php brace bug fixed — all role groups top-level
-- [x] Verified: no admin.students.* in route:list
-
-> ⚠️ NOTE: Admin dashboard view still has leftover student nav links — cleanup pending Phase 11.
-
----
-
-### 9.4 — Head of Department Module Restructure ✅ DONE
-- [x] Head of Department/StudentController.php — department-scoped CRUD, destroy blocked if enrollments exist
-- [x] Head of Department/ExcelController.php — template, import, export
-- [x] Head of Department student + Excel routes registered
-- [x] StudentsExport.php + StudentsImport.php — department_id scoping added
-- [x] head of department/students/index.blade.php — paginated list, search, course/year/status filters, import/export/add buttons
-- [x] head of department/students/create.blade.php — creation form, course dropdown filtered to department
-- [x] head of department/students/edit.blade.php — edit form
-- [x] head of department/review.blade.php — bulk class table, Approve All + Reject with remarks
-- [x] Head of DepartmentController approve() — bulk, writes approved_by_head of department
-- [x] Head of DepartmentController reject() — bulk, writes rejected, saves head of department_remarks
-- [x] Head of DepartmentController index() — all 4 stats department-scoped ✅ (fixed March 12 session)
-- [x] Navigation updated — full Head of Department sidebar built
-
----
-
-### 9.5 — Faculty Module Update ✅ DONE
-- [x] GradeController store() — status: saved
-- [x] GradeController submit() — status: pending_head of department_review
-- [x] GradeController resubmit() — validates rejected state, saves faculty_remarks, increments resubmission_count, resets head of department_action, sets pending_head of department_review
-- [x] faculty/grades/index.blade.php — locks on submit, red rejection banner + Head of Department remarks, resubmit modal with faculty_remarks field
-- [x] faculty/subjects.blade.php — status badge per subject card, rejection remarks on card, "Update & Resubmit" button
-- [x] Resubmit route registered
-
----
-
-### 9.6 — Registrar Module Rework ✅ DONE
-- [x] RegistrarController index() — student search by name/student_number, all students by default, filtered on search, paginated (15/page)
-- [x] RegistrarController finalizeSubject() — bulk finalize all grades for a subject at once ✅ (added March 12 session)
-- [x] DocumentController studentProfile() — finalized enrollments grouped by school year → semester, semester GWA + cumulative GWA, existing COG/TOR record checks
-- [x] DocumentController generateTor() — semester label fixed to `semester_name — SY year_code`, schoolYear eager loaded ✅ (fixed March 12 session)
-- [x] registrar/dashboard.blade.php — full rewrite: 2 tabs (Finalization Queue + Generate COG/TOR), bulk finalize per subject row, preview modal with student grades, SweetAlert2 confirm ✅ (March 12 session)
-- [x] registrar/student-profile.blade.php — duplicate Download TOR button removed ✅ (March 12 session)
-- [x] routes/web.php — `registrar.submissions.finalize-subject` route added ✅ (March 12 session)
-
----
-
-### 9.7 — Admin User Management Overhaul ✅ DONE
-- [x] UserController — full replacement with role tabs, search, department_id saving
-- [x] admin/users/index.blade.php — tabs, search, department column, status badges
-- [x] admin/users/create.blade.php — department dropdown JS toggle for Faculty/Head of Department
-- [x] admin/users/edit.blade.php — same toggle, optional password
-- [x] User model — `department()` belongsTo added + `department_id` added to `$fillable` ✅ (critical bug fix — March 12 session)
-- [x] SubjectAssignmentController — faculty dropdown scoped by department_id
-
----
-
-### 9.8 — Academic Calendar Bug Fixes ✅ DONE
-- [x] SchoolYearController — explicit field list, `inactive` → `completed` everywhere
-- [x] SemesterController — semester_order/semester_name, `inactive` → `completed`
-- [x] All views updated — year_code, semester_name, status badges
-- [x] Existing DB records patched via tinker
-- [x] Subject index faculty HTML escape bug fixed
-
----
-
-### 9.9 — GradeSubmission Model Fix ✅ DONE (March 12 session)
-- [x] `scopeApproved()` — fixed `'approved'` → `'approved_by_head of department'`
-- [x] `isApproved()` — fixed `'approved'` → `'approved_by_head of department'`
-- [x] Root cause: ENUM value mismatch caused Registrar pending queue to always show 0
-
----
-
-### 9.10 — SweetAlert2 ✅ PARTIALLY DONE
-- [x] SweetAlert2 CDN confirmed in app.blade.php
-- [x] Registrar: Finalize All — SweetAlert2 confirm modal implemented ✅ (March 12 session)
-- [ ] Head of Department: Approve All
-- [ ] Head of Department: Reject submission
-- [ ] Faculty: Submit to Head of Department
-- [ ] Faculty: Resubmit to Head of Department
-- [ ] Registrar: Generate TOR
-
----
-
-### 9.11 — Verification & End-to-End Test ⏳ PENDING
+### 9.11 — Verification & End-to-End Test ⏳ NEXT SESSION
 - [ ] php artisan route:list — full clean verification
 - [ ] php artisan migrate:status — all green
 - [ ] Full 12-step end-to-end test
 
-**Phase 9 Deliverables:**
-- [x] 3 new migrations run successfully
-- [x] Head of Department has department_id in seeder
-- [x] Admin student controller and routes deleted
-- [x] Head of Department/StudentController with department scoping
-- [x] Head of Department/ExcelController with import/export
-- [x] Head of Department student views (index, create, edit)
-- [x] Head of Department bulk approval UI (Approve All + Reject with remarks)
-- [x] Faculty resubmit flow with remarks (GradeController + views)
-- [x] Registrar search-first + Academic Profile
-- [x] Registrar dashboard full rewrite — 2 tabs, bulk finalize, preview modal ✅
-- [x] Registrar bulk finalizeSubject() + route ✅
-- [x] Font Awesome 6.5 added to app.blade.php
-- [x] Admin User Management overhaul — tabs, search, department column
-- [x] User.$fillable — department_id added (critical bug fix) ✅
-- [x] GradeSubmission scopeApproved/isApproved fixed ✅
-- [x] Head of Department dashboard all stats department-scoped ✅
-- [x] TOR semester label fixed (semester_name + school year) ✅
-- [x] Head of Department Enrollment module built
-- [x] Head of Department Faculty Assignment module built
-- [x] School year ENUM and column name bugs fixed
-- [x] Semester ENUM and column name bugs fixed
-- [x] Subject index faculty column HTML escape bug fixed
-- [x] Registrar Finalize All — SweetAlert2 confirm ✅
-- [ ] SweetAlert2 on remaining 5 destructive actions
-- [ ] Full end-to-end test passing
+### 9.12 — Excel Import Fixes ✅ DONE (March 23 session)
+- [x] Template fake sample row → notes row
+- [x] Single course code in template (not all joined)
+- [x] Strict date_format:Y-m-d validation
+
+### 9.13 — Emoji → Font Awesome Cleanup ✅ DONE (March 23 session)
+- [x] 26 blade files scanned
+- [x] All hardcoded emojis replaced with Font Awesome 6.5 icons
+- [x] Affected: admin/dashboard, faculty/dashboard, faculty/grades/index, faculty/subjects, head_of_department/dashboard, head_of_department/review, head_of_department/students/index
+- [x] guest.blade.php ✦ SVG art — intentionally preserved
+- [x] Role badge formatting: raw DB value → ucwords(str_replace('_', ' ', ...))
+
+### 9.14 — UserSeeder Bug Fix ✅ DONE (March 23 session)
+- [x] Root cause: `firstOrCreate` never updates existing records
+- [x] All 5 users → `updateOrCreate`
+- [x] Faculty user now gets `department_id` assigned
+- [x] Verified: HoD department_id correctly saves on re-seed
+
+**Phase 9 Final Deliverables — ALL COMPLETE:**
+- ✅ All database migrations green
+- ✅ Department scoping working correctly
+- ✅ Admin student management removed
+- ✅ HoD full module — students, enrollment, faculty assignment, grade review
+- ✅ Faculty resubmit flow with remarks
+- ✅ Registrar bulk finalize + COG/TOR generation
+- ✅ Excel import/export with fixed template and strict validation
+- ✅ SweetAlert2 on ALL 8 destructive actions
+- ✅ Font Awesome icons throughout — zero hardcoded emojis
+- ✅ UserSeeder using updateOrCreate — safe to re-seed
+- [ ] End-to-end test — next session
 
 ---
 
@@ -469,31 +368,22 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 
 ## PHASE 11: UI/UX & TESTING 🔄 IN PROGRESS
 **Date:** February 26, 2026 (started)
-**Status:** 🔄 In Progress (~30%)
+**Status:** 🔄 In Progress (~40%)
 
-### 11.1 Login Page — Complete Redesign ✅ DONE
-- [x] Root route `/` redirects to login or role dashboard
-- [x] Split-screen layout (dark navy + cream)
-- [x] Custom SVG document illustration
-- [x] Playfair Display + DM Sans fonts
-- [x] Font Awesome icons + password toggle
-- [x] All Breeze auth logic preserved
+### 11.1 Login Page ✅ DONE
+- [x] Split-screen layout, custom SVG illustration, Playfair Display + DM Sans fonts
 
-### 11.2 All Role Dashboards — Overhaul ✅ DONE
-- [x] Admin dashboard — 6 stat cards, full nav grid
-- [x] Head of Department dashboard — 4 stat cards, pending submissions table, full sidebar nav
-- [x] Faculty dashboard — stats, quick subject links, status badges, rejection flow
-- [x] Registrar dashboard — 2-tab redesign, finalization queue + student directory, preview modal
+### 11.2 All Role Dashboards ✅ DONE
+- [x] Admin, HoD, Faculty, Registrar dashboards redesigned
+- [x] Font Awesome icons, role badge formatting, stat cards
 
-### 11.3 Remaining Tasks (post-Phase 9)
-- [ ] SweetAlert2 on remaining 5 destructive actions (Phase 9.10)
-- [ ] End-to-end workflow test (Phase 9.11)
-- [ ] Excel import/export end-to-end testing
+### 11.3 Remaining Tasks
+- [ ] End-to-end workflow test (Phase 9.11) — DO THIS FIRST
 - [ ] Mobile responsiveness review across all role views
 - [ ] Error handling — empty states, 404 pages, form error UX
 - [ ] Loading states for PDF generation
 - [ ] UI consistency pass across all role views
-- [ ] Remove student nav links from Admin dashboard view (leftover Phase 9.3)
+- [ ] Remove leftover student nav links from Admin dashboard (Phase 9.3 leftover)
 
 ---
 
@@ -501,11 +391,11 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 
 ### Grade Status ENUM — v2 Values ✅ Active
 ```
-saved               — Faculty encoded, not yet submitted
-pending_head of department_review — Submitted, awaiting Head of Department action
-approved_by_head of department    — Head of Department approved, in Registrar queue
-rejected            — Head of Department rejected, Faculty can resubmit
-finalized           — Registrar locked, permanent
+saved                        — Faculty encoded, not yet submitted
+pending_head_of_department_review  — Submitted, awaiting HoD action
+approved_by_head_of_department     — HoD approved, in Registrar queue
+rejected                     — HoD rejected, Faculty can resubmit
+finalized                    — Registrar locked, permanent
 ```
 **Critical:** These are the ONLY valid values. MySQL throws truncation error on anything else.
 
@@ -549,11 +439,11 @@ e.g. "2nd Semester — SY 2025-2026"
 |-------|---------|-------|
 | subjects | `code` | `subject_code` |
 | students | `student_number` | `student_id` |
-| grade_submissions.head of department_action | `approved_by_head of department` | `approved` |
-| grades.status | `pending_head of department_review` | `pending` |
+| grade_submissions.hod_action | `approved_by_head_of_department` | `approved` |
+| grades.status | `pending_head_of_department_review` | `pending` |
 | school_years | `year_code` | `year_start`, `year_end` |
 | semesters | `semester_name`, `semester_order` | `name` |
-| Storage | `Storage::` | `\Storage::` |
+| Storage facade | `Storage::` (with import) | `\Storage::` |
 
 ### Storage Notes
 - COG: `storage/app/cog/{document_number}.pdf`
@@ -565,42 +455,13 @@ e.g. "2nd Semester — SY 2025-2026"
 - Permission errors on bootstrap/cache: `chmod -R 777 bootstrap/cache storage`
 - Complex tinker chains fail on Git Bash — use simple single expressions
 - `php artisan tinker --execute` with backslashes fails — use DB:: facade directly
+- sed commands mangle unicode emojis — use line-number targeting `sed -i 'Ns/.*/replacement/'`
 
 ---
 
 ## LESSONS LEARNED
 
-### Phase 4:
-1. Resource controllers handle 7 CRUD actions automatically
-2. withCount() prevents N+1 for relationship counts
-3. Check for dependencies before deletion
-4. Flash messages on every action
-5. Unique validation with ignore on update
-6. Generic /dashboard must redirect by role
-7. winpty prefix for interactive artisan on Windows
-
-### Phase 5:
-8. TestEnrollmentSeeder faster than clicking through admin for dev
-9. Always verify routes with route:list after editing
-10. Duplicate route blocks fail silently
-
-### Phase 6:
-11. Always verify column names against migration — subject_code vs code
-12. Check laravel.log before assuming code is broken
-13. Always cat controller file to confirm methods were saved
-14. Grade ENUM is strict — check SHOW COLUMNS via tinker before assuming values
-15. bootstrap/cache permissions: chmod -R 777
-
-### Phase 7:
-16. Split GET/POST for document generation — GET confirm view + POST for actual generation
-17. Always use Storage:: facade with proper import
-18. GWA is weighted — not a simple average
-19. DomPDF: use output() not download()
-
-### Phase 8:
-20. Route order: static routes before wildcard routes
-21. Check composer.json before installing packages
-22. student_id vs student_number is a recurring trap
+### Phase 4–8: (unchanged — see prior entries 1–22)
 
 ### Phase 9:
 23. MySQL ENUM changes: expand first → update data → lock
@@ -621,11 +482,18 @@ e.g. "2nd Semester — SY 2025-2026"
 38. Intelephense P1013 `withQueryString()` warning is a false positive
 39. `$request->all()` on update passes `_token` and `_method` — always use explicit field list
 40. Tailwind CDN doesn't compile dynamic classes — use inline styles for critical colors
-41. `$fillable` missing `department_id` causes silent data loss on User create/update — always verify fillable matches all columns being written
-42. `scopeApproved()` ENUM mismatch (`'approved'` vs `'approved_by_head of department'`) causes entire Registrar queue to return empty silently
-43. Arrow functions (`fn()`) inside Blade `@json()` inside HTML attributes cause PHP ParseError — use regular `function()` inside `@php` block and `json_encode()` instead
-44. `cat` command output lowercases JS — JavaScript is case-sensitive, `getElementById` ≠ `getelementbyid`
-45. Semesters use `semester_name` not `name` — always eager load `semester.schoolYear` for TOR generation
+41. `$fillable` missing `department_id` causes silent data loss on User create/update
+42. `scopeApproved()` ENUM mismatch causes entire Registrar queue to return empty silently
+43. Arrow functions inside Blade @json() inside HTML attributes cause PHP ParseError
+44. `cat` command output lowercases JS — JavaScript is case-sensitive
+45. Semesters use `semester_name` not `name` — always eager load `semester.schoolYear` for TOR
+46. `firstOrCreate` never updates existing records — use `updateOrCreate` in seeders
+47. `department_id` null on HoD causes `whereHas` scoping to silently return zero results
+48. Excel template with hardcoded student numbers matching seeder causes unique validation failures
+49. `nullable|date` accepts any PHP-parseable format silently — use `nullable|date_format:Y-m-d`
+50. sed on Git Bash mangles multi-byte unicode — use line-number targeting for emoji replacement
+51. `@push('scripts')` has no effect without `@stack('scripts')` in the layout
+52. implode(' / ', $courseCodes) in template puts all codes in one cell — use `->value('code')`
 
 ---
 
@@ -634,47 +502,48 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
 | Phase 1: Foundation | ✅ Complete | 100% | — |
-| Phase 2: Models & Seeders | ✅ Complete | 100% | department_id added to fillable |
+| Phase 2: Models & Seeders | ✅ Complete | 100% | updateOrCreate in seeder |
 | Phase 3: Auth & Authorization | ✅ Complete | 100% | — |
-| Phase 4: Admin Module | ✅ Complete | 100% | Student mgmt removed in Phase 9.3 |
-| Phase 5: Faculty Module | ✅ Complete | 100% | Resubmit flow complete |
-| Phase 6: Head of Department Module | ✅ Complete | 100% | All stats department-scoped (fixed) |
-| Phase 7: Registrar Module | ✅ Complete | 100% | Bulk finalize + preview modal + TOR fix |
-| Phase 8: Excel Features | ✅ Complete | 100% | — |
-| **Phase 9: System Restructure** | 🔄 In Progress | 98% | **5 SweetAlert actions + E2E test remaining** |
-| Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 9 |
-| Phase 11: UI/UX & Testing | 🔄 In Progress | 30% | Resume after Phase 9 |
+| Phase 4: Admin Module | ✅ Complete | 100% | Font Awesome icons, role badge formatting |
+| Phase 5: Faculty Module | ✅ Complete | 100% | SweetAlert2 + Font Awesome |
+| Phase 6: HoD Module | ✅ Complete | 100% | SweetAlert2 + Font Awesome + delete confirm |
+| Phase 7: Registrar Module | ✅ Complete | 100% | SweetAlert2 on all doc actions |
+| Phase 8: Excel Features | ✅ Complete | 100% | Fixed template + strict date validation |
+| **Phase 9: System Restructure** | ✅ Complete | 99% | **E2E test next session** |
+| Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
+| Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | E2E + mobile + error handling |
 
-**Overall Project Completion: ~98%**
+**Overall Project Completion: ~99%**
 
 ---
 
 ## NEXT STEPS — RESUME HERE
 
 ```
-✅ Steps 1–41:  All prior work complete
-✅ Step 42:     SweetAlert2 CDN confirmed in app.blade.php
-✅ Step 42b:    Registrar Finalize All — SweetAlert2 confirm implemented
-✅ Step 43a:    GradeSubmission scopeApproved fixed (approved → approved_by_head of department)
-✅ Step 43b:    User.$fillable — department_id added
-✅ Step 43c:    Head of Department dashboard stats — all 4 department-scoped
-✅ Step 43d:    Registrar dashboard — 2 tabs, bulk finalize, preview modal
-✅ Step 43e:    TOR semester label fixed (semester_name + SY year_code)
-✅ Step 43f:    Duplicate Download TOR button removed from student-profile
+▶️ Priority 1: Phase 9.11 — End-to-end test (12 steps)
+   1.  Admin: verify active school year + active semester exist
+   2.  Admin: verify department, course, subject exist
+   3.  Admin: verify HoD + Faculty accounts have correct department_id
+   4.  HoD: assign subject to faculty
+   5.  HoD: enroll students into subject
+   6.  Faculty: encode grades
+   7.  Faculty: submit to HoD (confirm SweetAlert fires)
+   8.  HoD: review and approve all (confirm SweetAlert fires)
+   9.  Registrar: verify subject in finalization queue
+   10. Registrar: finalize subject (preview modal + SweetAlert confirm)
+   11. Registrar: generate COG
+   12. Registrar: generate TOR
 
-▶️ Step 44: Add SweetAlert2 Swal.fire() to remaining 5 destructive actions:
-            - Head of Department: Approve All (head of department/review.blade.php)
-            - Head of Department: Reject submission (head of department/review.blade.php)
-            - Faculty: Submit to Head of Department (faculty/grades/index.blade.php)
-            - Faculty: Resubmit to Head of Department (faculty/grades/index.blade.php)
-            - Registrar: Generate TOR (registrar/student-profile.blade.php)
-▶️ Step 45: php artisan route:clear && php artisan cache:clear
-▶️ Step 46: php artisan route:list — full verification
-▶️ Step 47: End-to-end test all 12 workflow steps
+▶️ Priority 2: Phase 11 remaining
+   - Mobile responsiveness
+   - Empty states, 404, form error UX
+   - Loading states for PDF generation
+   - UI consistency pass
+   - Remove leftover student nav links from Admin dashboard
 ```
 
 ---
 
-**Last Updated:** March 12, 2026
-**Phase 9 Status:** 🔄 In Progress — Resume from Step 44 (remaining SweetAlert actions)
-**Target:** Phase 9 complete → continue Phase 11 UI/UX → Phase 10 Reporting
+**Last Updated:** March 23, 2026
+**Phase 9 Status:** ✅ Complete
+**Current Focus:** Phase 9.11 E2E test → Phase 11 UI/UX

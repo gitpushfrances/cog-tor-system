@@ -60,7 +60,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'student_number'        => 'required|unique:students,student_number',
             'first_name'            => 'required|string|max:50',
             'last_name'             => 'required|string|max:50',
-            'birth_date_yyyy_mm_dd' => 'nullable|date',
+            'birth_date_yyyy_mm_dd' => 'nullable|date_format:Y-m-d',
             'gender_malefemale'     => 'required|in:Male,Female',
             'email'                 => 'required|email|unique:students,email',
             'year_level'            => 'required|integer|min:1|max:5',

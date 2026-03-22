@@ -11,8 +11,10 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
+        $department = Department::first();
+
         // Admin User
-        $admin = User::firstOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'admin@cogtor.test'],
             [
                 'name'              => 'System Administrator',
@@ -24,11 +26,8 @@ class UserSeeder extends Seeder
         );
         $admin->assignRole('admin');
 
-        // Get first department for Head of Department
-        $department = Department::first();
-
         // Head of Department User
-        $hod = User::firstOrCreate(
+        $hod = User::updateOrCreate(
             ['email' => 'hod@cogtor.test'],
             [
                 'name'              => 'Head of CCS',
@@ -44,13 +43,14 @@ class UserSeeder extends Seeder
         $hod->assignRole('head_of_department');
 
         // Faculty User
-        $faculty = User::firstOrCreate(
+        $faculty = User::updateOrCreate(
             ['email' => 'faculty@cogtor.test'],
             [
                 'name'              => 'Juan Dela Cruz',
                 'password'          => Hash::make('password'),
                 'role'              => 'faculty',
                 'status'            => 'active',
+                'department_id'     => $department?->id,
                 'approved_by'       => $hod->id,
                 'approved_at'       => now(),
                 'email_verified_at' => now(),
@@ -59,7 +59,7 @@ class UserSeeder extends Seeder
         $faculty->assignRole('faculty');
 
         // Registrar User
-        $registrar = User::firstOrCreate(
+        $registrar = User::updateOrCreate(
             ['email' => 'registrar@cogtor.test'],
             [
                 'name'              => 'University Registrar',
@@ -74,7 +74,7 @@ class UserSeeder extends Seeder
         $registrar->assignRole('registrar');
 
         // Pending Faculty (for testing approval workflow)
-        $pendingFaculty = User::firstOrCreate(
+        $pendingFaculty = User::updateOrCreate(
             ['email' => 'pending@cogtor.test'],
             [
                 'name'              => 'Maria Santos',

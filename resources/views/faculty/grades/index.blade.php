@@ -37,7 +37,7 @@
                         @csrf
                         <button type="button" onclick="confirmSubmit()"
                                 class="px-4 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700">
-                            ✓ Submit to Head of Department
+                            <i class="fas fa-check"></i> Submit to Head of Department
                         </button>
                     </form>
                 @endif
@@ -99,7 +99,7 @@
         {{-- Approved notice --}}
         @if($isApproved)
             <div class="px-5 py-4 mb-5 border border-green-300 rounded-lg bg-green-50">
-                <span class="text-sm font-semibold text-green-800">✅ Approved by Head of Department</span>
+                <span class="text-sm font-semibold text-green-800"><i class="fas fa-check-circle"></i> Approved by Head of Department</span>
                 <p class="mt-1 text-xs text-green-700">Grades have been approved and forwarded to the Registrar for finalization.</p>
             </div>
         @endif
@@ -107,7 +107,7 @@
         {{-- Finalized notice --}}
         @if($isFinalized)
             <div class="px-5 py-4 mb-5 border border-blue-300 rounded-lg bg-blue-50">
-                <span class="text-sm font-semibold text-blue-800">🔒 Finalized</span>
+                <span class="text-sm font-semibold text-blue-800"><i class="fas fa-lock"></i> Finalized</span>
                 <p class="mt-1 text-xs text-blue-700">Grades have been permanently finalized by the Registrar.</p>
             </div>
         @endif

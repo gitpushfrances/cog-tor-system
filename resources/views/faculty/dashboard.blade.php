@@ -41,7 +41,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <a href="{{ route('faculty.subjects') }}" class="p-5 transition bg-white border-l-4 border-blue-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">📖</span>
+                            <i class="fas fa-book text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">My Subjects</div>
                                 <div class="text-xs text-gray-500">View assigned subjects and encode grades</div>
@@ -52,7 +52,7 @@
                     @foreach($subjects as $subject)
                     <a href="{{ route('faculty.subjects.grades', $subject) }}" class="p-5 transition bg-white border-l-4 border-green-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <span class="text-2xl">✏️</span>
+                            <i class="fas fa-pen text-2xl"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">{{ $subject->code }}</div>
                                 <div class="text-xs text-gray-500">{{ $subject->name }} — Encode Grades</div>

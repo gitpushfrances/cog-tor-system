@@ -88,7 +88,7 @@
                     @csrf
                     <button type="button" onclick="confirmApprove()"
                             class="w-full px-4 py-2 font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">
-                        ✓ Approve All {{ $submissions->count() }} Grades
+                        <i class="fas fa-check"></i> Approve All {{ $submissions->count() }} Grades
                     </button>
                 </form>
             </div>
@@ -111,7 +111,7 @@
                     </div>
                     <button type="button" onclick="confirmReject()"
                             class="w-full px-4 py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">
-                        ✗ Reject & Return to Faculty
+                        <i class="fas fa-times"></i> Reject &amp; Return to Faculty
                     </button>
                 </form>
             </div>
