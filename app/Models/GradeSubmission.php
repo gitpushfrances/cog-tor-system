@@ -4,11 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class GradeSubmission extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
         'grade_id',
@@ -20,6 +19,8 @@ class GradeSubmission extends Model
         'finalized_at',
         'dean_action',
         'dean_remarks',
+        'faculty_remarks',
+        'resubmission_count',
     ];
 
     protected $casts = [
@@ -52,7 +53,7 @@ class GradeSubmission extends Model
     // Helper Methods
     public function isApproved()
     {
-        return $this->dean_action === 'approved_by_dean';
+        return $this->dean_action === 'approved_by_head_of_department';
     }
 
     public function isRejected()
@@ -84,7 +85,7 @@ class GradeSubmission extends Model
 
     public function scopeApproved($query)
     {
-        return $query->where('dean_action', 'approved_by_dean');
+        return $query->where('dean_action', 'approved_by_head_of_department');
     }
 
     public function scopeRejected($query)

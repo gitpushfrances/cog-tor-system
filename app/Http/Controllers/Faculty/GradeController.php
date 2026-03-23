@@ -36,18 +36,16 @@ class GradeController extends Controller
         $request->validate([
             'grades'                 => 'required|array',
             'grades.*.enrollment_id' => 'required|exists:enrollments,id',
-            'grades.*.percentage'    => 'required|numeric|min:0|max:100',
+            'grades.*.grade'         => 'required|numeric|min:1.00|max:5.00',
         ]);
 
         foreach ($request->grades as $item) {
-            $grade_value = Grade::convertToGrade($item['percentage']);
             Grade::updateOrCreate(
                 ['enrollment_id' => $item['enrollment_id']],
                 [
                     'faculty_id' => $user->id,
-                    'grade'      => $grade_value,
-                    'percentage' => $item['percentage'],
-                    'status'     => 'saved',   // ✅ was 'pending'
+                    'grade'      => $item['grade'],
+                    'status'     => 'saved',
                     'remarks'    => $item['remarks'] ?? null,
                 ]
             );
@@ -83,14 +81,13 @@ class GradeController extends Controller
         }
 
         $request->validate([
-            'percentage' => 'required|numeric|min:0|max:100',
-            'remarks'    => 'nullable|string|max:500',
+            'grade'   => 'required|numeric|min:1.00|max:5.00',
+            'remarks' => 'nullable|string|max:500',
         ]);
 
         $grade->update([
-            'grade'      => Grade::convertToGrade($request->percentage),
-            'percentage' => $request->percentage,
-            'remarks'    => $request->remarks,
+            'grade'   => $request->grade,
+            'remarks' => $request->remarks,
         ]);
 
         return redirect()->route('faculty.subjects.grades', $subject)
@@ -123,7 +120,7 @@ class GradeController extends Controller
                     'reviewed_by'  => null,
                 ]
             );
-            $grade->update(['status' => 'pending_dean_review']); // ✅ was 'pending'
+            $grade->update(['status' => 'pending_head_of_department_review']);
         }
 
         return redirect()->route('faculty.subjects.grades', $subject)
@@ -163,7 +160,7 @@ class GradeController extends Controller
                     'submitted_at'       => now(),
                 ]);
             }
-            $grade->update(['status' => 'pending_dean_review']);
+            $grade->update(['status' => 'pending_head_of_department_review']);
         }
 
         return redirect()->route('faculty.subjects.grades', $subject)

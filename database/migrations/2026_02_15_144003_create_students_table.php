@@ -27,7 +27,6 @@ return new class extends Migration
             $table->integer('year_level')->comment('1, 2, 3, 4');
             $table->enum('status', ['active', 'inactive', 'graduated', 'dropped'])->default('active');
             $table->timestamps();
-            $table->softDeletes();
 
             $table->index(['course_id', 'year_level']);
         });

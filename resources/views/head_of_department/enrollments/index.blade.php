@@ -39,7 +39,7 @@
                 @csrf
                 <div class="flex-1 min-w-48">
                     <label class="block mb-1 text-xs font-medium text-gray-600">Student</label>
-                    <select name="student_id" required
+                    <select name="student_id" id="student-select" required
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
                         <option value="">Select student...</option>
                         @foreach($students as $student)
@@ -47,16 +47,22 @@
                         @endforeach
                     </select>
                 </div>
+
                 <div class="flex-1 min-w-48">
                     <label class="block mb-1 text-xs font-medium text-gray-600">Subject</label>
-                    <select name="subject_id" required
+                    <select name="subject_id" id="subject-select" required
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
-                        <option value="">Select subject...</option>
+                        <option value="">Select student first...</option>
                         @foreach($subjects as $subject)
-                            <option value="{{ $subject->id }}">{{ $subject->code }} — {{ $subject->name }}</option>
+                            <option value="{{ $subject->id }}"
+                                data-code="{{ $subject->code }}"
+                                data-name="{{ $subject->name }}">
+                                {{ $subject->code }} — {{ $subject->name }}
+                            </option>
                         @endforeach
                     </select>
                 </div>
+
                 <button type="submit"
                     style="background:#c9a84c;color:#fff;padding:8px 20px;border-radius:8px;font-size:0.875rem;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;white-space:nowrap;"
                     onmouseover="this.style.background='#a8872e'"
@@ -112,10 +118,11 @@
                             </td>
                             <td class="px-6 py-3">
                                 @if(!$enrollment->grade()->exists())
-                                <form method="POST" action="{{ route('head_of_department.enrollments.destroy', $enrollment) }}"
-                                    onsubmit="return confirm('Remove this enrollment?')">
+                                <form id="delete-enrollment-{{ $enrollment->id }}"
+                                    method="POST" action="{{ route('head_of_department.enrollments.destroy', $enrollment) }}">
                                     @csrf @method('DELETE')
-                                    <button type="submit"
+                                    <button type="button"
+                                        onclick="confirmRemoveEnrollment({{ $enrollment->id }}, '{{ addslashes($enrollment->student->getFullName()) }}', '{{ addslashes($enrollment->subject->code) }}')"
                                         style="background:transparent;color:#ef4444;font-size:0.75rem;font-weight:500;border:none;cursor:pointer;padding:0;transition:color 0.15s;"
                                         onmouseover="this.style.color='#b91c1c'"
                                         onmouseout="this.style.color='#ef4444'">
@@ -137,4 +144,62 @@
         </div>
 
     </div>
+
+@push('scripts')
+<script>
+    // Enrolled subject IDs per student (from all enrollments, not just paginated)
+    const enrolledMap = @json($enrolledMap ?? []);
+
+    const studentSelect = document.getElementById('student-select');
+    const subjectSelect = document.getElementById('subject-select');
+
+    // Store all original subject options
+    const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[value]:not([value=""])'));
+
+    studentSelect.addEventListener('change', function () {
+        const studentId = this.value;
+        const enrolledSubjects = enrolledMap[parseInt(studentId)] || enrolledMap[studentId] || [];
+
+        // Reset subject dropdown
+        subjectSelect.innerHTML = '<option value="">' + (studentId ? 'Select subject...' : 'Select student first...') + '</option>';
+
+        if (!studentId) return;
+
+        allSubjectOptions.forEach(opt => {
+            const subjectId = parseInt(opt.value);
+            const isEnrolled = enrolledSubjects.includes(subjectId);
+
+            const newOpt = document.createElement('option');
+            newOpt.value = opt.value;
+            newOpt.disabled = isEnrolled;
+            newOpt.style.color = isEnrolled ? '#9ca3af' : '';
+            newOpt.textContent = opt.getAttribute('data-code') + ' — ' + opt.getAttribute('data-name')
+                + (isEnrolled ? ' (Already Enrolled)' : '');
+            subjectSelect.appendChild(newOpt);
+        });
+    });
+
+    // Trigger on page load if student was previously selected (e.g. after validation error)
+    if (studentSelect.value) studentSelect.dispatchEvent(new Event('change'));
+
+    // SweetAlert2 confirm remove
+    function confirmRemoveEnrollment(id, studentName, subjectCode) {
+        Swal.fire({
+            title: 'Remove Enrollment?',
+            html: `<span style="font-size:0.9rem;color:#374151;">Remove <strong>${studentName}</strong> from <strong>${subjectCode}</strong>? This cannot be undone.</span>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, Remove',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-enrollment-' + id).submit();
+            }
+        });
+    }
+</script>
+@endpush
 </x-app-layout>

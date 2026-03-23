@@ -27,8 +27,8 @@ class GradesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
     public function model(array $row)
     {
-        // Skip rows with no percentage
-        if (!isset($row['percentage_0_100']) || $row['percentage_0_100'] === '') {
+        // Skip rows with no grade
+        if (!isset($row['grade']) || $row['grade'] === '') {
             return null;
         }
 
@@ -38,31 +38,28 @@ class GradesImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnEr
 
         if (!$enrollment) return null;
 
-        // Only allow editing pending grades
+        // Only allow editing saved or rejected grades
         $existing = Grade::where('enrollment_id', $enrollment->id)->first();
-        if ($existing && $existing->status !== 'pending') return null;
-
-        $gradeValue = Grade::convertToGrade((float) $row['percentage_0_100']);
+        if ($existing && !in_array($existing->status, ['saved', 'rejected'])) return null;
 
         Grade::updateOrCreate(
             ['enrollment_id' => $enrollment->id],
             [
-                'faculty_id'  => $this->facultyId,
-                'grade'       => $gradeValue,
-                'percentage'  => (float) $row['percentage_0_100'],
-                'status'      => 'pending',
-                'remarks'     => isset($row['remarks']) ? trim($row['remarks']) : null,
+                'faculty_id' => $this->facultyId,
+                'grade'      => (float) $row['grade'],
+                'status'     => 'saved',
+                'remarks'    => isset($row['remarks']) ? trim($row['remarks']) : null,
             ]
         );
 
-        return null; // Return null because we handle persistence manually above
+        return null;
     }
 
     public function rules(): array
     {
         return [
-            'enrollment_id'    => 'required|integer|exists:enrollments,id',
-            'percentage_0_100' => 'nullable|numeric|min:0|max:100',
+            'enrollment_id' => 'required|integer|exists:enrollments,id',
+            'grade'         => 'required|numeric|min:1.00|max:5.00',
         ];
     }
 }

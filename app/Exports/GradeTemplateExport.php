@@ -30,13 +30,13 @@ class GradeTemplateExport implements FromCollection, WithHeadings, WithMapping, 
     public function headings(): array
     {
         return [
-            'Enrollment ID',        // DO NOT EDIT
-            'Student Number',       // DO NOT EDIT
-            'Student Name',         // DO NOT EDIT
-            'Subject Code',         // DO NOT EDIT
-            'Subject Name',         // DO NOT EDIT
-            'Percentage (0-100)',   // FILL THIS
-            'Remarks',              // OPTIONAL
+            'Enrollment ID',  // DO NOT EDIT
+            'Student Number', // DO NOT EDIT
+            'Student Name',   // DO NOT EDIT
+            'Subject Code',   // DO NOT EDIT
+            'Subject Name',   // DO NOT EDIT
+            'Grade',          // FILL THIS (e.g. 1.00, 1.52, 2.75)
+            'Remarks',        // OPTIONAL
         ];
     }
 
@@ -48,7 +48,7 @@ class GradeTemplateExport implements FromCollection, WithHeadings, WithMapping, 
             $enrollment->student->getFullName(),
             $this->subject->code,
             $this->subject->name,
-            $enrollment->grade ? $enrollment->grade->percentage : '',
+            $enrollment->grade ? number_format((float) $enrollment->grade->grade, 2) : '',
             $enrollment->grade ? $enrollment->grade->remarks : '',
         ];
     }

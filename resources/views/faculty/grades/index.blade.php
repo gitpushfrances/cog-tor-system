@@ -9,9 +9,9 @@
 
             @php
                 $subjectStatus = $latestSubmission?->grade?->status ?? 'saved';
-                $isPending     = $subjectStatus === 'pending_dean_review';
+                $isPending     = $subjectStatus === 'pending_head_of_department_review';
                 $isRejected    = $subjectStatus === 'rejected';
-                $isApproved    = $subjectStatus === 'approved_by_dean';
+                $isApproved    = $subjectStatus === 'approved_by_head_of_department';
                 $isFinalized   = $subjectStatus === 'finalized';
                 $isLocked      = $isPending || $isApproved || $isFinalized;
             @endphp
@@ -121,7 +121,6 @@
                         <tr>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Student</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Student No.</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Percentage (%)</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Grade</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Remarks</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Status</th>
@@ -140,16 +139,16 @@
                             <td class="px-6 py-4 font-mono text-sm">{{ $enrollment->student->student_number }}</td>
                             <td class="px-6 py-4 text-sm">
                                 @if($isLocked || ($enrollment->grade && !in_array($enrollment->grade->status, ['saved', 'rejected'])))
-                                    {{ $enrollment->grade?->percentage ?? '—' }}%
+                                    <span class="font-bold">{{ $enrollment->grade ? number_format($enrollment->grade->grade, 2) : '—' }}</span>
                                 @else
-                                    <input type="number" name="grades[{{ $i }}][percentage]"
-                                           value="{{ $enrollment->grade->percentage ?? '' }}"
-                                           min="0" max="100" step="0.01"
-                                           class="w-24 text-sm border-gray-300 rounded">
+                                    <input type="text"
+                                           name="grades[{{ $i }}][grade]"
+                                           value="{{ isset($enrollment->grade) ? number_format($enrollment->grade->grade, 2) : '' }}"
+                                           list="grade-options"
+                                           placeholder="e.g. 2.00"
+                                           autocomplete="off"
+                                           class="w-24 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400">
                                 @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm font-bold">
-                                {{ $enrollment->grade ? number_format($enrollment->grade->grade, 2) : '-' }}
                             </td>
                             <td class="px-6 py-4 text-sm">
                                 @if($isLocked || ($enrollment->grade && !in_array($enrollment->grade->status, ['saved', 'rejected'])))
@@ -165,8 +164,8 @@
                                     @php $s = $enrollment->grade->status; @endphp
                                     <span class="px-2 py-0.5 rounded-full text-xs font-semibold
                                         {{ $s === 'saved'               ? 'bg-gray-100 text-gray-700' : '' }}
-                                        {{ $s === 'pending_dean_review' ? 'bg-yellow-100 text-yellow-800' : '' }}
-                                        {{ $s === 'approved_by_dean'    ? 'bg-green-100 text-green-800' : '' }}
+                                        {{ $s === 'pending_head_of_department_review'  ? 'bg-yellow-100 text-yellow-800' : '' }}
+                                        {{ $s === 'approved_by_head_of_department'     ? 'bg-green-100 text-green-800' : '' }}
                                         {{ $s === 'rejected'            ? 'bg-red-100 text-red-800' : '' }}
                                         {{ $s === 'finalized'           ? 'bg-blue-100 text-blue-800' : '' }}">
                                         {{ ucfirst(str_replace('_', ' ', $s)) }}
@@ -304,4 +303,17 @@
             });
         }
     </script>
+{{-- datalist for grade suggestions --}}
+<datalist id="grade-options">
+    <option value="1.00">
+    <option value="1.25">
+    <option value="1.50">
+    <option value="1.75">
+    <option value="2.00">
+    <option value="2.25">
+    <option value="2.50">
+    <option value="2.75">
+    <option value="3.00">
+    <option value="5.00">
+</datalist>
 </x-app-layout>

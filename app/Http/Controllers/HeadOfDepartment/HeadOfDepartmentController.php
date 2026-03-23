@@ -83,11 +83,11 @@ class HeadOfDepartmentController extends Controller
 
         foreach ($submissions as $sub) {
             $sub->update([
-                'dean_action' => 'approved_by_dean',
+                'dean_action' => 'approved_by_head_of_department',
                 'reviewed_at' => now(),
                 'reviewed_by' => auth()->id(),
             ]);
-            $sub->grade->update(['status' => 'approved_by_dean']);
+            $sub->grade->update(['status' => 'approved_by_head_of_department']);
         }
 
         return redirect()->route('head_of_department.dashboard')

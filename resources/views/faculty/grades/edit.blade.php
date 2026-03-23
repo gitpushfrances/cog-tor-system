@@ -1,11 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
         <a href="{{ route('faculty.subjects.grades', $subject) }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back to Grades</a>
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit Grade</h2>
+        <h2 class="text-xl font-semibold leading-tight text-gray-800">Edit Grade</h2>
     </x-slot>
-    <div class="py-6 max-w-xl mx-auto px-4">
-        <div class="bg-white shadow rounded-lg p-6">
-            <div class="mb-4 p-4 bg-gray-50 rounded">
+    <div class="max-w-xl px-4 py-6 mx-auto">
+        <div class="p-6 bg-white rounded-lg shadow">
+            <div class="p-4 mb-4 rounded bg-gray-50">
                 <p class="text-sm text-gray-600">Student: <span class="font-semibold">{{ $enrollment->student->last_name }}, {{ $enrollment->student->first_name }}</span></p>
                 <p class="text-sm text-gray-600">Subject: <span class="font-semibold">{{ $subject->code }} - {{ $subject->name }}</span></p>
             </div>
@@ -13,21 +13,31 @@
                 @csrf @method('PUT')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Percentage Score (%)</label>
-                        <input type="number" name="percentage" value="{{ old('percentage', $grade->percentage) }}"
-                               min="0" max="100" step="0.01"
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
-                        @error('percentage')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
-                        <p class="text-xs text-gray-400 mt-1">Grade will be auto-computed from percentage.</p>
+                        <label class="block text-sm font-medium text-gray-700">Grade</label>
+                        <input type="text"
+                               name="grade"
+                               id="grade-input"
+                               value="{{ old('grade', number_format((float)$grade->grade, 2)) }}"
+                               list="grade-options"
+                               placeholder="e.g. 2.00"
+                               autocomplete="off"
+                               class="block w-full px-3 py-2 mt-1 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-400">
+                        <datalist id="grade-options">
+                            <option value="1.00"><option value="1.25"><option value="1.50">
+                            <option value="1.75"><option value="2.00"><option value="2.25">
+                            <option value="2.50"><option value="2.75"><option value="3.00">
+                            <option value="5.00">
+                        </datalist>
+                        @error('grade')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Remarks <span class="text-gray-400">(optional)</span></label>
-                        <textarea name="remarks" rows="2" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm">{{ old('remarks', $grade->remarks) }}</textarea>
+                        <textarea name="remarks" rows="2" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">{{ old('remarks', $grade->remarks) }}</textarea>
                     </div>
                 </div>
-                <div class="mt-6 flex gap-3">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Update Grade</button>
-                    <a href="{{ route('faculty.subjects.grades', $subject) }}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300">Cancel</a>
+                <div class="flex gap-3 mt-6">
+                    <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Update Grade</button>
+                    <a href="{{ route('faculty.subjects.grades', $subject) }}" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Cancel</a>
                 </div>
             </form>
         </div>

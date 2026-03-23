@@ -96,6 +96,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/dashboard', [App\Http\Controllers\Registrar\RegistrarController::class, 'index'])->name('dashboard');
     Route::post('/submissions/{submission}/finalize', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalize'])->name('submissions.finalize');
     Route::post('/submissions/finalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalizeSubject'])->name('submissions.finalize-subject');
+Route::post('/submissions/unfinalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'unfinalizeSubject'])->name('submissions.unfinalize-subject');
     Route::get('/students/{student}/profile', [App\Http\Controllers\Registrar\DocumentController::class, 'studentProfile'])->name('students.profile');
     Route::get('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'cogForm'])->name('students.cog');
     Route::post('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'generateCog'])->name('students.cog.generate');

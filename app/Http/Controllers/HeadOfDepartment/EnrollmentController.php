@@ -28,7 +28,12 @@ class EnrollmentController extends Controller
         $subjects = Subject::whereHas('course', fn($q) => $q->where('department_id', $departmentId))
             ->active()->orderBy('code')->get();
 
-        return view('head_of_department.enrollments.index', compact('enrollments', 'students', 'subjects', 'activeSemester'));
+        $enrolledMap = Enrollment::where('semester_id', $activeSemester?->id)
+    ->get()
+    ->groupBy('student_id')
+    ->map(fn($rows) => $rows->pluck('subject_id')->toArray());
+
+return view('head_of_department.enrollments.index', compact('enrollments', 'students', 'subjects', 'activeSemester', 'enrolledMap'));
     }
 
     public function store(Request $request)
@@ -44,23 +49,26 @@ class EnrollmentController extends Controller
         $subject = Subject::whereHas('course', fn($q) => $q->where('department_id', $departmentId))
             ->findOrFail($request->subject_id);
 
-        $exists = Enrollment::where('student_id', $request->student_id)
-            ->where('subject_id', $subject->id)
-            ->where('semester_id', $activeSemester->id)
-            ->exists();
-
-        if ($exists) {
+        try {
+            [$enrollment, $created] = Enrollment::firstOrCreate(
+                [
+                    'student_id'  => $request->student_id,
+                    'subject_id'  => $subject->id,
+                    'semester_id' => $activeSemester->id,
+                ],
+                [
+                    'enrolled_by'     => auth()->id(),
+                    'enrollment_date' => now(),
+                    'status'          => 'enrolled',
+                ]
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
             return back()->with('error', 'Student is already enrolled in this subject for the active semester.');
         }
 
-        Enrollment::create([
-            'student_id'      => $request->student_id,
-            'subject_id'      => $subject->id,
-            'semester_id'     => $activeSemester->id,
-            'enrolled_by'     => auth()->id(),
-            'enrollment_date' => now(),
-            'status'          => 'enrolled',
-        ]);
+        if (!$created) {
+            return back()->with('error', 'Student is already enrolled in this subject for the active semester.');
+        }
 
         return back()->with('success', 'Student enrolled successfully.');
     }

@@ -20,10 +20,11 @@ return new class extends Migration
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamp('finalized_at')->nullable();
-            $table->enum('dean_action', ['approved', 'rejected'])->nullable();
+            $table->enum('dean_action', ['approved_by_head_of_department', 'rejected'])->nullable();
             $table->text('dean_remarks')->nullable();
+            $table->text('faculty_remarks')->nullable();
+            $table->integer('resubmission_count')->default(0);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

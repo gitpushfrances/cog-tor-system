@@ -4,25 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 class Grade extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
 
     protected $fillable = [
-        'enrollment_id',
-        'faculty_id',
-        'grade',
-        'percentage',
-        'status',
-        'remarks',
-    ];
+    'enrollment_id',
+    'faculty_id',
+    'grade',
+    'status',
+    'remarks',
+];
 
-    protected $casts = [
-        'grade' => 'decimal:2',
-        'percentage' => 'decimal:2',
-    ];
+protected $casts = [
+    'grade' => 'decimal:2',
+];
 
     // Relationships
     public function enrollment()
@@ -43,12 +39,12 @@ class Grade extends Model
     // Helper Methods
     public function isPending()
     {
-        return $this->status === 'pending';
+        return $this->status === 'pending_head_of_department_review';
     }
 
     public function isApprovedByHeadOfDepartment()
     {
-        return $this->status === 'approved_by_dean';
+        return $this->status === 'approved_by_head_of_department';
     }
 
     public function isFinalized()
@@ -61,32 +57,15 @@ class Grade extends Model
         return $this->grade < 5.0; // Below 5.0 is passing
     }
 
-    /**
-     * Convert percentage to Philippine grade scale (1.0-5.0)
-     */
-    public static function convertToGrade($percentage)
-    {
-        if ($percentage >= 97) return 1.00;
-        if ($percentage >= 94) return 1.25;
-        if ($percentage >= 91) return 1.50;
-        if ($percentage >= 88) return 1.75;
-        if ($percentage >= 85) return 2.00;
-        if ($percentage >= 82) return 2.25;
-        if ($percentage >= 79) return 2.50;
-        if ($percentage >= 76) return 2.75;
-        if ($percentage >= 75) return 3.00;
-        return 5.00; // Failed
-    }
-
     // Scopes
     public function scopePending($query)
     {
-        return $query->where('status', 'pending');
+        return $query->where('status', 'pending_head_of_department_review');
     }
 
     public function scopeApprovedByHeadOfDepartment($query)
     {
-        return $query->where('status', 'approved_by_dean');
+        return $query->where('status', 'approved_by_head_of_department');
     }
 
     public function scopeFinalized($query)

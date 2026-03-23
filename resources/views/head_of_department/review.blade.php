@@ -47,7 +47,6 @@
                         <tr>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Student No.</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Name</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Percentage</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Grade</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Remarks</th>
                         </tr>
@@ -60,9 +59,6 @@
                             </td>
                             <td class="px-6 py-3 text-sm font-medium text-gray-900">
                                 {{ $sub->grade->enrollment->student->getFullName() }}
-                            </td>
-                            <td class="px-6 py-3 text-sm text-gray-700">
-                                {{ number_format($sub->grade->percentage, 2) }}%
                             </td>
                             <td class="px-6 py-3">
                                 <span class="text-sm font-bold {{ $sub->grade->grade == 5.00 ? 'text-red-600' : 'text-gray-900' }}">
