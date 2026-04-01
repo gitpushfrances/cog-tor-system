@@ -46,7 +46,13 @@
             <td class="label">Course:</td>
             <td>{{ $student->course->name ?? 'N/A' }}</td>
             <td class="label">Cumulative GWA:</td>
-            <td>{{ $cumulativeGwa ? number_format($cumulativeGwa, 2) : 'N/A' }}</td>
+            <td>{{ $cumulativeGwa ? number_format($cumulativeGwa, 1) : 'N/A' }}</td>
+        </tr>
+        <tr>
+            <td class="label">Student Type:</td>
+            <td>{{ $student->student_type ?? 'Regular' }}</td>
+            <td></td>
+            <td></td>
         </tr>
     </table>
 
@@ -67,7 +73,7 @@
                 <td>{{ $row['subject_code'] }}</td>
                 <td>{{ $row['subject_name'] }}</td>
                 <td>{{ $row['units'] }}</td>
-                <td>{{ number_format($row['grade'], 2) }}</td>
+                <td>{{ number_format($row['grade'], 1) }}</td>
             </tr>
             @endforeach
         </tbody>

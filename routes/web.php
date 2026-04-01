@@ -3,6 +3,14 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
+});
+
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
+});
+
 Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('dashboard');
@@ -36,6 +44,7 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
 
     // Department Management
     Route::resource('departments', App\Http\Controllers\Admin\DepartmentController::class);
+    Route::post('/departments/{department}/deactivate', [App\Http\Controllers\Admin\DepartmentController::class, 'deactivate'])->name('departments.deactivate');
 
     // Course Management
     Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);

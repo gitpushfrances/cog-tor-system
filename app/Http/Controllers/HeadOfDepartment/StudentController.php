@@ -68,6 +68,7 @@ class StudentController extends Controller
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
+            'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated',
         ]);
 
@@ -112,6 +113,7 @@ class StudentController extends Controller
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
+            'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated',
         ]);
 

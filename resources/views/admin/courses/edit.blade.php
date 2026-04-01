@@ -30,7 +30,7 @@
 
                         <!-- Code -->
                         <div class="mb-4">
-                            <label for="code" class="block text-sm font-medium text-gray-700">Course Code</label>
+                            <label for="code" class="block text-sm font-medium text-gray-700">Course</label>
                             <input type="text" name="code" id="code" value="{{ old('code', $course->code) }}"
                                 class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                             @error('code')

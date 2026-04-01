@@ -1,5 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
+        <p class="text-xs font-medium text-blue-700 uppercase tracking-widest mb-1">Eastern Samar State University - Guiuan Campus</p>
         <h2 class="text-xl font-semibold leading-tight text-gray-800">Faculty Dashboard</h2>
         <p class="mt-1 text-sm text-gray-500">Welcome, {{ auth()->user()->name }}</p>
     </x-slot>

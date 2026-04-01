@@ -57,6 +57,13 @@ class DepartmentController extends Controller
             ->with('success', 'Department updated successfully.');
     }
 
+    public function deactivate(Department $department)
+    {
+        $department->update(['status' => 'inactive']);
+        return redirect()->route('admin.departments.index')
+            ->with('success', 'Department deactivated successfully.');
+    }
+
     public function destroy(Department $department)
     {
         if ($department->courses()->count() > 0) {

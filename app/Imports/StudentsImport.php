@@ -49,6 +49,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'phone'          => isset($row['phone']) ? trim($row['phone']) : null,
             'address'        => isset($row['address']) ? trim($row['address']) : null,
             'year_level'     => (int) $row['year_level'],
+            'student_type'   => isset($row['student_type']) ? trim($row['student_type']) : 'Regular',
             'course_id'      => $course->id,
             'status'         => isset($row['status']) ? trim($row['status']) : 'active',
         ]);
@@ -65,6 +66,7 @@ class StudentsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOn
             'email'                 => 'required|email|unique:students,email',
             'year_level'            => 'required|integer|min:1|max:5',
             'course_code'           => 'required|string',
+            'student_type'          => 'nullable|in:Regular,Irregular,Transferee',
             'status'                => 'nullable|in:active,inactive,graduated,dropped',
         ];
     }

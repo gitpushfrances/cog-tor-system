@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('phone', 20)->nullable();
             $table->text('address')->nullable();
             $table->integer('year_level')->comment('1, 2, 3, 4');
+            $table->enum('student_type', ['Regular', 'Irregular', 'Transferee'])->default('Regular');
             $table->enum('status', ['active', 'inactive', 'graduated', 'dropped'])->default('active');
             $table->timestamps();
 

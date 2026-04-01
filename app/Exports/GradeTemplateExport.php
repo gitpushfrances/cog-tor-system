@@ -48,7 +48,7 @@ class GradeTemplateExport implements FromCollection, WithHeadings, WithMapping, 
             $enrollment->student->getFullName(),
             $this->subject->code,
             $this->subject->name,
-            $enrollment->grade ? number_format((float) $enrollment->grade->grade, 2) : '',
+            $enrollment->grade ? number_format((float) $enrollment->grade->grade, 1) : '',
             $enrollment->grade ? $enrollment->grade->remarks : '',
         ];
     }

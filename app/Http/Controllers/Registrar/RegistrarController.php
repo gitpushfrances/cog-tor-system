@@ -43,6 +43,29 @@ class RegistrarController extends Controller
         return redirect()->route('registrar.dashboard')->with('success', 'Grade finalized successfully.');
     }
 
+    public function unfinalizeSubject(Request $request, $subjectId)
+    {
+        $submissions = GradeSubmission::whereHas('grade.enrollment', fn($q) =>
+                $q->where('subject_id', $subjectId))
+            ->whereNotNull('finalized_at')
+            ->get();
+
+        if ($submissions->isEmpty()) {
+            return redirect()->back()->with('error', 'No finalized grades found for this subject.');
+        }
+
+        foreach ($submissions as $sub) {
+            $sub->update([
+                'finalized_at' => null,
+                'finalized_by' => null,
+            ]);
+            $sub->grade->update(['status' => 'approved_by_head_of_department']);
+        }
+
+        return redirect()->back()
+            ->with('success', count($submissions) . ' grade(s) unfinalized and returned to approved status.');
+    }
+
     public function index(Request $request)
     {
         $stats = [

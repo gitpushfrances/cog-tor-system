@@ -62,7 +62,7 @@
                             </td>
                             <td class="px-6 py-3">
                                 <span class="text-sm font-bold {{ $sub->grade->grade == 5.00 ? 'text-red-600' : 'text-gray-900' }}">
-                                    {{ number_format($sub->grade->grade, 2) }}
+                                    {{ number_format($sub->grade->grade, 1) }}
                                 </span>
                             </td>
                             <td class="px-6 py-3 text-sm text-gray-500">
@@ -91,12 +91,12 @@
 
             {{-- Reject --}}
             <div class="p-6 bg-white rounded-lg shadow">
-                <h3 class="mb-3 font-semibold text-gray-800">Reject & Return to Faculty</h3>
+                <h3 class="mb-3 font-semibold text-gray-800">Return to Faculty</h3>
                 <form method="POST" action="{{ route('head_of_department.submissions.reject', $submission) }}" id="rejectForm">
                     @csrf
                     <div class="mb-4">
                         <label class="block mb-1 text-sm font-medium text-gray-700">
-                            Rejection Remarks <span class="text-red-500">*</span>
+                            Remarks <span class="text-red-500">*</span>
                         </label>
                         <textarea name="dean_remarks" id="dean_remarks" rows="4" required
                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-red-500"
@@ -107,7 +107,7 @@
                     </div>
                     <button type="button" onclick="confirmReject()"
                             class="w-full px-4 py-2 font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700">
-                        <i class="fas fa-times"></i> Reject &amp; Return to Faculty
+                        <i class="fas fa-times"></i> Return to Faculty
                     </button>
                 </form>
             </div>

@@ -1,5 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
+        <p style="font-size:0.75rem;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Eastern Samar State University - Guiuan Campus</p>
         <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">Registrar Dashboard</h2>
         <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">Grade finalization and document generation</p>
     </x-slot>

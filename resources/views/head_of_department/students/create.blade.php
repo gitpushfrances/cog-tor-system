@@ -124,6 +124,20 @@
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
 
+                    {{-- Student Type --}}
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Student Type <span class="text-red-500">*</span></label>
+                        <select name="student_type"
+                                class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('student_type') border-red-400 @else border-gray-300 @enderror">
+                            <option value="Regular" {{ old('student_type', 'Regular') == 'Regular' ? 'selected' : '' }}>Regular</option>
+                            <option value="Irregular" {{ old('student_type') == 'Irregular' ? 'selected' : '' }}>Irregular</option>
+                            <option value="Transferee" {{ old('student_type') == 'Transferee' ? 'selected' : '' }}>Transferee</option>
+                        </select>
+                        @error('student_type')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     {{-- Year Level + Status --}}
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>

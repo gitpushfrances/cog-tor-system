@@ -45,7 +45,7 @@
             <td class="label">Course:</td>
             <td>{{ $student->course->name ?? 'N/A' }}</td>
             <td class="label">Semester:</td>
-            <td>{{ $semester->name }}</td>
+            <td>{{ $semester->semester_name }}</td>
         </tr>
     </table>
 
@@ -64,12 +64,12 @@
                 <td>{{ $row['subject_code'] }}</td>
                 <td>{{ $row['subject_name'] }}</td>
                 <td>{{ $row['units'] }}</td>
-                <td>{{ number_format($row['grade'], 2) }}</td>
+                <td>{{ number_format($row['grade'], 1) }}</td>
             </tr>
             @endforeach
             <tr class="gwa-row">
                 <td colspan="3" style="text-align:right;">Semester GWA:</td>
-                <td>{{ $semesterGwa ? number_format($semesterGwa, 2) : 'N/A' }}</td>
+                <td>{{ $semesterGwa ? number_format($semesterGwa, 1) : 'N/A' }}</td>
             </tr>
         </tbody>
     </table>

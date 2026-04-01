@@ -21,6 +21,7 @@ class Student extends Model
         'phone',
         'address',
         'year_level',
+        'student_type',
         'status',
     ];
 

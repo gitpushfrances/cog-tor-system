@@ -139,11 +139,11 @@
                             <td class="px-6 py-4 font-mono text-sm">{{ $enrollment->student->student_number }}</td>
                             <td class="px-6 py-4 text-sm">
                                 @if($isLocked || ($enrollment->grade && !in_array($enrollment->grade->status, ['saved', 'rejected'])))
-                                    <span class="font-bold">{{ $enrollment->grade ? number_format($enrollment->grade->grade, 2) : '—' }}</span>
+                                    <span class="font-bold">{{ $enrollment->grade ? number_format($enrollment->grade->grade, 1) : '—' }}</span>
                                 @else
                                     <input type="text"
                                            name="grades[{{ $i }}][grade]"
-                                           value="{{ isset($enrollment->grade) ? number_format($enrollment->grade->grade, 2) : '' }}"
+                                           value="{{ isset($enrollment->grade) ? number_format($enrollment->grade->grade, 1) : '' }}"
                                            list="grade-options"
                                            placeholder="e.g. 2.00"
                                            autocomplete="off"

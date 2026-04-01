@@ -11,7 +11,7 @@
                     <span class="capitalize">{{ $student->status }}</span>
                 </p>
                 @if($cumulativeGwa)
-                    <p class="mt-1 text-sm font-semibold text-indigo-700">Cumulative GWA: {{ number_format($cumulativeGwa, 2) }}</p>
+                    <p class="mt-1 text-sm font-semibold text-indigo-700">Cumulative GWA: {{ number_format($cumulativeGwa, 1) }}</p>
                 @endif
             </div>
 
@@ -62,7 +62,7 @@
                                     </span>
                                 </div>
 
-                                {{-- COG Button --}}
+                                {{-- COG + Undo Finalize Buttons --}}
                                 <div class="flex items-center gap-2">
                                     @if($semGroup['cogRecord'] && $semGroup['cogRecord']->hasFile())
                                         <a href="{{ route('registrar.cog.download', $semGroup['cogRecord']) }}"
@@ -78,6 +78,19 @@
                                                 onclick="confirmCog(this)"
                                                 class="px-3 py-1 text-xs font-semibold text-white bg-indigo-600 rounded hover:bg-indigo-700">
                                             Generate COG
+                                        </button>
+                                    </form>
+
+                                    {{-- Undo Finalize --}}
+                                    <form method="POST"
+                                          action="{{ route('registrar.submissions.unfinalize-subject', $semGroup['semester']->id) }}"
+                                          class="unfinalizeForm"
+                                          data-semester="{{ $semGroup['semester']->semester_name }}">
+                                        @csrf
+                                        <button type="button"
+                                                onclick="confirmUnfinalize(this)"
+                                                class="px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600">
+                                            ↩ Undo Finalize
                                         </button>
                                     </form>
                                 </div>
@@ -102,7 +115,7 @@
                                             <td class="px-6 py-3 text-sm">{{ $enrollment->subject->units }}</td>
                                             <td class="px-6 py-3 text-sm font-bold
                                                 {{ $enrollment->grade->grade == 5.00 ? 'text-red-600' : 'text-gray-800' }}">
-                                                {{ number_format($enrollment->grade->grade, 2) }}
+                                                {{ number_format($enrollment->grade->grade, 1) }}
                                             </td>
                                             <td class="px-6 py-3 text-sm text-gray-500">{{ $enrollment->grade->remarks ?? '—' }}</td>
                                         </tr>
@@ -145,6 +158,26 @@
                 cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Yes, Generate COG',
                 cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        }
+
+        function confirmUnfinalize(btn) {
+            const form = btn.closest('form');
+            const semName = form.dataset.semester;
+            Swal.fire({
+                title: 'Undo Finalization?',
+                html: `This will revert all finalized grades for <strong>${semName}</strong> back to approved status.<br><br>Faculty will <strong>not</strong> be able to edit them — only the registrar can re-finalize.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Undo Finalize',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     form.submit();

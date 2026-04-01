@@ -54,11 +54,16 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex gap-2">
                                             <a href="{{ route('admin.departments.edit', $department) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                            <form action="{{ route('admin.departments.destroy', $department) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
+                                            @if($department->status === 'active')
+                                            <form action="{{ route('admin.departments.deactivate', $department) }}" method="POST" class="inline" id="deactivate-{{ $department->id }}">
                                                 @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>
+                                                <button type="button"
+                                                    onclick="Swal.fire({title:'Deactivate Department?',text:'This will deactivate this department.',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',cancelButtonColor:'#6b7280',confirmButtonText:'Yes, Deactivate'}).then(r=>{if(r.isConfirmed)document.getElementById('deactivate-{{ $department->id }}').submit()})"
+                                                    class="text-red-600 hover:text-red-900">Deactivate</button>
                                             </form>
+                                            @else
+                                            <span class="text-xs text-gray-400">Inactive</span>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

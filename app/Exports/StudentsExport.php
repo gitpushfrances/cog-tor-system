@@ -48,6 +48,7 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithS
             'Phone',
             'Address',
             'Year Level',
+            'Student Type',
             'Course Code',
             'Status',
         ];
@@ -67,6 +68,7 @@ class StudentsExport implements FromCollection, WithHeadings, WithMapping, WithS
             $student->phone,
             $student->address,
             $student->year_level,
+            $student->student_type,
             $student->course->code ?? '',
             $student->status,
         ];
