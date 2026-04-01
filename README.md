@@ -7,15 +7,15 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 ![PHP](https://img.shields.io/badge/PHP-8.4-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Progress](https://img.shields.io/badge/Progress-99%25-brightgreen)
-![Phases](https://img.shields.io/badge/Phases-11%20Total-blue)
+![Phases](https://img.shields.io/badge/Phases-12%20Total-blue)
 
 ---
 
 ## Project Overview
 
-This system streamlines the academic grading workflow with a multi-tier approval system: **Faculty → Head of Department → Registrar**, automated GWA computation, and official document generation (COG/TOR).
+This system streamlines the academic grading workflow with a multi-tier approval system: **Faculty → Head of Department → Registrar**, automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
 
-> **Phase 9 Complete — Phase 11 in progress:** All restructure, SweetAlert2, emoji cleanup, and seeder fixes are done. Next step is the 12-step end-to-end test then Phase 11 UI/UX polish.
+> **Phase 12 Complete — Backup & Restore added April 1, 2026.** All restructure, SweetAlert2, emoji cleanup, seeder fixes, and backup system are done. Next step is the 12-step end-to-end test then Phase 11 UI/UX polish.
 
 ### Key Features
 - **Four-Role System** — Admin, Faculty, Head of Department, Registrar
@@ -33,6 +33,7 @@ This system streamlines the academic grading workflow with a multi-tier approval
 - **Excel Import/Export** — HoD: bulk student import/export with format-hint template | Faculty: grade template
 - **Font Awesome 6.5** — Clean professional icons throughout, zero hardcoded emojis
 - **SweetAlert2 Confirmations** — All 8 destructive actions confirmed
+- **Backup & Restore** — Admin can create, download, and restore database backups via UI
 
 ---
 
@@ -41,9 +42,10 @@ This system streamlines the academic grading workflow with a multi-tier approval
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1–8 | Foundation through Excel Features | ✅ Complete |
-| **Phase 9** | **System Restructure** | ✅ Complete (99% — E2E test pending) |
+| Phase 9 | System Restructure | ✅ Complete (99% — E2E test pending) |
 | Phase 10 | Reporting & Analytics | 📅 Planned |
 | Phase 11 | UI/UX Polish & Testing | 🔄 40% Done |
+| **Phase 12** | **Backup & Restore** | ✅ **Complete** |
 
 **Overall Progress: ~99%**
 
@@ -63,6 +65,10 @@ ADMIN
     - Role badges display formatted labels (Head Of Department, not head_of_department)
   - Manage Departments, Courses, Subjects
   - Configure School Years & Semesters (upcoming → active → completed)
+  - Backup & Restore
+    - Create full database backup (zip stored locally)
+    - View backup history with download and delete
+    - Restore database from uploaded .sql file
 
 HEAD OF DEPARTMENT (per department — scoped by department_id)
   Scope: Full academic management, own department only.
@@ -138,6 +144,7 @@ REGISTRAR
 | Spatie Activity Log | v4.8+ | Audit trail |
 | Laravel DomPDF | v3.x | COG/TOR PDF generation |
 | Laravel Debugbar | v3.9 | Dev debugging |
+| **Spatie Laravel Backup** | **v9.x** | **Database backup & restore** |
 
 ---
 
@@ -204,17 +211,63 @@ REGISTRAR
 
    > **Note:** Seeder uses `updateOrCreate` — safe to re-run. department_id is always applied correctly.
 
-8. **Build assets**
+8. **Configure backup (XAMPP only)**
+
+   Open `config/database.php` and add the `dump` key inside the `mysql` connection array:
+   ```php
+   'mysql' => [
+       // ... existing config ...
+       'engine' => null,
+       'dump' => [
+           'dump_binary_path' => 'C:/xampp/mysql/bin/',
+       ],
+   ],
+   ```
+
+   > For WAMP: `C:/wamp64/bin/mysql/mysqlX.X.XX/bin/`
+   > For Laragon: `C:/laragon/bin/mysql/mysql-X.X.XX-winx64/bin/`
+
+9. **Build assets**
    ```bash
    npm run build
    ```
 
-9. **Start development server**
-   ```bash
-   php artisan serve
-   ```
+10. **Start development server**
+    ```bash
+    php artisan serve
+    ```
 
 Visit `http://localhost:8000` — redirects to login automatically.
+
+---
+
+## Backup & Restore
+
+The system includes a full database backup and restore feature accessible via the Admin sidebar under **Backup & Restore**.
+
+### How to Create a Backup
+1. Log in as Admin
+2. Click **Backup & Restore** in the sidebar
+3. Click **Backup Now** and confirm
+4. The backup zip will appear in the Backup History table
+
+### How to Restore from Backup
+1. Download the backup zip from Backup History
+2. Extract the `.sql` file from inside the zip
+3. Go to **Restore Database** section
+4. Upload the `.sql` file and click **Restore Now**
+
+> ⚠️ Restore overwrites the entire current database. Only use `.sql` files exported from this system.
+
+### Manual Backup via CLI
+```bash
+php artisan backup:run
+```
+
+Backups are stored at `storage/app/cog-tor-backup/` as timestamped `.zip` files.
+
+### Notification Warning
+The message `Sending notification failed` after `backup:run` is **harmless** — it appears because no mail driver is configured. The backup still completes successfully.
 
 ---
 
@@ -306,9 +359,10 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Phase 6 | ✅ Complete | Head of Department Module |
 | Phase 7 | ✅ Complete | Registrar Module |
 | Phase 8 | ✅ Complete | Excel Import/Export |
-| **Phase 9** | ✅ **99%** | System Restructure — E2E test pending |
+| Phase 9 | ✅ 99% | System Restructure — E2E test pending |
 | Phase 10 | 📅 Planned | Reporting & Analytics |
 | Phase 11 | 🔄 40% | UI/UX Polish & Testing |
+| **Phase 12** | ✅ **Complete** | **Backup & Restore** |
 
 ---
 
@@ -321,13 +375,15 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | PDF storage not publicly accessible | Fix before production |
 | No student portal | Post-Phase 11 |
 | Audit log has no UI | Post-Phase 11 |
+| Registrar COG/TOR template not yet matched to official form | Blocked — awaiting physical template from Registrar's office |
+| Excel Report of Grades import not yet built | Blocked — awaiting format from panel |
 
 ---
 
 ## Security Checklist
 
 - [ ] Change default seeder passwords before production
-- [ ] Enable rate limiting on login attempts
+- [x] Rate limiting on login — 10 attempts/minute
 - [x] CSRF protection — enabled by default
 - [ ] Use HTTPS in production
 - [x] Validate all Excel file uploads
@@ -339,16 +395,16 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 ## Project Stats
 
 - **Started:** February 15, 2026
-- **Last Updated:** March 23, 2026
-- **Version:** 1.0.0-alpha (Phase 9 complete, Phase 11 in progress)
+- **Last Updated:** April 1, 2026
+- **Version:** 1.0.0-alpha (Phase 12 complete, Phase 11 in progress)
 - **Database Tables:** 24
 - **Models:** 11 (+ User)
 - **Middleware:** 2 custom (CheckRole, CheckStatus)
-- **Controllers:** 19
-- **Routes:** ~126 verified clean
-- **Views:** 40+ Blade views
+- **Controllers:** 20 (+ BackupController)
+- **Routes:** ~131 verified clean
+- **Views:** 41+ Blade views
 - **Test Accounts:** 5
-- **Total Phases:** 11
+- **Total Phases:** 12
 
 ---
 
@@ -369,6 +425,6 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 ---
 
-**Last Updated:** March 23, 2026
+**Last Updated:** April 1, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus

@@ -34,6 +34,11 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin Routes
+    Route::get('backup', [App\Http\Controllers\Admin\BackupController::class, 'index'])->name('admin.backup.index');
+    Route::post('backup/run', [App\Http\Controllers\Admin\BackupController::class, 'run'])->name('admin.backup.run');
+    Route::get('backup/download/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'download'])->name('admin.backup.download');
+    Route::delete('backup/delete/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('admin.backup.delete');
+    Route::post('backup/restore', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('admin.backup.restore');
 Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('dashboard');
 

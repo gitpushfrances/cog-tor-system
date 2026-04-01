@@ -167,6 +167,13 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                 <span class="sidebar-label sdb-label">Users</span>
             </a>
 
+            <a href="{{ route('admin.backup.index') }}"
+               title="Backup &amp; Restore"
+               class="sdb-link {{ request()->routeIs('admin.backup.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-database sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Backup &amp; Restore</span>
+            </a>
+
             <div class="sdb-section-label sidebar-section-label">Academic</div>
             <div class="sdb-divider sidebar-divider-collapsed" style="display:none;"></div>
 
@@ -223,6 +230,13 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
             class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Dashboard</span>
+            </a>
+
+            <a href="{{ route('admin.backup.index') }}"
+               title="Backup &amp; Restore"
+               class="sdb-link {{ request()->routeIs('admin.backup.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-database sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Backup &amp; Restore</span>
             </a>
 
             <div class="sdb-section-label sidebar-section-label">Academic</div>

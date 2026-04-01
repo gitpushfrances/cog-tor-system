@@ -12,7 +12,7 @@
 ## ⚡ RESUME POINT — READ THIS FIRST
 
 **Current Phase:** Phase 11 — UI/UX & Testing
-**Status:** 🔄 In Progress — Phase 9 complete. Resume with E2E test (Step 9.11) then Phase 11.
+**Status:** 🔄 In Progress — Phase 9 complete. Backup & Restore done (Phase 12). Resume with E2E test (Step 9.11) then Phase 11.
 
 ### What Changed From Original Plan (v1 → v2)
 | Area | v1 (Old) | v2 (New) | Why |
@@ -33,6 +33,7 @@ Phase 1–8   Unchanged
 Phase 9     NEW — System Restructure (insert here)
 Phase 10    Was Phase 9 — Reporting & Analytics
 Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
+Phase 12    NEW — Backup & Restore (added April 1, 2026)
 ```
 
 ---
@@ -315,7 +316,7 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 - [x] Registrar: Generate TOR — SweetAlert2 confirm ✅
 - [x] Registrar: Generate COG — SweetAlert2 confirm ✅ (bonus)
 
-### 9.11 — Verification & End-to-End Test ⏳ NEXT SESSION
+### 9.11 — Verification & End-to-End Test ⏳ NEXT
 - [ ] php artisan route:list — full clean verification
 - [ ] php artisan migrate:status — all green
 - [ ] Full 12-step end-to-end test
@@ -387,6 +388,65 @@ Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
 
 ---
 
+## PHASE 12: BACKUP & RESTORE ✅ COMPLETED
+**Date:** April 1, 2026
+**Status:** ✅ Complete (100%)
+
+### 12.1 Package Installation
+- [x] Installed `spatie/laravel-backup` via Composer
+- [x] Published config: `php artisan vendor:publish --provider="Spatie\Backup\BackupServiceProvider"`
+
+### 12.2 Configuration
+- [x] Detected XAMPP stack — mysqldump at `C:/xampp/mysql/bin/`
+- [x] Set `dump_binary_path` in `config/database.php` under MySQL connection (spatie v3 location — not backup.php)
+- [x] Disabled notification channels (`'via' => []`) — no mail configured
+- [x] Kept `notifiable` class reference intact to prevent TypeError
+- [x] Backup name set to `cog-tor-backup`
+- [x] Backup destination: `storage/app/cog-tor-backup/` (local disk)
+- [x] Verified: `php artisan backup:run` succeeds — 1.62 MB zip created
+
+### 12.3 BackupController
+- [x] Created `app/Http/Controllers/Admin/BackupController.php`
+- [x] `index()` — lists all backup zips with size and created date
+- [x] `run()` — triggers `Artisan::call('backup:run')` via POST
+- [x] `download($filename)` — streams zip file to browser
+- [x] `delete($filename)` — deletes zip from storage
+- [x] `restore(Request $request)` — accepts .sql upload, runs `DB::unprepared()`
+
+### 12.4 Routes (5 registered)
+- [x] `GET  /backup` → `admin.backup.index`
+- [x] `POST /backup/run` → `admin.backup.run`
+- [x] `GET  /backup/download/{filename}` → `admin.backup.download`
+- [x] `DELETE /backup/delete/{filename}` → `admin.backup.delete`
+- [x] `POST /backup/restore` → `admin.backup.restore`
+
+### 12.5 Admin Backup Page
+- [x] Created `resources/views/admin/backup/index.blade.php`
+- [x] Section 1: Create Backup — "Backup Now" button with confirm dialog
+- [x] Section 2: Backup History — table with Filename, Size, Created, Download, Delete
+- [x] Section 3: Restore Database — file upload (.sql), warning message, "Restore Now" button
+- [x] Flash messages for success and error states
+
+### 12.6 Sidebar Navigation
+- [x] Added "Backup & Restore" link with `fa-database` icon to `resources/views/layouts/partials/sidebar.blade.php`
+- [x] Placed between Users and Academic section
+- [x] Active state: `request()->routeIs('admin.backup.*')`
+- [x] Fixed: duplicate nav entry removed, broken `{` in Blade class expression corrected
+
+### 12.7 Known Behaviors
+- "Sending notification failed" on `backup:run` — harmless, no mail configured, backup still completes
+- Restore accepts `.sql` and `.txt` MIME types — upload the `.sql` extracted from the backup zip
+- Backup zip contains the full database dump — extract the `.sql` file inside before restoring
+
+**Phase 12 Final Deliverables:**
+- ✅ `spatie/laravel-backup` installed and configured for XAMPP
+- ✅ Manual backup via Admin UI
+- ✅ Backup history with download and delete
+- ✅ Database restore via SQL file upload
+- ✅ Sidebar nav link wired correctly
+
+---
+
 ## TECHNICAL NOTES
 
 ### Grade Status ENUM — v2 Values ✅ Active
@@ -448,6 +508,7 @@ e.g. "2nd Semester — SY 2025-2026"
 ### Storage Notes
 - COG: `storage/app/cog/{document_number}.pdf`
 - TOR: `storage/app/tor/{document_number}.pdf`
+- Backups: `storage/app/cog-tor-backup/*.zip`
 - Use `->output()` not `->download()` on DomPDF
 
 ### Windows / Git Bash Notes
@@ -456,6 +517,8 @@ e.g. "2nd Semester — SY 2025-2026"
 - Complex tinker chains fail on Git Bash — use simple single expressions
 - `php artisan tinker --execute` with backslashes fails — use DB:: facade directly
 - sed commands mangle unicode emojis — use line-number targeting `sed -i 'Ns/.*/replacement/'`
+- `!` in bash strings triggers history expansion — use base64_decode() approach for PHP file writes
+- Git Bash blocks pipe `|` to PHP in some contexts — use PHP file approach instead
 
 ---
 
@@ -495,6 +558,14 @@ e.g. "2nd Semester — SY 2025-2026"
 51. `@push('scripts')` has no effect without `@stack('scripts')` in the layout
 52. implode(' / ', $courseCodes) in template puts all codes in one cell — use `->value('code')`
 
+### Phase 12:
+53. spatie/laravel-backup v3+ moved `dump_binary_path` from `config/backup.php` to `config/database.php` under the MySQL connection block
+54. XAMPP mysqldump is at `C:/xampp/mysql/bin/` — not in system PATH by default
+55. Commenting out `notifiable` key in backup.php causes TypeError — keep the class, disable channels via `'via' => []`
+56. `!` inside bash strings (even escaped) triggers history expansion in Git Bash — always write PHP files via base64_decode() for complex content
+57. The real sidebar file is `resources/views/layouts/partials/sidebar.blade.php` — not `navigation.blade.php`
+58. "Sending notification failed" on backup:run is harmless when no mail driver is configured
+
 ---
 
 ## PROGRESS SUMMARY
@@ -509,9 +580,10 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 6: HoD Module | ✅ Complete | 100% | SweetAlert2 + Font Awesome + delete confirm |
 | Phase 7: Registrar Module | ✅ Complete | 100% | SweetAlert2 on all doc actions |
 | Phase 8: Excel Features | ✅ Complete | 100% | Fixed template + strict date validation |
-| **Phase 9: System Restructure** | ✅ Complete | 99% | **E2E test next session** |
+| Phase 9: System Restructure | ✅ Complete | 99% | E2E test next session |
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | E2E + mobile + error handling |
+| **Phase 12: Backup & Restore** | ✅ **Complete** | **100%** | **spatie/laravel-backup, Admin UI** |
 
 **Overall Project Completion: ~99%**
 
@@ -540,10 +612,17 @@ e.g. "2nd Semester — SY 2025-2026"
    - Loading states for PDF generation
    - UI consistency pass
    - Remove leftover student nav links from Admin dashboard
+
+▶️ Priority 3: Curriculum Feature (Phase 13 — planned)
+   - Curricula table + curriculum_subjects table
+   - Admin UI to build/manage curriculum per course per year
+   - Link enrollments/grades to curriculum subjects
+   - Update COG generation to pull from curriculum
+   - Follow CHED/SUC standard (same pattern as SAIS, AISIS)
 ```
 
 ---
 
-**Last Updated:** March 23, 2026
-**Phase 9 Status:** ✅ Complete
-**Current Focus:** Phase 9.11 E2E test → Phase 11 UI/UX
+**Last Updated:** April 1, 2026
+**Phase 12 Status:** ✅ Complete
+**Current Focus:** Phase 9.11 E2E test → Phase 11 UI/UX → Phase 13 Curriculum

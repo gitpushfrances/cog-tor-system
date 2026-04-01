@@ -77,6 +77,14 @@ html, body { height: 100%; }
                 <span x-show="!collapsed" class="sdb-label">Users</span>
             </a>
 
+            <a href="{{ route('admin.backup.index') }}"
+               title="Backup & Restore"
+               class="sdb-link {{ request()->routeIs('admin.backup.*') ? 'sdb-active' : '' }}"
+               :class="collapsed ? 'sdb-collapsed' : ''">
+                <i class="fa-solid fa-database sdb-icon"></i>
+                <span x-show="!collapsed" class="sdb-label">Backup & Restore</span>
+            </a>
+
             <div x-show="!collapsed" class="sdb-section-label">Academic</div>
             <div x-show="collapsed" class="sdb-divider"></div>
 
