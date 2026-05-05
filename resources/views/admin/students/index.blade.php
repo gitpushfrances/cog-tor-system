@@ -7,19 +7,19 @@
                 {{-- Download blank import template --}}
                 <a href="{{ route('admin.excel.student-template') }}"
                    class="px-4 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200">
-                    ↓ Download Template
+                    <i class="fa-solid fa-download mr-1"></i> Download Template
                 </a>
 
                 {{-- Export all students --}}
                 <a href="{{ route('admin.excel.export-students') }}"
                    class="px-4 py-2 text-sm text-white bg-yellow-500 rounded hover:bg-yellow-600">
-                    ↓ Export to Excel
+                    <i class="fa-solid fa-file-excel mr-1"></i> Export to Excel
                 </a>
 
                 {{-- Import trigger --}}
                 <button onclick="document.getElementById('importModal').classList.remove('hidden')"
                         class="px-4 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700">
-                    ↑ Import Students
+                    <i class="fa-solid fa-upload mr-1"></i> Import Students
                 </button>
 
                 <a href="{{ route('admin.students.create') }}"

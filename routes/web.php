@@ -118,6 +118,8 @@ Route::post('/submissions/unfinalize-subject/{subjectId}', [App\Http\Controllers
     Route::post('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'generateTor'])->name('students.tor.generate');
     Route::get('/cog/{cog}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadCog'])->name('cog.download');
     Route::get('/tor/{tor}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadTor'])->name('tor.download');
+    Route::get('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGradesForm'])->name('encode-grades');
+    Route::post('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGrades'])->name('encode-grades.store');
 });
 
 require __DIR__.'/auth.php';

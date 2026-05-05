@@ -64,7 +64,7 @@
 
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-700 mb-2">Restore Database</h3>
-            <p class="text-sm text-red-500 mb-4">⚢ Warning: This will overwrite the current database. Upload a valid .sql file exported from this system only.</p>
+            <p class="text-sm text-red-500 mb-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will overwrite the current database. Upload a valid .sql file exported from this system only.</p>
             <form method="POST" action="{{ route('admin.backup.restore') }}" enctype="multipart/form-data" class="space-y-3">
                 @csrf
                 <input type="file" name="sql_file" accept=".sql,.txt"

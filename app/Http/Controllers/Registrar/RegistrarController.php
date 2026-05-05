@@ -8,6 +8,13 @@ use App\Models\CogRecord;
 use App\Models\TorRecord;
 use App\Models\Student;
 use Illuminate\Http\Request;
+use App\Models\Grade;
+use App\Models\Enrollment;
+use App\Models\Subject;
+use App\Models\Semester;
+use App\Models\SchoolYear;
+use App\Models\Course;
+use App\Models\Department;
 
 class RegistrarController extends Controller
 {
@@ -64,6 +71,115 @@ class RegistrarController extends Controller
 
         return redirect()->back()
             ->with('success', count($submissions) . ' grade(s) unfinalized and returned to approved status.');
+    }
+
+    public function encodeGradesForm(Request $request)
+    {
+        $schoolYears = SchoolYear::orderBy('year_code', 'desc')->get();
+        $departments = Department::orderBy('name')->get();
+
+        $selectedSchoolYear = $request->input('school_year_id');
+        $selectedSemester   = $request->input('semester_id');
+        $selectedDepartment = $request->input('department_id');
+        $selectedCourse     = $request->input('course_id');
+        $selectedStudent    = $request->input('student_id');
+
+        $semesters = $selectedSchoolYear
+            ? Semester::where('school_year_id', $selectedSchoolYear)->orderBy('semester_order')->get()
+            : collect();
+
+        $courses = $selectedDepartment
+            ? Course::where('department_id', $selectedDepartment)->active()->orderBy('name')->get()
+            : collect();
+
+        $subjects  = collect();
+        $students  = collect();
+        $existingGrades = collect();
+        $selectedStudentModel = null;
+        $selectedSemesterModel = null;
+
+        if ($selectedCourse && $selectedSemester) {
+            $selectedSemesterModel = Semester::find($selectedSemester);
+
+            $subjects = Subject::where('course_id', $selectedCourse)
+                ->where('semester', $selectedSemesterModel->semester_name ?? '')
+                ->active()
+                ->orderBy('name')
+                ->get();
+
+            $students = Student::where('course_id', $selectedCourse)
+                ->active()
+                ->orderBy('last_name')
+                ->get();
+        }
+
+        if ($selectedStudent && $selectedSemester) {
+            $selectedStudentModel = Student::find($selectedStudent);
+
+            $existingGrades = Enrollment::with(['grade', 'subject'])
+                ->where('student_id', $selectedStudent)
+                ->where('semester_id', $selectedSemester)
+                ->get()
+                ->keyBy('subject_id');
+        }
+
+        return view('registrar.encode-grades', compact(
+            'schoolYears', 'departments', 'semesters', 'courses',
+            'subjects', 'students', 'existingGrades',
+            'selectedSchoolYear', 'selectedSemester', 'selectedDepartment',
+            'selectedCourse', 'selectedStudent', 'selectedStudentModel',
+            'selectedSemesterModel'
+        ));
+    }
+
+    public function encodeGrades(Request $request)
+    {
+        $request->validate([
+            'student_id'  => 'required|exists:students,id',
+            'semester_id' => 'required|exists:semesters,id',
+            'grades'      => 'required|array|min:1',
+            'grades.*'    => 'required|numeric|min:1.00|max:5.00',
+        ]);
+
+        $studentId  = $request->input('student_id');
+        $semesterId = $request->input('semester_id');
+        $gradesInput = $request->input('grades'); // [ subject_id => grade_value ]
+
+        foreach ($gradesInput as $subjectId => $gradeValue) {
+            $subject = Subject::find($subjectId);
+            if (!$subject) continue;
+
+            // Upsert enrollment
+            $enrollment = Enrollment::updateOrCreate(
+                [
+                    'student_id'  => $studentId,
+                    'subject_id'  => $subjectId,
+                    'semester_id' => $semesterId,
+                ],
+                [
+                    'enrolled_by'      => auth()->id(),
+                    'enrollment_date'  => now()->toDateString(),
+                    'status'           => 'enrolled',
+                ]
+            );
+
+            // Upsert grade directly to finalized — Registrar is final authority
+            Grade::updateOrCreate(
+                ['enrollment_id' => $enrollment->id],
+                [
+                    'faculty_id' => auth()->id(),
+                    'grade'      => $gradeValue,
+                    'status'     => 'finalized',
+                    'remarks'    => null,
+                ]
+            );
+        }
+
+        $student = Student::find($studentId);
+
+        return redirect()
+            ->route('registrar.students.profile', $student)
+            ->with('success', 'Grades encoded and finalized successfully. You can now generate the COG below.');
     }
 
     public function index(Request $request)

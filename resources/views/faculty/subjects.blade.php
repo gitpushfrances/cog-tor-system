@@ -31,7 +31,7 @@
                     @if($status === 'saved')
                         <span class="px-2 py-1 text-xs font-semibold text-gray-700 bg-gray-100 rounded-full">Saved</span>
                     @elseif($status === 'pending_dean_review')
-                        <span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full">⏳ Pending</span>
+                        <span class="px-2 py-1 text-xs font-semibold text-yellow-800 bg-yellow-100 rounded-full"><i class="fa-regular fa-clock mr-1"></i> Pending</span>
                     @elseif($status === 'approved_by_dean')
                         <span class="px-2 py-1 text-xs font-semibold text-green-800 bg-green-100 rounded-full"><i class="fas fa-check-circle"></i> Approved</span>
                     @elseif($status === 'rejected')

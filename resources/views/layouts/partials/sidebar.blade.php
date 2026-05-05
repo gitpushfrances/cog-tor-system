@@ -287,6 +287,11 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Dashboard</span>
             </a>
+            <a href="{{ route('registrar.encode-grades') }}" title="Encode Grades"
+               class="sdb-link {{ request()->routeIs('registrar.encode-grades*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-pen-to-square sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Encode Grades</span>
+            </a>
         @endif
 
     </nav>

@@ -67,7 +67,7 @@
                                     @if($semGroup['cogRecord'] && $semGroup['cogRecord']->hasFile())
                                         <a href="{{ route('registrar.cog.download', $semGroup['cogRecord']) }}"
                                            class="px-3 py-1 text-xs font-semibold text-indigo-700 border border-indigo-300 rounded hover:bg-indigo-50">
-                                            ↓ Download COG
+                                            <i class="fa-solid fa-download mr-1"></i> Download COG
                                         </a>
                                     @endif
                                     <form method="POST" action="{{ route('registrar.students.cog.generate', $student) }}"
@@ -90,7 +90,7 @@
                                         <button type="button"
                                                 onclick="confirmUnfinalize(this)"
                                                 class="px-3 py-1 text-xs font-semibold text-white bg-red-500 rounded hover:bg-red-600">
-                                            ↩ Undo Finalize
+                                            <i class="fa-solid fa-rotate-left mr-1"></i> Undo Finalize
                                         </button>
                                     </form>
                                 </div>

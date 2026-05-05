@@ -21,13 +21,13 @@
                     {{-- Download template --}}
                     <a href="{{ route('faculty.subjects.grades.template', $subject) }}"
                        class="px-4 py-2 text-sm text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200">
-                        ↓ Download Grade Template
+                        <i class="fa-solid fa-download mr-1"></i> Download Grade Template
                     </a>
 
                     {{-- Upload grades --}}
                     <button onclick="document.getElementById('uploadModal').classList.remove('hidden')"
                             class="px-4 py-2 text-sm text-white bg-yellow-500 rounded hover:bg-yellow-600">
-                        ↑ Upload Grades (Excel)
+                        <i class="fa-solid fa-upload mr-1"></i> Upload Grades (Excel)
                     </button>
                 @endif
 
@@ -46,7 +46,7 @@
                     {{-- Resubmit trigger --}}
                     <button onclick="document.getElementById('resubmitModal').classList.remove('hidden')"
                             class="px-4 py-2 text-sm text-white bg-orange-500 rounded hover:bg-orange-600">
-                        ↩ Update & Resubmit
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Update & Resubmit
                     </button>
                 @endif
             </div>
@@ -91,7 +91,7 @@
         {{-- Pending lock notice --}}
         @if($isPending)
             <div class="px-5 py-4 mb-5 border border-yellow-300 rounded-lg bg-yellow-50">
-                <span class="text-sm font-semibold text-yellow-800">⏳ Awaiting Head of Department Review</span>
+                <span class="text-sm font-semibold text-yellow-800"><i class="fa-regular fa-clock mr-1"></i> Awaiting Head of Department Review</span>
                 <p class="mt-1 text-xs text-yellow-700">Grades are locked while pending Head of Department approval. You will be notified if rejected.</p>
             </div>
         @endif
