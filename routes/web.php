@@ -7,10 +7,6 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
 });
 
-Route::middleware('throttle:10,1')->group(function () {
-    Route::post('/login', [App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'store']);
-});
-
 Route::get('/', function () {
     if (auth()->check()) {
         return redirect()->route('dashboard');
@@ -34,13 +30,15 @@ Route::middleware('auth')->group(function () {
 });
 
 // Admin Routes
-    Route::get('backup', [App\Http\Controllers\Admin\BackupController::class, 'index'])->name('admin.backup.index');
-    Route::post('backup/run', [App\Http\Controllers\Admin\BackupController::class, 'run'])->name('admin.backup.run');
-    Route::get('backup/download/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'download'])->name('admin.backup.download');
-    Route::delete('backup/delete/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('admin.backup.delete');
-    Route::post('backup/restore', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('admin.backup.restore');
 Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('dashboard');
+
+    // Backup & Restore — now protected inside admin middleware
+    Route::get('/backup', [App\Http\Controllers\Admin\BackupController::class, 'index'])->name('backup.index');
+    Route::post('/backup/run', [App\Http\Controllers\Admin\BackupController::class, 'run'])->name('backup.run');
+    Route::get('/backup/download/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'download'])->name('backup.download');
+    Route::delete('/backup/delete/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('backup.delete');
+    Route::post('/backup/restore', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('backup.restore');
 
     // User Management
     Route::resource('users', App\Http\Controllers\Admin\UserController::class);
@@ -70,21 +68,17 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
 Route::middleware(['auth', 'status', 'role:head_of_department'])->prefix('head-of-department')->name('head_of_department.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'index'])->name('dashboard');
 
-    // Grade Submissions
     Route::get('/submissions/{submission}/review', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'review'])->name('submissions.review');
     Route::post('/submissions/{submission}/approve', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'approve'])->name('submissions.approve');
     Route::post('/submissions/{submission}/reject', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'reject'])->name('submissions.reject');
 
-    // Enrollment Management
     Route::get('/enrollments', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'index'])->name('enrollments.index');
     Route::post('/enrollments', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'store'])->name('enrollments.store');
     Route::delete('/enrollments/{enrollment}', [App\Http\Controllers\HeadOfDepartment\EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
 
-    // Subject Assignment
     Route::get('/assignments', [App\Http\Controllers\HeadOfDepartment\SubjectAssignmentController::class, 'index'])->name('assignments.index');
     Route::put('/assignments/{subject}', [App\Http\Controllers\HeadOfDepartment\SubjectAssignmentController::class, 'update'])->name('assignments.update');
 
-    // Student Management
     Route::resource('students', App\Http\Controllers\HeadOfDepartment\StudentController::class);
     Route::get('/excel/student-template', [App\Http\Controllers\HeadOfDepartment\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
     Route::get('/excel/export-students', [App\Http\Controllers\HeadOfDepartment\ExcelController::class, 'exportStudents'])->name('excel.export-students');
@@ -110,7 +104,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/dashboard', [App\Http\Controllers\Registrar\RegistrarController::class, 'index'])->name('dashboard');
     Route::post('/submissions/{submission}/finalize', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalize'])->name('submissions.finalize');
     Route::post('/submissions/finalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'finalizeSubject'])->name('submissions.finalize-subject');
-Route::post('/submissions/unfinalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'unfinalizeSubject'])->name('submissions.unfinalize-subject');
+    Route::post('/submissions/unfinalize-subject/{subjectId}', [App\Http\Controllers\Registrar\RegistrarController::class, 'unfinalizeSubject'])->name('submissions.unfinalize-subject');
     Route::get('/students/{student}/profile', [App\Http\Controllers\Registrar\DocumentController::class, 'studentProfile'])->name('students.profile');
     Route::get('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'cogForm'])->name('students.cog');
     Route::post('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'generateCog'])->name('students.cog.generate');
@@ -120,6 +114,24 @@ Route::post('/submissions/unfinalize-subject/{subjectId}', [App\Http\Controllers
     Route::get('/tor/{tor}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadTor'])->name('tor.download');
     Route::get('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGradesForm'])->name('encode-grades');
     Route::post('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGrades'])->name('encode-grades.store');
+
+    // Student Management
+    Route::get('/students', [App\Http\Controllers\Registrar\StudentController::class, 'index'])->name('students.index');
+    Route::get('/students/create', [App\Http\Controllers\Registrar\StudentController::class, 'create'])->name('students.create');
+    Route::post('/students', [App\Http\Controllers\Registrar\StudentController::class, 'store'])->name('students.store');
+    Route::get('/students/{student}/edit', [App\Http\Controllers\Registrar\StudentController::class, 'edit'])->name('students.edit');
+    Route::put('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'update'])->name('students.update');
+    Route::delete('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'destroy'])->name('students.destroy');
+
+    // Enrollment Management
+    Route::get('/enrollments', [App\Http\Controllers\Registrar\EnrollmentController::class, 'index'])->name('enrollments.index');
+    Route::post('/enrollments', [App\Http\Controllers\Registrar\EnrollmentController::class, 'store'])->name('enrollments.store');
+    Route::delete('/enrollments/{enrollment}', [App\Http\Controllers\Registrar\EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+
+    // Excel Import/Export
+    Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
+    Route::get('/excel/export-students', [App\Http\Controllers\Registrar\ExcelController::class, 'exportStudents'])->name('excel.export-students');
+    Route::post('/excel/import-students', [App\Http\Controllers\Registrar\ExcelController::class, 'importStudents'])->name('excel.import-students');
 });
 
 require __DIR__.'/auth.php';

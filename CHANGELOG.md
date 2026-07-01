@@ -11,31 +11,26 @@
 
 ## ⚡ RESUME POINT — READ THIS FIRST
 
-**Current Phase:** Phase 11 — UI/UX & Testing
-**Status:** 🔄 In Progress — Phase 9 complete. Backup & Restore done (Phase 12). Resume with E2E test (Step 9.11) then Phase 11.
+**Current Phase:** Phase 13 — Registrar-Only Workflow Migration
+**Status:** 🔄 In Progress (~70%) — Controllers, routes, and views built and statically verified. Browser end-to-end test NOT yet run. Faculty/HoD grade-related routes NOT yet disabled (still live).
 
-### What Changed From Original Plan (v1 → v2)
-| Area | v1 (Old) | v2 (New) | Why |
-|------|----------|----------|-----|
-| Student management | Admin owned it | Head of Department owns it (department-scoped) | Correct role boundary |
-| Grade approval | One grade at a time | Bulk per faculty submission | Realistic at scale |
-| Head of Department scope | System-wide | Per department via `department_id` | Multi-department support |
-| Faculty rejection | No resubmit flow | Reject → Faculty corrects → Resubmit with remarks | Complete workflow |
-| Registrar document flow | Browse student list | Search → Academic Profile | Scales to 500+ students |
-| TOR generation | Semester selector (wrong) | Always full record (CHED standard) | Academically correct |
-| Grade status ENUM | 3 values | 5 values | Covers full workflow |
-| SweetAlert | Missing | All destructive actions | UX safety |
-| Registrar finalization | 1-by-1 per grade | Bulk per subject with preview modal | Realistic at scale |
+### What Changed From Original Plan (v1 → v2 → v3)
+| Area | v1 (Old) | v2 (Phase 9) | v3 (Phase 13 — current) | Why |
+|------|----------|----------|----------|-----|
+| Student management | Admin owned it | Head of Department owns it (department-scoped) | **Registrar owns it (institution-wide, no department scoping)** | Client flowchart: single-actor Registrar workflow |
+| Grade approval | One grade at a time | Bulk per faculty submission | **Registrar encodes directly, no handoff** | Client flowchart: Registrar does everything |
+| Head of Department scope | System-wide | Per department via `department_id` | Still per-department, but grade review/assignment slated for lockout | Multi-department support (v2) → obsolete under v3 flow |
+| Faculty rejection | No resubmit flow | Reject → Faculty corrects → Resubmit with remarks | Still live, slated for lockout | Complete workflow (v2) → obsolete under v3 flow |
+| Registrar document flow | Browse student list | Search → Academic Profile | Unchanged | Scales to 500+ students |
+| TOR generation | Semester selector (wrong) | Always full record (CHED standard) | Unchanged | Academically correct |
+| Grade status ENUM | 3 values | 5 values | Unchanged, reused with a workaround (see 13.1) | Covers full workflow |
+| SweetAlert | Missing | All destructive actions | Unchanged | UX safety |
+| Registrar finalization | 1-by-1 per grade | Bulk per subject with preview modal | Unchanged | Realistic at scale |
+| Enrollment management | — | HoD owns it (department-scoped) | **Registrar owns it (institution-wide)** | Follows same single-actor logic as student mgmt |
+| Excel import/export (students) | — | HoD owns it, department-scoped | **Registrar owns it, unscoped (`null` = no department filter)** | `StudentsExport`/`StudentsImport` already supported `null` param — reused as-is |
+| Registrar `faculty_id` handling | — | — | **Nullable — Registrar direct-entry sets `null` instead of own ID** | Schema/semantics fix — column meant for Faculty, not Registrar |
 
 ### Phase Renumbering
-```
-Phase 1–8   Unchanged
-Phase 9     NEW — System Restructure (insert here)
-Phase 10    Was Phase 9 — Reporting & Analytics
-Phase 11    Was Phase 10 — UI/UX & Testing (30% work carries over)
-Phase 12    NEW — Backup & Restore (added April 1, 2026)
-```
-
 ---
 
 ## PHASE 1: FOUNDATION & DATABASE ARCHITECTURE ✅ COMPLETED
@@ -194,6 +189,8 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - ✅ Grade table locks on submit, unlocks on rejection
 - ✅ SweetAlert2 on Submit and Resubmit (with remarks validation)
 
+> ⚠️ **Phase 13 note:** Per client's updated flowchart, this entire module is slated to be **disabled at the route level** (not deleted) once Phase 13 is complete — Registrar now encodes grades directly. See Phase 13.6.
+
 ---
 
 ## PHASE 6: HEAD OF DEPARTMENT MODULE ✅ COMPLETED
@@ -236,11 +233,13 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - ✅ SweetAlert2 on all destructive actions (March 23 session)
 - ✅ Clean Font Awesome icons throughout (March 23 session)
 
+> ⚠️ **Phase 13 note:** Grade review/approval (6.3) and Faculty Assignment (6.5) are slated to be **disabled at the route level** — made obsolete by the client's single-actor flowchart. Student management (6.2) and Enrollment management (6.4) responsibilities are being **absorbed by Registrar** (institution-wide, unscoped) rather than deleted from HoD's side outright — HoD's versions stay dormant, reversible. See Phase 13.6.
+
 ---
 
 ## PHASE 7: REGISTRAR MODULE ✅ COMPLETED
 **Date:** February 22, 2026
-**Status:** ✅ Complete (100%)
+**Status:** ✅ Complete (100%) — extended in Phase 13
 
 ### 7.1 Controllers
 - [x] RegistrarController — index, finalize, finalizeSubject ✅
@@ -273,6 +272,8 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - ✅ Bulk finalize per subject with preview modal
 - ✅ SweetAlert2 on Finalize All, Generate TOR, Generate COG
 
+> 🔄 **Phase 13 extension:** Registrar module significantly expanded — direct grade encoding bug fixes, Student Management, Enrollment Management, and Excel Import/Export added. See Phase 13 below for full detail.
+
 ---
 
 ## PHASE 8: EXCEL FEATURES ✅ COMPLETED
@@ -280,8 +281,8 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 **Status:** ✅ Complete (100%)
 
 ### 8.1 Files
-- [x] app/Exports/StudentsExport.php — department_id scoped ✅
-- [x] app/Imports/StudentsImport.php — department_id scoped, `date_format:Y-m-d` strict validation ✅ (fixed March 23 session)
+- [x] app/Exports/StudentsExport.php — department_id scoped, **supports `null` for unscoped export** ✅
+- [x] app/Imports/StudentsImport.php — department_id scoped, `date_format:Y-m-d` strict validation, **supports `null` for unscoped import** ✅ (fixed March 23 session)
 - [x] app/Exports/GradeTemplateExport.php — unchanged ✅
 - [x] app/Imports/GradesImport.php — unchanged ✅
 - [x] app/Http/Controllers/HeadOfDepartment/ExcelController.php — template notes row, single course code ✅ (fixed March 23 session)
@@ -295,6 +296,8 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 **Deliverables:**
 - ✅ Template no longer misleads users with fake sample data
 - ✅ Birthdate validation strictly enforces YYYY-MM-DD
+
+> 🔄 **Phase 13 note:** `StudentsExport(null)` / `StudentsImport(null)` — the existing `null` support for department_id — was reused as-is by Registrar's new ExcelController with zero modification needed. Confirmed via `class_exists()` check in Phase 13.7.
 
 ---
 
@@ -316,10 +319,10 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - [x] Registrar: Generate TOR — SweetAlert2 confirm ✅
 - [x] Registrar: Generate COG — SweetAlert2 confirm ✅ (bonus)
 
-### 9.11 — Verification & End-to-End Test ⏳ NEXT
-- [ ] php artisan route:list — full clean verification
-- [ ] php artisan migrate:status — all green
-- [ ] Full 12-step end-to-end test
+### 9.11 — Verification & End-to-End Test ⏳ SUPERSEDED
+- [ ] ~~php artisan route:list — full clean verification~~ — superseded by Phase 13.7 verification pass
+- [ ] ~~php artisan migrate:status — all green~~ — pending
+- [ ] ~~Full 12-step end-to-end test~~ — the 12-step multi-role flow (Faculty → HoD → Registrar) this test was designed for is being replaced by the Phase 13 single-actor flow. A new E2E test plan is needed post-Phase 13 (see Phase 13.8, pending).
 
 ### 9.12 — Excel Import Fixes ✅ DONE (March 23 session)
 - [x] Template fake sample row → notes row
@@ -350,7 +353,7 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - ✅ SweetAlert2 on ALL 8 destructive actions
 - ✅ Font Awesome icons throughout — zero hardcoded emojis
 - ✅ UserSeeder using updateOrCreate — safe to re-seed
-- [ ] End-to-end test — next session
+- [~] End-to-end test — superseded, see 9.11 note above
 
 ---
 
@@ -379,12 +382,13 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - [x] Font Awesome icons, role badge formatting, stat cards
 
 ### 11.3 Remaining Tasks
-- [ ] End-to-end workflow test (Phase 9.11) — DO THIS FIRST
+- [ ] End-to-end workflow test — **blocked pending Phase 13 completion** (old 12-step test is obsolete under the new single-actor flow)
 - [ ] Mobile responsiveness review across all role views
 - [ ] Error handling — empty states, 404 pages, form error UX
 - [ ] Loading states for PDF generation
 - [ ] UI consistency pass across all role views
 - [ ] Remove leftover student nav links from Admin dashboard (Phase 9.3 leftover)
+- [ ] **NEW:** Remove/hide Faculty and HoD sidebar nav sections once Phase 13.6 lockout is applied
 
 ---
 
@@ -445,34 +449,150 @@ Phase 12    NEW — Backup & Restore (added April 1, 2026)
 - ✅ Database restore via SQL file upload
 - ✅ Sidebar nav link wired correctly
 
+> 🔒 **Security note (Phase 13 session):** confirmed `admin/backup/*` routes (index, delete, download, restore, run) were verified via `php artisan route:list --path=backup -v` to correctly carry `Authenticate`, `CheckStatus`, `CheckRole:admin` — no changes needed, but this check was the starting point of the Phase 13 session.
+
+---
+
+## PHASE 13: REGISTRAR-ONLY WORKFLOW MIGRATION 🔄 IN PROGRESS
+**Date:** July 2, 2026
+**Status:** 🔄 In Progress (~70%)
+
+### 13.0 Trigger — Client Requirement Change
+Client provided an updated process flowchart specifying a **single-actor workflow**: Registrar now handles the entire grade lifecycle — encode, validate, save, auto-generate COG/TOR, and verify — with no handoff to Faculty or Head of Department. This supersedes the Phase 6/9 multi-role approval chain (Faculty submits → HoD reviews → Registrar finalizes) for the encoding side of the system.
+
+**Flowchart steps (source of truth for this phase):**
+**Strategy adopted:** *Disable, don't delete.* Faculty and HoD grade-related code stays in the codebase, dormant, in case of a future reversal — only route-level access will be cut off, not the underlying controllers/models/views/data. This is safer than deletion because `grades` and `grade_submissions` tables have Faculty/HoD baked into their column semantics (`faculty_id`, `submitted_by`/`reviewed_by`/`finalized_by`), so ripping out the code risks orphaning existing data references.
+
+### 13.1 Registrar Direct-Encode Bug Fixes ✅ DONE
+`RegistrarController::encodeGrades()` had three bugs from being adapted off the old multi-role flow without a matching data-layer update:
+- [x] `faculty_id => auth()->id()` — was storing the **Registrar's** user ID in a column semantically meant for Faculty. Fixed → now stores `null`.
+- [x] Missing `GradeSubmission` record on direct Registrar entry — broke downstream stats and the unfinalize workflow, which depend on a `GradeSubmission` existing. Fixed → `GradeSubmission::updateOrCreate()` added, stamping the Registrar into `submitted_by` / `reviewed_by` / `finalized_by`, with `dean_action => 'approved_by_head_of_department'` and a `dean_remarks` note ("Direct entry by Registrar") to make the workaround traceable in the data itself.
+- [x] `remarks => null` — was silently wiping any existing remarks on every save. Fixed → remarks field left untouched.
+- [x] Applied via `/tmp/patch_encode.php` string-replace script — confirmed `PATCHED OK`, grep-verified all three fixes landed at expected lines (171, 179, 189).
+
+### 13.2 `faculty_id` NOT NULL Schema Blocker ✅ DONE
+Setting `faculty_id => null` (13.1) violated the `grades` table schema — `faculty_id` was defined via `foreignId()->constrained('users')` with no `->nullable()`, confirmed via:
+```php
+$table->foreignId('faculty_id')->constrained('users')->comment('Faculty who encoded the grade');
+```
+- [x] Confirmed via `SHOW COLUMNS FROM grades` — `bigint(20) unsigned`, `Null: NO`, `Key: MUL` (FK index).
+- [x] **No `doctrine/dbal` installed**, and project is on **Laravel 10.50.2** — this Laravel version still requires that package for the standard `Schema::table()->change()` migration approach (only dropped in Laravel 11+). Rather than add a new dependency for one column, used a raw MySQL statement instead — smaller footprint, matches "not over-engineered" direction.
+- [x] New migration `make_faculty_id_nullable_on_grades_table` — `DB::statement('ALTER TABLE grades MODIFY faculty_id BIGINT UNSIGNED NULL')`, with a `down()` that reverses it (documented caveat: rollback will fail if any row has `faculty_id = NULL` at that point).
+- [x] Migrated successfully — reconfirmed via `SHOW COLUMNS`: `Null` flipped from `NO` → `YES`, type/unsigned/FK index (`Key: MUL`) all unchanged.
+
+### 13.3 Full Codebase Mapping ✅ DONE
+Before making further changes, pulled and reviewed the entire Registrar/Faculty/HoD stack to avoid guessing:
+- [x] All 13 (pre-Phase 13) `registrar/*` routes confirmed clean — `Authenticate` → `CheckStatus` → `CheckRole:registrar` on every route.
+- [x] Discovered **dual role-check system**: Spatie's `HasRoles` (`hasRole()`, pivot tables) used in `routes/web.php` and middleware, alongside a **legacy `role` column + `isFaculty()`-style helpers** on the `User` model that check the raw column directly. Both are seeded in parallel by `UserSeeder`. Flagged as a risk for any future "disable" work — a check using only one system could let a user through.
+- [x] Confirmed Faculty's entire grade workflow lives self-contained inside `Route::middleware(['auth','status','role:faculty'])->prefix('faculty')->...` — nothing outside that block references `Faculty\GradeController`, `Faculty\FacultyController`, or `Faculty\ExcelController`. Safe to disable at the route level without entangling other code.
+- [x] Confirmed HoD's route group similarly self-contained — `grep -rn "HeadOfDepartment\\\\" app/Http/Controllers/ app/Providers/` returned no external references.
+- [x] Identified HoD's route group mixes two concerns: **grade review** (`submissions.review/approve/reject` — obsolete under new flow) and **student/enrollment/subject-assignment management** (still needed, but ownership moves to Registrar per client instruction "Registrar takes over").
+- [x] Confirmed via grep that `Faculty\GradeController` (`app/Http/Controllers/Faculty/GradeController.php:43`) still has a live `Grade::updateOrCreate()` write path — directly contradicts the client's "only Registrar encodes grades" requirement until Phase 13.6 (disable pass) is applied.
+- [x] Confirmed `enrollments.enrolled_by` column comment says "Dean" — another stale-role artifact from the original 3-role design, functionally harmless (plain FK, no DB-level role enforcement) but noted for awareness.
+
+### 13.4 Scope Decision — HoD Absorption ✅ CONFIRMED WITH CLIENT/DEV
+- [x] Confirmed: Registrar takes over **all** of HoD's student/enrollment/Excel responsibilities (not just grade review) — full alignment to flowchart.
+- [x] Key architectural implication flagged and accepted: HoD's student/enrollment/Excel methods are all scoped by `auth()->user()->department_id` (e.g. `Student::whereHas('course', fn($q) => $q->where('department_id', $departmentId))`). Registrar is institution-wide. Absorbing these features means **dropping department scoping entirely**, not a like-for-like copy — Registrar will see every student across every department. This is a simplification that fits the new single-actor model.
+
+### 13.5 Registrar New Capabilities — Built ✅ DONE (pending browser verification)
+
+**New Controllers** (`app/Http/Controllers/Registrar/`):
+- [x] `StudentController.php` — `index` (search + course/year_level/status filters, paginated, unscoped), `create`, `store`, `edit`, `update`, `destroy` (blocked if student has existing enrollments)
+- [x] `EnrollmentController.php` — `index` (active-semester-scoped, includes `enrolledMap` for JS-side already-enrolled dropdown filtering), `store` (with duplicate-enrollment guard via `firstOrCreate` + try/catch on `QueryException`), `destroy` (blocked if a grade already exists for that enrollment)
+- [x] `ExcelController.php` — `studentTemplate` (CSV download with format-hint notes row, mirrors HoD's Phase 8 fix), `exportStudents` (reuses `StudentsExport(null)` — no department filter), `importStudents` (reuses `StudentsImport(null)`, surfaces per-row failures/errors back to the student index via session flash)
+
+**New Views** (`resources/views/registrar/`):
+- [x] `students/index.blade.php` — table with search/filter form, Download Template / Import Excel / Export Excel actions, SweetAlert2 delete confirm
+- [x] `students/create.blade.php`, `students/edit.blade.php` — full student form (name, course, birth date, gender, contact, address, type, year level, status)
+- [x] `enrollments/index.blade.php` — active semester banner, enroll form with dynamic JS (subject dropdown disables already-enrolled subjects per selected student), enrollments table with SweetAlert2 remove confirm
+
+**New Routes** (inserted into existing `registrar` route group in `routes/web.php`, verified no naming collisions with `head_of_department.*` equivalents):
+- [x] `registrar.students.index/create/store/edit/update/destroy` (6 routes)
+- [x] `registrar.enrollments.index/store/destroy` (3 routes)
+- [x] `registrar.excel.student-template/export-students/import-students` (3 routes)
+- [x] Total Registrar routes: **13 (original) + 13 (new) = 25**, all confirmed carrying `Authenticate`, `CheckStatus`, `CheckRole:registrar`
+
+**Sidebar** (`resources/views/layouts/partials/sidebar.blade.php`):
+- [x] Registrar block reorganized into `Academic` (Students, Enrollment) and `Grades` (Encode Grades) section labels — matches HoD's existing sidebar grouping convention for visual consistency
+- [x] Icons: `fa-user-graduate` (Students), `fa-clipboard-list` (Enrollment) — same icons HoD's own sidebar already uses for equivalent links
+
+### 13.6 Faculty/HoD Route Lockout ⏳ NOT STARTED
+- [ ] Faculty route group (`role:faculty`) — full lockout planned (entire grade encoding/submit/resubmit workflow obsolete)
+- [ ] HoD grade review routes (`submissions.review/approve/reject`) — lockout planned (obsolete)
+- [ ] HoD Subject Assignment routes — lockout planned (nothing will consume assignments once Faculty is disabled)
+- [ ] HoD Student/Enrollment/Excel routes — **decision needed**: leave dormant-but-reachable, or lock out now that Registrar has equivalent unscoped capability (currently leaning toward locking out once 13.7 verification is complete, to avoid two active code paths writing to the same tables)
+- [ ] Planned mechanism: change `role:faculty` / `role:head_of_department` middleware requirement on affected route groups so they're unsatisfiable by any current login — controllers/models/views/data all stay untouched, fully reversible
+- [ ] Dual role-check system (13.3) needs to be accounted for — a route-level lockout via Spatie's `role:` middleware alone may not be sufficient if any other code path checks the legacy `role` column directly (e.g. `isFaculty()`); needs audit before considering Faculty/HoD access fully closed
+
+### 13.7 Static Verification Pass ✅ DONE
+Full non-browser verification completed before UI testing, catching and fixing multiple real issues along the way:
+
+**Issues found and fixed during this pass:**
+- [x] **Controllers initially not created at all** — an earlier "paste the code" step was silently skipped; `ls -la` on `app/Http/Controllers/Registrar/` showed only pre-existing `DocumentController.php`/`RegistrarController.php`. Recreated all 3 via heredoc (`cat > file << 'EOF'`), one at a time to catch failures immediately.
+- [x] **`enrollments/index.blade.php` was empty (0 bytes)** and **`enrollments/create.blade.php` contained the wrong content** (the *students create* form had been pasted into the enrollments folder by mistake, under the wrong filename). Fixed via `mv` to relocate the misplaced file to `students/create.blade.php` (its correct location/name), then repopulated `enrollments/index.blade.php` with the correct content via heredoc.
+- [x] **Routes never inserted into `routes/web.php`** on the first attempt — confirmed via `grep -n "registrar.students\|registrar.enrollments\|registrar.excel" routes/web.php` returning zero matches. Fixed by pasting the full route block into the existing `registrar` group.
+- [x] **False alarm — `scopeActive()` initially thought missing** on `Student`/`Subject`/`Semester`/`Course` models due to a bad grep pattern (`"function active"` instead of Laravel's actual `scopeActive()` convention). Re-verified via `grep -n "scopeActive"` — confirmed present on all 4 models. No code change needed.
+- [x] **`stdout is not a tty` / empty redirected file** — `php artisan route:list > file.txt` produced a genuinely empty file in this Git Bash/MINGW environment (confirmed via `wc -l` = 0), rather than the message being cosmetic noise as assumed earlier in the session. Verification approach switched to `--path=` filtered `route:list -v` (which reliably prints to terminal) instead of redirecting to a file — added to Windows/Git Bash Notes below.
+
+**Final verification checklist — all green:**
+- [x] `php -l` syntax check — `StudentController.php`, `EnrollmentController.php`, `ExcelController.php`, `routes/web.php` — no errors
+- [x] `php artisan route:list --path=registrar -v` — 25 routes, correct middleware stack on every route
+- [x] `php artisan route:list --path=head-of-department -v` — 19 routes, confirmed fully untouched, no naming collisions with new Registrar routes
+- [x] `php artisan view:cache` — Blade templates compile with no syntax errors
+- [x] `view()->exists()` checks — `registrar.students.index/create/edit`, `registrar.enrollments.index` — all confirmed present
+- [x] `Enrollment` model relationship check — `student()`, `subject()`, `semester()`, `grade()` all present, matches what `EnrollmentController` calls
+- [x] `StudentsExport`/`StudentsImport` class existence confirmed via `class_exists()` — reusable as-is, no modification needed
+- [x] `Student`, `Enrollment`, `Course`, `Subject`, `Semester` model existence confirmed
+- [x] Full cache clear (`route`, `view`, `config`, `cache`, `optimize`) run before handoff to browser testing
+
+### 13.8 Browser End-to-End Test ⏳ NOT STARTED
+Planned test sequence (next session):
+1. [ ] Sidebar renders correctly for Registrar login — Academic/Grades section labels, Students + Enrollment links present
+2. [ ] `/registrar/students` loads — unscoped (all departments), table renders
+3. [ ] Add Student — form submits, validation works, appears in list
+4. [ ] Edit Student — changes persist
+5. [ ] `/registrar/enrollments` loads — active semester banner or "no active semester" warning displays correctly
+6. [ ] Enroll a student into a subject — dynamic subject dropdown correctly disables already-enrolled subjects
+7. [ ] Download Template / Export Excel — both download without error
+8. [ ] **Regression test — the original bug that started this session:** Encode Grades as Registrar → confirm no `faculty_id` DB error, confirm `GradeSubmission` record is created correctly
+
+**Phase 13 Deliverables So Far:**
+- ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
+- ✅ `faculty_id` schema made nullable via dependency-free raw migration
+- ✅ Full Registrar Student/Enrollment/Excel management built — controllers, views, routes, sidebar
+- ✅ Static verification pass complete — all syntax, routing, view-binding, and model-dependency checks green
+- ⏳ Browser E2E test — pending
+- ⏳ Faculty/HoD route lockout — pending
+- ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
+
+---
+
+## PHASE 14: CURRICULUM FEATURE 📅 PLANNED
+**Date:** TBD
+**Status:** 📅 Not Started (0%)
+
+*(Renumbered from Phase 13 — see Phase Renumbering note at top of file)*
+
+### Planned Tasks
+- [ ] Curricula table + curriculum_subjects table
+- [ ] Admin UI to build/manage curriculum per course per year
+- [ ] Link enrollments/grades to curriculum subjects
+- [ ] Update COG generation to pull from curriculum
+- [ ] Follow CHED/SUC standard (same pattern as SAIS, AISIS)
+
 ---
 
 ## TECHNICAL NOTES
 
 ### Grade Status ENUM — v2 Values ✅ Active
-```
-saved                        — Faculty encoded, not yet submitted
-pending_head_of_department_review  — Submitted, awaiting HoD action
-approved_by_head_of_department     — HoD approved, in Registrar queue
-rejected                     — HoD rejected, Faculty can resubmit
-finalized                    — Registrar locked, permanent
-```
 **Critical:** These are the ONLY valid values. MySQL throws truncation error on anything else.
 
+> **Phase 13 note:** Registrar's direct-encode path (`encodeGrades()`) now also writes a `GradeSubmission` with `dean_action => 'approved_by_head_of_department'` to stay compatible with this ENUM chain, even though no actual Dean/HoD action occurred — this is an intentional workaround, not a new valid semantic meaning for that value. See Phase 13.1.
+
 ### School Year Status ENUM ✅
-```
-upcoming   — Not yet active (default)
-active     — Current school year (only 1 at a time)
-completed  — Past school year
-```
 **Critical:** `inactive` is NOT a valid value.
 
 ### Semester Status ENUM ✅
-```
-upcoming   — Not yet active (default)
-active     — Current semester (only 1 at a time)
-completed  — Past semester
-```
 **Critical:** `inactive` is NOT valid.
 
 ### Head of Department Scoping Pattern
@@ -481,19 +601,24 @@ Student::whereHas('course', function($q) {
     $q->where('department_id', auth()->user()->department_id);
 })
 ```
+> **Phase 13 note:** Registrar's equivalent methods intentionally **omit** this scoping — Registrar is institution-wide, not department-scoped. Do not copy this pattern into `Registrar\StudentController` or `Registrar\EnrollmentController`.
+
+### `grades.faculty_id` Column — Nullable as of Phase 13
+```php
+// Migration (2026_02_15_144012_create_grades_table.php) — original definition:
+$table->foreignId('faculty_id')->constrained('users')->comment('Faculty who encoded the grade');
+
+// Phase 13 migration (make_faculty_id_nullable_on_grades_table) applied on top:
+// DB::statement('ALTER TABLE grades MODIFY faculty_id BIGINT UNSIGNED NULL');
+```
+**Critical:** When Registrar encodes a grade directly, `faculty_id` must be set to `null` — never to the Registrar's own `auth()->id()`. The column is semantically reserved for Faculty.
 
 ### GWA Formula
-```
 Semester GWA   = Σ(grade × units) / Σ(units)
 Cumulative GWA = Σ(all grades × units) / Σ(all units) — all finalized semesters
-```
-
 ### TOR Semester Label Format
-```
 {semester_name} — SY {year_code}
 e.g. "2nd Semester — SY 2025-2026"
-```
-
 ### Column Name Quick Reference
 | Table | Correct | Wrong |
 |-------|---------|-------|
@@ -504,6 +629,7 @@ e.g. "2nd Semester — SY 2025-2026"
 | school_years | `year_code` | `year_start`, `year_end` |
 | semesters | `semester_name`, `semester_order` | `name` |
 | Storage facade | `Storage::` (with import) | `\Storage::` |
+| grades.faculty_id | nullable as of Phase 13 (Registrar direct-entry) | never the Registrar's own `auth()->id()` |
 
 ### Storage Notes
 - COG: `storage/app/cog/{document_number}.pdf`
@@ -519,6 +645,9 @@ e.g. "2nd Semester — SY 2025-2026"
 - sed commands mangle unicode emojis — use line-number targeting `sed -i 'Ns/.*/replacement/'`
 - `!` in bash strings triggers history expansion — use base64_decode() approach for PHP file writes
 - Git Bash blocks pipe `|` to PHP in some contexts — use PHP file approach instead
+- **NEW (Phase 13):** `php artisan route:list > file.txt` can produce a genuinely empty file in Git Bash/MINGW (`stdout is not a tty`) — confirmed via `wc -l` returning 0. Use `--path=` filtered `route:list -v` printed directly to terminal instead of redirecting to a file for grep-based checks.
+- **NEW (Phase 13):** heredoc file-creation commands (`cat > file << 'EOF' ... EOF`) can be silently interrupted by `Ctrl+C` mid-paste, especially after a long preceding command — always verify the target file was actually created (`ls -la`, `php -l`) immediately after, don't assume success.
+- **NEW (Phase 13):** doctrine/dbal is still required in Laravel 10.x (not just <10) for `Schema::table()->change()` — only Laravel 11+ drops this requirement. For single-column nullability changes on MySQL, a raw `DB::statement('ALTER TABLE ... MODIFY ...')` inside a migration avoids adding the dependency.
 
 ---
 
@@ -566,6 +695,17 @@ e.g. "2nd Semester — SY 2025-2026"
 57. The real sidebar file is `resources/views/layouts/partials/sidebar.blade.php` — not `navigation.blade.php`
 58. "Sending notification failed" on backup:run is harmless when no mail driver is configured
 
+### Phase 13:
+59. `foreignId()->constrained()` with no `->nullable()` chained is NOT NULL by default — verify with `SHOW COLUMNS FROM table` before assuming a column accepts null
+60. Laravel 10.x still requires `doctrine/dbal` for `Schema::table()->change()` — only Laravel 11+ drops it. Use raw `DB::statement('ALTER TABLE ... MODIFY ...')` to avoid the dependency for simple nullability changes
+61. Two parallel role-check systems can coexist silently (Spatie `HasRoles` pivot tables + a legacy `role` column with helper methods like `isFaculty()`) — always grep for both before assuming a role check is fully covered by one system
+62. Route groups scoped per-role with their own `prefix()`/`name()` are naturally collision-safe even if two roles have identically-named sub-resources (e.g. both HoD and Registrar can have `students.index` — they resolve to different fully-qualified route names)
+63. Department-scoped query patterns (`whereHas('course', fn($q) => $q->where('department_id', ...))`) must NOT be copy-pasted into institution-wide controllers — always confirm scope requirements before reusing a "similar" controller as a template
+64. `php artisan route:list > file.txt` can produce a genuinely empty file in Git Bash/MINGW despite the command appearing to succeed — verify redirected output with `wc -l`, or avoid redirection and use `--path=` filtering printed directly to terminal instead
+65. Heredoc commands (`cat > file << 'EOF'`) run immediately after an unrelated `Ctrl+C` can silently fail to execute — the terminal returns to a fresh prompt looking exactly like success; always verify file creation explicitly (`ls -la` + `php -l`), never assume from a clean-looking prompt alone
+66. When multiple files are pasted back-to-back in one batch, content can end up saved under the wrong filename/path (e.g. a "students create" form saved as `enrollments/create.blade.php`) — verify actual file contents with `head`/`cat`, not just that a file with the expected name exists
+67. Reusable Export/Import classes that already accept a nullable scoping parameter (e.g. `new StudentsExport(null)`) can often be reused as-is across roles with different scoping needs — check constructor signatures before assuming a new class needs to be written
+
 ---
 
 ## PROGRESS SUMMARY
@@ -576,53 +716,61 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 2: Models & Seeders | ✅ Complete | 100% | updateOrCreate in seeder |
 | Phase 3: Auth & Authorization | ✅ Complete | 100% | — |
 | Phase 4: Admin Module | ✅ Complete | 100% | Font Awesome icons, role badge formatting |
-| Phase 5: Faculty Module | ✅ Complete | 100% | SweetAlert2 + Font Awesome |
-| Phase 6: HoD Module | ✅ Complete | 100% | SweetAlert2 + Font Awesome + delete confirm |
-| Phase 7: Registrar Module | ✅ Complete | 100% | SweetAlert2 on all doc actions |
-| Phase 8: Excel Features | ✅ Complete | 100% | Fixed template + strict date validation |
-| Phase 9: System Restructure | ✅ Complete | 99% | E2E test next session |
+| Phase 5: Faculty Module | ✅ Complete | 100% | Slated for route lockout in Phase 13.6 |
+| Phase 6: HoD Module | ✅ Complete | 100% | Grade review + assignments slated for lockout; student/enrollment mgmt being absorbed by Registrar |
+| Phase 7: Registrar Module | ✅ Complete | 100% | Significantly extended in Phase 13 |
+| Phase 8: Excel Features | ✅ Complete | 100% | `null`-scoping reused by Registrar in Phase 13 |
+| Phase 9: System Restructure | ✅ Complete | 99% | Old E2E test superseded by Phase 13 flow change |
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
-| Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | E2E + mobile + error handling |
-| **Phase 12: Backup & Restore** | ✅ **Complete** | **100%** | **spatie/laravel-backup, Admin UI** |
+| Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
+| Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~70%** | **Controllers/routes/views built + statically verified. Browser E2E + Faculty/HoD lockout pending.** |
+| Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13 |
 
-**Overall Project Completion: ~99%**
+**Overall Project Completion: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
 
 ---
 
 ## NEXT STEPS — RESUME HERE
+▶️ Priority 1: Phase 13.8 — Browser End-to-End Test
 
-```
-▶️ Priority 1: Phase 9.11 — End-to-end test (12 steps)
-   1.  Admin: verify active school year + active semester exist
-   2.  Admin: verify department, course, subject exist
-   3.  Admin: verify HoD + Faculty accounts have correct department_id
-   4.  HoD: assign subject to faculty
-   5.  HoD: enroll students into subject
-   6.  Faculty: encode grades
-   7.  Faculty: submit to HoD (confirm SweetAlert fires)
-   8.  HoD: review and approve all (confirm SweetAlert fires)
-   9.  Registrar: verify subject in finalization queue
-   10. Registrar: finalize subject (preview modal + SweetAlert confirm)
-   11. Registrar: generate COG
-   12. Registrar: generate TOR
+Log in as Registrar — confirm sidebar renders (Academic + Grades sections)
+/registrar/students — confirm loads, unscoped across all departments
+Add Student — confirm save + list refresh
+Edit Student — confirm persistence
+/registrar/enrollments — confirm active semester banner logic
+Enroll a student — confirm dynamic subject-dropdown JS works
+Download Template / Export Excel — confirm both succeed
+Encode Grades (regression test) — confirm original faculty_id bug is fully resolved end-to-end, GradeSubmission created correctly
 
-▶️ Priority 2: Phase 11 remaining
-   - Mobile responsiveness
-   - Empty states, 404, form error UX
-   - Loading states for PDF generation
-   - UI consistency pass
-   - Remove leftover student nav links from Admin dashboard
+▶️ Priority 2: Phase 13.6 — Faculty/HoD Route Lockout
 
-▶️ Priority 3: Curriculum Feature (Phase 13 — planned)
-   - Curricula table + curriculum_subjects table
-   - Admin UI to build/manage curriculum per course per year
-   - Link enrollments/grades to curriculum subjects
-   - Update COG generation to pull from curriculum
-   - Follow CHED/SUC standard (same pattern as SAIS, AISIS)
-```
+Decide final scope: lock out HoD student/enrollment/Excel routes now, or leave dormant a while longer
+Apply role: middleware changes to Faculty group (full lockout)
+Apply role: middleware changes to HoD grade-review + assignment routes
+Audit legacy role column / isFaculty()-style checks (dual role-check system, Phase 13.3) — confirm lockout can't be bypassed through that path
+Re-run full static verification pass (route:list, view:cache, php -l) after lockout changes
 
+▶️ Priority 3: Phase 11 remaining (post-13)
+
+New E2E test plan reflecting single-actor flow (replaces old 12-step multi-role test)
+Mobile responsiveness
+Empty states, 404, form error UX
+Loading states for PDF generation
+UI consistency pass
+Remove leftover student nav links from Admin dashboard
+Remove/hide Faculty + HoD sidebar sections once 13.6 lockout applied
+
+▶️ Priority 4: Phase 10 — Reporting & Analytics (unchanged, still planned)
+▶️ Priority 5: Phase 14 — Curriculum Feature (renumbered, still planned)
+
+Curricula table + curriculum_subjects table
+Admin UI to build/manage curriculum per course per year
+Link enrollments/grades to curriculum subjects
+Update COG generation to pull from curriculum
+Follow CHED/SUC standard (same pattern as SAIS, AISIS)
 ---
 
-**Last Updated:** April 1, 2026
-**Phase 12 Status:** ✅ Complete
-**Current Focus:** Phase 9.11 E2E test → Phase 11 UI/UX → Phase 13 Curriculum
+**Last Updated:** July 2, 2026
+**Phase 13 Status:** 🔄 In Progress (~70%)
+**Current Focus:** Phase 13.8 Browser E2E Test → Phase 13.6 Faculty/HoD Lockout → Phase 11 UI/UX → Phase 10 Reporting → Phase 14 Curriculum

@@ -6,33 +6,34 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red)
 ![PHP](https://img.shields.io/badge/PHP-8.4-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
-![Progress](https://img.shields.io/badge/Progress-99%25-brightgreen)
-![Phases](https://img.shields.io/badge/Phases-12%20Total-blue)
+![Progress](https://img.shields.io/badge/Progress-97%25-brightgreen)
+![Phases](https://img.shields.io/badge/Phases-14%20Total-blue)
 
 ---
 
 ## Project Overview
 
-This system streamlines the academic grading workflow with a multi-tier approval system: **Faculty → Head of Department → Registrar**, automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
+This system streamlines the academic grading workflow. As of **Phase 13**, the workflow is being migrated from a multi-tier approval chain (Faculty → Head of Department → Registrar) to a **single-actor Registrar workflow**, per an updated client flowchart — the Registrar now encodes, validates, saves, and generates COG/TOR directly, with Faculty and Head of Department being phased out of the grade pipeline (disabled, not deleted, for reversibility). The system also includes automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
 
-> **Phase 12 Complete — Backup & Restore added April 1, 2026.** All restructure, SweetAlert2, emoji cleanup, seeder fixes, and backup system are done. Next step is the 12-step end-to-end test then Phase 11 UI/UX polish.
+> **Phase 13 In Progress (~70%) — Registrar-Only Workflow Migration, started July 2, 2026.** Registrar direct-encode bugs fixed, `faculty_id` made nullable, and full Registrar-side Student/Enrollment/Excel management built to absorb HoD's responsibilities. Statically verified (syntax, routing, view-binding all green). **Not yet done:** browser end-to-end test, and disabling Faculty/HoD routes. See CHANGELOG.md for full detail.
 
 ### Key Features
-- **Four-Role System** — Admin, Faculty, Head of Department, Registrar
-- **Grade Submission Workflow** — Faculty submits → HoD bulk approves → Registrar bulk finalizes per subject
-- **Department-Scoped HoD** — Each HoD manages their department only via `department_id`
-- **Student Management under HoD** — CRUD + bulk import/export per department
-- **Enrollment Management under HoD** — Enroll/remove students per active semester
-- **Faculty Assignment under HoD** — Assign subjects to faculty scoped by department
-- **Rejection & Resubmission Flow** — HoD rejects with remarks → Faculty corrects → resubmits with remarks
+- **Four-Role System** — Admin, Faculty, Head of Department, Registrar *(Faculty and HoD's grade-related roles are being phased out per Phase 13 — see note below)*
+- **🆕 Registrar Direct Grade Encoding** — Registrar encodes, validates, and saves grades directly, no Faculty/HoD handoff required (Phase 13)
+- **🆕 Registrar Student Management** — Full CRUD, institution-wide (not department-scoped) — absorbed from Head of Department (Phase 13)
+- **🆕 Registrar Enrollment Management** — Enroll/remove students per active semester, institution-wide — absorbed from Head of Department (Phase 13)
+- **🆕 Registrar Excel Import/Export** — Bulk student import/export, unscoped — absorbed from Head of Department (Phase 13)
+- **Grade Submission Workflow (legacy, being phased out)** — Faculty submits → HoD bulk approves → Registrar bulk finalizes per subject
+- **Department-Scoped HoD (legacy)** — Each HoD manages their department only via `department_id` — student/enrollment/Excel management being absorbed by Registrar; grade review/faculty assignment slated for lockout
+- **Rejection & Resubmission Flow (legacy)** — HoD rejects with remarks → Faculty corrects → resubmits with remarks — slated for lockout
 - **Automated GWA Calculation** — Semester and cumulative weighted average
 - **COG & TOR Generation** — PDF documents, correct semester + school year labels, CHED standard
 - **Search-First Document Flow** — Registrar searches student → Academic Profile → generates COG/TOR
 - **Bulk Finalization** — Registrar finalizes all grades per subject with preview modal
 - **Complete Audit Trail** — Spatie Activity Log tracks all grade changes
-- **Excel Import/Export** — HoD: bulk student import/export with format-hint template | Faculty: grade template
+- **Excel Import/Export** — Registrar (Phase 13): institution-wide student import/export | HoD (legacy): department-scoped | Faculty: grade template
 - **Font Awesome 6.5** — Clean professional icons throughout, zero hardcoded emojis
-- **SweetAlert2 Confirmations** — All 8 destructive actions confirmed
+- **SweetAlert2 Confirmations** — All destructive actions confirmed, including new Registrar Student/Enrollment actions (Phase 13)
 - **Backup & Restore** — Admin can create, download, and restore database backups via UI
 
 ---
@@ -42,88 +43,124 @@ This system streamlines the academic grading workflow with a multi-tier approval
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1–8 | Foundation through Excel Features | ✅ Complete |
-| Phase 9 | System Restructure | ✅ Complete (99% — E2E test pending) |
+| Phase 9 | System Restructure | ✅ Complete (99% — old E2E test superseded by Phase 13) |
 | Phase 10 | Reporting & Analytics | 📅 Planned |
-| Phase 11 | UI/UX Polish & Testing | 🔄 40% Done |
-| **Phase 12** | **Backup & Restore** | ✅ **Complete** |
+| Phase 11 | UI/UX Polish & Testing | 🔄 40% Done (blocked pending Phase 13) |
+| Phase 12 | Backup & Restore | ✅ Complete |
+| **Phase 13** | **Registrar-Only Workflow Migration** | 🔄 **~70% In Progress** |
+| Phase 14 | Curriculum Feature (renumbered from old Phase 13) | 📅 Planned |
 
-**Overall Progress: ~99%**
+**Overall Progress: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
 
-> **Resume point:** Phase 9.11 — 12-step end-to-end test. See CHANGELOG.md.
+> **Resume point:** Phase 13.8 — Browser end-to-end test for Registrar's new Student/Enrollment/Excel/Encode-Grades flow. See CHANGELOG.md.
 
 ---
 
 ## System Workflow
-
-```
 ADMIN
-  Scope: System configuration only. No student/grade access.
-  - Manage Users (Faculty, HoD, Registrar)
-    - Assign department_id when creating Faculty or HoD accounts (REQUIRED)
-    - Tab filter by role — All / Faculty / HoD / Registrar
-    - Department column shows assignment or "Unassigned"
-    - Role badges display formatted labels (Head Of Department, not head_of_department)
-  - Manage Departments, Courses, Subjects
-  - Configure School Years & Semesters (upcoming → active → completed)
-  - Backup & Restore
-    - Create full database backup (zip stored locally)
-    - View backup history with download and delete
-    - Restore database from uploaded .sql file
+Scope: System configuration only. No student/grade access.
+
+Manage Users (Faculty, HoD, Registrar)
+
+Assign department_id when creating Faculty or HoD accounts (REQUIRED)
+Tab filter by role — All / Faculty / HoD / Registrar
+Department column shows assignment or "Unassigned"
+Role badges display formatted labels (Head Of Department, not head_of_department)
+
+
+Manage Departments, Courses, Subjects
+Configure School Years & Semesters (upcoming → active → completed)
+Backup & Restore
+
+Create full database backup (zip stored locally)
+View backup history with download and delete
+Restore database from uploaded .sql file
+
+
 
 HEAD OF DEPARTMENT (per department — scoped by department_id)
-  Scope: Full academic management, own department only.
-  - Manage Students (CRUD + bulk Excel import/export)
-    - Import template has format-hint notes row — no fake sample data
-    - Birthdate must be YYYY-MM-DD format
-  - Manage Enrollment (enroll/remove students per active semester)
-  - Assign Subjects to Faculty (faculty dropdown scoped to same department)
-  - Review Grade Submissions (bulk — full class table at once)
-    - Approve All → SweetAlert confirm → forwards batch to Registrar
-    - Reject → SweetAlert confirm (requires remarks) → returns to Faculty
-    - Resubmissions show Faculty remarks prominently
-  - Dashboard stats (students, enrollments, pending/approved grades) all scoped to department
-  - Delete Student → SweetAlert confirm modal
+⚠️ Phase 13: Student/Enrollment/Excel responsibilities being absorbed by Registrar.
+Grade review and Faculty Assignment slated for route lockout (Phase 13.6, not yet applied).
+Scope: Full academic management, own department only.
+
+Manage Students (CRUD + bulk Excel import/export)
+
+Import template has format-hint notes row — no fake sample data
+Birthdate must be YYYY-MM-DD format
+
+
+Manage Enrollment (enroll/remove students per active semester)
+Assign Subjects to Faculty (faculty dropdown scoped to same department)
+Review Grade Submissions (bulk — full class table at once)
+
+Approve All → SweetAlert confirm → forwards batch to Registrar
+Reject → SweetAlert confirm (requires remarks) → returns to Faculty
+Resubmissions show Faculty remarks prominently
+
+
+Dashboard stats (students, enrollments, pending/approved grades) all scoped to department
+Delete Student → SweetAlert confirm modal
 
 FACULTY
-  Scope: Assigned subjects only.
-  - Encode Grades (manual or Excel template upload)
-  - Submit Full Class Batch to HoD → SweetAlert confirm
-  - Grade table locks after submission
-  - If rejected: red banner shows HoD remarks → "Update & Resubmit"
-  - Resubmit → SweetAlert confirm (requires remarks explaining corrections)
+⚠️ Phase 13: This entire role is slated for route lockout (Phase 13.6, not yet applied) —
+Registrar now encodes grades directly per the client's updated flowchart.
+Scope: Assigned subjects only.
+
+Encode Grades (manual or Excel template upload)
+Submit Full Class Batch to HoD → SweetAlert confirm
+Grade table locks after submission
+If rejected: red banner shows HoD remarks → "Update & Resubmit"
+Resubmit → SweetAlert confirm (requires remarks explaining corrections)
 
 REGISTRAR
-  Scope: Official records and document generation only.
-  - Finalization Queue tab
-    - Preview modal — see all students + grades before finalizing
-    - Finalize All per subject → SweetAlert confirm → permanently locks
-  - Generate COG / TOR tab
-    - Search student → Academic Profile
-    - Generate COG per semester → SweetAlert confirm → PDF download
-    - Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF download
-```
+🆕 Phase 13: Now the single actor for the entire grade lifecycle, per client flowchart:
+Select Student → Encode/Update Grades → Validate → Save → Auto-Generate COG/TOR →
+Verify → Store, Ready for Printing/Release.
+Scope: Grade encoding, student/enrollment management, and official document generation — institution-wide.
 
+🆕 Manage Students (CRUD + bulk Excel import/export) — institution-wide, no department scoping
+
+Search + filter by course, year level, status
+Import template has format-hint notes row — no fake sample data
+Birthdate must be YYYY-MM-DD format
+
+
+🆕 Manage Enrollment — enroll/remove students per active semester, institution-wide
+
+Dynamic subject dropdown disables subjects the selected student is already enrolled in
+Removal blocked if a grade already exists for that enrollment
+
+
+🆕 Encode Grades Directly — no Faculty/HoD handoff; faculty_id stored as null (schema made nullable in Phase 13); a GradeSubmission record is still created for compatibility with the existing finalize/unfinalize workflow
+Finalization Queue tab
+
+Preview modal — see all students + grades before finalizing
+Finalize All per subject → SweetAlert confirm → permanently locks
+
+
+Generate COG / TOR tab
+
+Search student → Academic Profile
+Generate COG per semester → SweetAlert confirm → PDF download
+Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF download
 ---
 
 ## Grade Status Chain
-
-```
-[Faculty encodes]        →  saved
-[Faculty submits]        →  pending_head_of_department_review  (locked for Faculty)
-[HoD approves bulk]      →  approved_by_head_of_department     (forwarded to Registrar)
-[HoD rejects]            →  rejected             (Faculty can edit & resubmit)
-[Faculty resubmits]      →  pending_head_of_department_review  (cycle repeats)
-[Registrar finalizes]    →  finalized            (permanently locked)
-```
-
-> These are the **only 5 valid ENUM values** for `grades.status`.
+[Faculty encodes]        →  saved                                (legacy path — slated for lockout)
+[Faculty submits]        →  pending_head_of_department_review    (locked for Faculty — legacy path)
+[HoD approves bulk]      →  approved_by_head_of_department       (legacy path — slated for lockout)
+[HoD rejects]            →  rejected              (Faculty can edit & resubmit — legacy path)
+[Faculty resubmits]      →  pending_head_of_department_review    (cycle repeats — legacy path)
+[Registrar encodes directly] → approved_by_head_of_department    (🆕 Phase 13 — GradeSubmission auto-created, dean_remarks notes "Direct entry by Registrar")
+[Registrar finalizes]    →  finalized             (permanently locked)
+> These are the **only 5 valid ENUM values** for `grades.status`. The Phase 13 direct-encode path reuses `approved_by_head_of_department` as a workaround to stay compatible with the existing finalize logic — it does not represent an actual HoD approval action.
 
 ---
 
 ## Tech Stack
 
 ### Backend
-- **Laravel 10 LTS** — PHP MVC Framework
+- **Laravel 10 LTS** — PHP MVC Framework (10.50.2)
 - **MySQL 8.0** — Database (via XAMPP)
 - **PHP 8.4.11** — Runtime
 
@@ -144,7 +181,9 @@ REGISTRAR
 | Spatie Activity Log | v4.8+ | Audit trail |
 | Laravel DomPDF | v3.x | COG/TOR PDF generation |
 | Laravel Debugbar | v3.9 | Dev debugging |
-| **Spatie Laravel Backup** | **v9.x** | **Database backup & restore** |
+| Spatie Laravel Backup | v9.x | Database backup & restore |
+
+> **Note (Phase 13):** `doctrine/dbal` is intentionally **not** installed — Laravel 10.x still requires it for `Schema::table()->change()`, but a raw `DB::statement('ALTER TABLE ...')` migration was used instead for the one nullable-column change needed, to avoid adding the dependency.
 
 ---
 
@@ -160,53 +199,54 @@ REGISTRAR
 ### Setup Steps
 
 1. **Clone the repository**
-   ```bash
+```bash
    git clone https://github.com/gitpushfrances/cog-tor-system.git
    cd cog-tor-system
-   ```
+```
 
 2. **Install PHP dependencies**
-   ```bash
+```bash
    composer install --ignore-platform-req=php
-   ```
+```
 
 3. **Install NPM dependencies**
-   ```bash
+```bash
    npm install
-   ```
+```
 
 4. **Environment configuration**
-   ```bash
+```bash
    cp .env.example .env
    php artisan key:generate
-   ```
+```
 
 5. **Database setup**
    - Create database: `cog_tor_system`
    - Update `.env`:
-     ```env
+```env
      DB_DATABASE=cog_tor_system
      DB_USERNAME=root
      DB_PASSWORD=
-     ```
+```
 
 6. **Run migrations**
-   ```bash
+```bash
    php artisan migrate
-   ```
+```
+   > Includes the Phase 13 migration `make_faculty_id_nullable_on_grades_table`, which allows `grades.faculty_id` to be `null` for Registrar direct-entry.
 
 7. **Seed database**
-   ```bash
+```bash
    php artisan db:seed
-   ```
+```
 
    **Test Accounts:**
    | Role | Email | Password | Notes |
    |------|-------|----------|-------|
    | Admin | admin@cogtor.test | password | Full system config access |
-   | Head of Department | hod@cogtor.test | password | Scoped to department_id=1 |
-   | Faculty | faculty@cogtor.test | password | department_id=1 |
-   | Registrar | registrar@cogtor.test | password | Document generation |
+   | Head of Department | hod@cogtor.test | password | Scoped to department_id=1 — grade review/assignment slated for lockout (Phase 13.6) |
+   | Faculty | faculty@cogtor.test | password | department_id=1 — slated for lockout (Phase 13.6) |
+   | Registrar | registrar@cogtor.test | password | 🆕 Now handles direct grade encoding + student/enrollment/Excel management (Phase 13) |
    | Pending | pending@cogtor.test | password | Blocked by status middleware |
 
    > **Note:** Seeder uses `updateOrCreate` — safe to re-run. department_id is always applied correctly.
@@ -214,7 +254,7 @@ REGISTRAR
 8. **Configure backup (XAMPP only)**
 
    Open `config/database.php` and add the `dump` key inside the `mysql` connection array:
-   ```php
+```php
    'mysql' => [
        // ... existing config ...
        'engine' => null,
@@ -222,22 +262,43 @@ REGISTRAR
            'dump_binary_path' => 'C:/xampp/mysql/bin/',
        ],
    ],
-   ```
+```
 
    > For WAMP: `C:/wamp64/bin/mysql/mysqlX.X.XX/bin/`
    > For Laragon: `C:/laragon/bin/mysql/mysql-X.X.XX-winx64/bin/`
 
 9. **Build assets**
-   ```bash
+```bash
    npm run build
-   ```
+```
 
 10. **Start development server**
-    ```bash
+```bash
     php artisan serve
-    ```
+```
 
 Visit `http://localhost:8000` — redirects to login automatically.
+
+---
+
+## 🆕 Registrar Student, Enrollment & Excel Management (Phase 13)
+
+As of Phase 13, the Registrar has full institution-wide (not department-scoped) student and enrollment management, absorbed from Head of Department per the client's updated single-actor flowchart.
+
+### Student Management
+- `/registrar/students` — search + filter by course, year level, status
+- Add / Edit / Delete students (delete blocked if the student has existing enrollments)
+- No department scoping — Registrar sees all students across all departments
+
+### Enrollment Management
+- `/registrar/enrollments` — shows active semester banner (or a warning if no semester is active)
+- Enroll a student into a subject — subject dropdown dynamically disables subjects the student is already enrolled in for the active semester
+- Remove enrollment — blocked if a grade already exists for that enrollment
+
+### Excel Import/Export
+- Download Template, Import Excel, Export Excel — all reuse the existing `StudentsExport`/`StudentsImport` classes with `null` passed for department scoping (no code duplication needed)
+
+> ⏳ **Not yet browser-tested** — built and statically verified (syntax, routing, view-binding all confirmed), but the actual click-through test (add student → enroll → export → encode grade) has not yet been run. See CHANGELOG.md Phase 13.8.
 
 ---
 
@@ -274,7 +335,7 @@ The message `Sending notification failed` after `backup:run` is **harmless** —
 ## Excel Import Format
 
 ### Student Import Template
-Download from HoD → Students → Download Template. The template contains a notes row explaining each column's expected format.
+Download from **Registrar → Students → Download Template** (institution-wide, Phase 13) or **HoD → Students → Download Template** (department-scoped, legacy). The template contains a notes row explaining each column's expected format.
 
 | Column | Format | Notes |
 |--------|--------|-------|
@@ -289,7 +350,7 @@ Download from HoD → Students → Download Template. The template contains a no
 | Phone | 09XXXXXXXXX | Optional |
 | Address | Text | Optional |
 | Year Level | 1–5 | Max 5 |
-| Course Code | e.g. BSIT | Must match active course in your department |
+| Course Code | e.g. BSIT | Must match an active course (Registrar: any department; HoD: own department only) |
 | Status | active / inactive / graduated / dropped | |
 
 ---
@@ -303,7 +364,7 @@ Download from HoD → Students → Download Template. The template contains a no
 | Academic Structure | school_years, semesters, departments, courses, subjects |
 | Users | users (includes `department_id` for Faculty and HoD) |
 | Students | students, enrollments |
-| Grades | grades (5-value ENUM), grade_submissions (faculty_remarks, resubmission_count) |
+| Grades | grades (5-value ENUM, `faculty_id` nullable as of Phase 13), grade_submissions (faculty_remarks, resubmission_count) |
 | Documents | cog_records, tor_records |
 | Laravel/Spatie | permissions, roles, model_has_permissions, model_has_roles, role_has_permissions, activity_log |
 
@@ -326,11 +387,8 @@ Download from HoD → Students → Download Template. The template contains a no
 | 5.00 | Below 75% (Failed) |
 
 ### GWA Formula
-```
 Semester GWA    = Σ(Grade × Units) / Σ(Units)
 Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finalized semesters
-```
-
 ---
 
 ## Column Name Quick Reference
@@ -344,6 +402,7 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | school_years.status | `upcoming`, `active`, `completed` | `inactive` |
 | grade_submissions.hod_action | `approved_by_head_of_department`, `rejected` | `approved` |
 | Storage facade | `Storage::` (with import) | `\Storage::` |
+| grades.faculty_id | nullable as of Phase 13 (Registrar direct-entry) | never the Registrar's own `auth()->id()` |
 
 ---
 
@@ -355,14 +414,16 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Phase 2 | ✅ Complete | Models, Seeders, Relationships |
 | Phase 3 | ✅ Complete | Authentication & Authorization |
 | Phase 4 | ✅ Complete | Admin Module |
-| Phase 5 | ✅ Complete | Faculty Module |
-| Phase 6 | ✅ Complete | Head of Department Module |
-| Phase 7 | ✅ Complete | Registrar Module |
+| Phase 5 | ✅ Complete | Faculty Module *(slated for route lockout — Phase 13.6)* |
+| Phase 6 | ✅ Complete | Head of Department Module *(grade review + assignment slated for lockout; student/enrollment/Excel absorbed by Registrar — Phase 13)* |
+| Phase 7 | ✅ Complete | Registrar Module *(significantly extended in Phase 13)* |
 | Phase 8 | ✅ Complete | Excel Import/Export |
-| Phase 9 | ✅ 99% | System Restructure — E2E test pending |
+| Phase 9 | ✅ 99% | System Restructure — old E2E test superseded by Phase 13 |
 | Phase 10 | 📅 Planned | Reporting & Analytics |
-| Phase 11 | 🔄 40% | UI/UX Polish & Testing |
-| **Phase 12** | ✅ **Complete** | **Backup & Restore** |
+| Phase 11 | 🔄 40% | UI/UX Polish & Testing — blocked pending Phase 13 |
+| Phase 12 | ✅ Complete | Backup & Restore |
+| **Phase 13** | 🔄 **~70%** | **Registrar-Only Workflow Migration** |
+| Phase 14 | 📅 Planned | Curriculum Feature *(renumbered from old Phase 13)* |
 
 ---
 
@@ -370,7 +431,10 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 | Issue | Status |
 |-------|--------|
-| End-to-end 12-step test not yet run | Next session — Step 9.11 |
+| 🆕 Browser end-to-end test for Registrar's new Student/Enrollment/Excel/Encode-Grades flow not yet run | Next session — Phase 13.8 |
+| 🆕 Faculty and HoD grade-related routes still live, not yet locked out | Planned — Phase 13.6 |
+| 🆕 Dual role-check system (Spatie `HasRoles` vs legacy `role` column) not yet audited for lockout safety | Planned — part of Phase 13.6 |
+| Old 12-step multi-role end-to-end test is obsolete under the new single-actor flow | New test plan needed post-Phase 13 |
 | Admin dashboard still shows student nav links | Cleanup Phase 11 |
 | PDF storage not publicly accessible | Fix before production |
 | No student portal | Post-Phase 11 |
@@ -389,22 +453,23 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 - [x] Validate all Excel file uploads
 - [ ] Run `php artisan storage:link` before production deploy
 - [ ] Review signed URL strategy for PDF access control
+- [ ] **NEW (Phase 13):** Audit legacy `role` column / `isFaculty()`-style helper methods to confirm Faculty/HoD route lockout (once applied) can't be bypassed through that path
 
 ---
 
 ## Project Stats
 
 - **Started:** February 15, 2026
-- **Last Updated:** April 1, 2026
-- **Version:** 1.0.0-alpha (Phase 12 complete, Phase 11 in progress)
+- **Last Updated:** July 2, 2026
+- **Version:** 1.0.0-alpha (Phase 13 in progress, Phase 11 in progress)
 - **Database Tables:** 24
 - **Models:** 11 (+ User)
 - **Middleware:** 2 custom (CheckRole, CheckStatus)
-- **Controllers:** 20 (+ BackupController)
-- **Routes:** ~131 verified clean
-- **Views:** 41+ Blade views
+- **Controllers:** 20 (+ BackupController) + 3 new Registrar controllers (Phase 13)
+- **Routes:** ~131 verified clean (pre-Phase 13) + 13 new Registrar routes (Phase 13) = ~144
+- **Views:** 41+ Blade views + 4 new Registrar views (Phase 13)
 - **Test Accounts:** 5
-- **Total Phases:** 12
+- **Total Phases:** 14 *(renumbered — see CHANGELOG.md)*
 
 ---
 
@@ -425,6 +490,6 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 ---
 
-**Last Updated:** April 1, 2026
+**Last Updated:** July 2, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus

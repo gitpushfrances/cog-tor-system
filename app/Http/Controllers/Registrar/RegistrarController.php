@@ -141,9 +141,10 @@ class RegistrarController extends Controller
             'grades.*'    => 'required|numeric|min:1.00|max:5.00',
         ]);
 
-        $studentId  = $request->input('student_id');
-        $semesterId = $request->input('semester_id');
+        $studentId   = $request->input('student_id');
+        $semesterId  = $request->input('semester_id');
         $gradesInput = $request->input('grades'); // [ subject_id => grade_value ]
+        $registrarId = auth()->id();
 
         foreach ($gradesInput as $subjectId => $gradeValue) {
             $subject = Subject::find($subjectId);
@@ -157,20 +158,35 @@ class RegistrarController extends Controller
                     'semester_id' => $semesterId,
                 ],
                 [
-                    'enrolled_by'      => auth()->id(),
-                    'enrollment_date'  => now()->toDateString(),
-                    'status'           => 'enrolled',
+                    'enrolled_by'     => $registrarId,
+                    'enrollment_date' => now()->toDateString(),
+                    'status'          => 'enrolled',
                 ]
             );
 
-            // Upsert grade directly to finalized — Registrar is final authority
-            Grade::updateOrCreate(
+            // Upsert grade — faculty_id null (Registrar encoded, not Faculty)
+            $grade = Grade::updateOrCreate(
                 ['enrollment_id' => $enrollment->id],
                 [
-                    'faculty_id' => auth()->id(),
+                    'faculty_id' => null,
                     'grade'      => $gradeValue,
                     'status'     => 'finalized',
-                    'remarks'    => null,
+                    // remarks intentionally preserved — do not null out
+                ]
+            );
+
+            // Create GradeSubmission so stats + unfinalize work correctly
+            GradeSubmission::updateOrCreate(
+                ['grade_id' => $grade->id],
+                [
+                    'submitted_by'  => $registrarId,
+                    'reviewed_by'   => $registrarId,
+                    'finalized_by'  => $registrarId,
+                    'submitted_at'  => now(),
+                    'reviewed_at'   => now(),
+                    'finalized_at'  => now(),
+                    'dean_action'   => 'approved_by_head_of_department',
+                    'dean_remarks'  => 'Direct entry by Registrar',
                 ]
             );
         }

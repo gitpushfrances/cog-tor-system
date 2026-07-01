@@ -287,6 +287,22 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Dashboard</span>
             </a>
+
+            <div class="sdb-section-label sidebar-section-label">Academic</div>
+
+            <a href="{{ route('registrar.students.index') }}" title="Students"
+               class="sdb-link {{ request()->routeIs('registrar.students.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-user-graduate sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Students</span>
+            </a>
+            <a href="{{ route('registrar.enrollments.index') }}" title="Enrollment"
+               class="sdb-link {{ request()->routeIs('registrar.enrollments.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-clipboard-list sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Enrollment</span>
+            </a>
+
+            <div class="sdb-section-label sidebar-section-label">Grades</div>
+
             <a href="{{ route('registrar.encode-grades') }}" title="Encode Grades"
                class="sdb-link {{ request()->routeIs('registrar.encode-grades*') ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-pen-to-square sdb-icon"></i>
