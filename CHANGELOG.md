@@ -12,7 +12,10 @@
 ## ⚡ RESUME POINT — READ THIS FIRST
 
 **Current Phase:** Phase 13 — Registrar-Only Workflow Migration
-**Status:** 🔄 In Progress (~70%) — Controllers, routes, and views built and statically verified. Browser end-to-end test NOT yet run. Faculty/HoD grade-related routes NOT yet disabled (still live).
+**Status:** 🔄 In Progress (~75%) — Controllers, routes, and views built and statically verified. Subject `semester` data bug found and fixed (root cause + patch + seeder). Browser end-to-end test NOT yet fully run. Faculty/HoD grade-related routes NOT yet disabled (still live).
+
+### 🔔 Open Enhancement Request (not yet scheduled)
+> **Add a dedicated COG/TOR Records tab/section** so generated documents are tracked and retrievable as a proper history/log, rather than only accessible at the moment of generation. See "COG/TOR Records Tracking" note under Phase 13.10 below and in Next Steps.
 
 ### What Changed From Original Plan (v1 → v2 → v3)
 | Area | v1 (Old) | v2 (Phase 9) | v3 (Phase 13 — current) | Why |
@@ -29,8 +32,12 @@
 | Enrollment management | — | HoD owns it (department-scoped) | **Registrar owns it (institution-wide)** | Follows same single-actor logic as student mgmt |
 | Excel import/export (students) | — | HoD owns it, department-scoped | **Registrar owns it, unscoped (`null` = no department filter)** | `StudentsExport`/`StudentsImport` already supported `null` param — reused as-is |
 | Registrar `faculty_id` handling | — | — | **Nullable — Registrar direct-entry sets `null` instead of own ID** | Schema/semantics fix — column meant for Faculty, not Registrar |
+| Subject `semester` field | — | Free-text, form used abbreviations (`1st`,`2nd`) | **Fixed to store full string (`1st Semester`) matching `semesters.semester_name`** | Registrar's Encode Grades compares against the full string — mismatch caused silent empty results |
 
 ### Phase Renumbering
+Phase 1–12  Unchanged
+Phase 13    NEW — Registrar-Only Workflow Migration (insert here)
+Phase 14    Was Phase 13 — Curriculum Feature (renumbered)
 ---
 
 ## PHASE 1: FOUNDATION & DATABASE ARCHITECTURE ✅ COMPLETED
@@ -93,7 +100,7 @@
 - [x] RoleSeeder — 4 roles with 23 permissions
 - [x] UserSeeder — 5 test accounts, all using updateOrCreate ✅ (fixed March 23 session)
 - [x] AcademicStructureSeeder — School years, semesters, departments, courses
-- [x] SubjectSeeder — 10 sample subjects
+- [x] SubjectSeeder — 10 sample subjects ✅ (fixed July 2 session — see Phase 13.9)
 - [x] StudentSeeder — 10 sample students
 - [x] DatabaseSeeder — Main orchestration
 
@@ -140,7 +147,7 @@
 - [x] UserController — full CRUD + approve/reject
 - [x] DepartmentController — full CRUD
 - [x] CourseController — full CRUD
-- [x] SubjectController — full CRUD
+- [x] SubjectController — full CRUD ⚠️ (semester field bug fixed July 2 session — see Phase 13.9)
 - [x] SchoolYearController — full CRUD + setActive
 - [x] SemesterController — full CRUD + setActive
 - [x] ~~StudentController~~ — DELETED in Phase 9.3 ✅
@@ -158,6 +165,7 @@
 - ✅ Clean Font Awesome icons on stat cards
 
 > ⚠️ NOTE: Admin dashboard view still has leftover student nav links — cleanup deferred to Phase 11.
+> ⚠️ **Phase 13 confirmation:** Client confirmed Admin role stays fully active (Registrar Head will hold Admin access, or both roles merge into one login) — no lockout planned for Admin. Only Faculty/HoD are being locked out (Phase 13.6).
 
 ---
 
@@ -242,7 +250,7 @@
 **Status:** ✅ Complete (100%) — extended in Phase 13
 
 ### 7.1 Controllers
-- [x] RegistrarController — index, finalize, finalizeSubject ✅
+- [x] RegistrarController — index, finalize, finalizeSubject, encodeGradesForm, encodeGrades ✅
 - [x] DocumentController — studentProfile(), generateCog, generateTor, downloadCog, downloadTor ✅
 
 ### 7.2 Routes
@@ -257,6 +265,7 @@
 - [x] registrar/dashboard.blade.php — 2 tabs, bulk finalize, preview modal, SweetAlert2 confirm ✅
 - [x] registrar/student-profile.blade.php — SweetAlert2 on Generate TOR + Generate COG ✅ (confirmed March 23 session)
 - [x] registrar/pdf/cog.blade.php, registrar/pdf/tor.blade.php
+- [x] registrar/encode-grades.blade.php — 3-step wizard (academic context → student → grade table) ✅ (Phase 13)
 
 ### 7.4 Key Notes
 - Institution name: `Eastern Samar State University - Guiuan Campus`
@@ -273,6 +282,7 @@
 - ✅ SweetAlert2 on Finalize All, Generate TOR, Generate COG
 
 > 🔄 **Phase 13 extension:** Registrar module significantly expanded — direct grade encoding bug fixes, Student Management, Enrollment Management, and Excel Import/Export added. See Phase 13 below for full detail.
+> 🔔 **Open enhancement request:** No dedicated tab/section currently exists to browse previously generated COG/TOR records as a list/history — generation is a one-off action tied to a student's profile page. See Phase 13.10.
 
 ---
 
@@ -322,7 +332,7 @@
 ### 9.11 — Verification & End-to-End Test ⏳ SUPERSEDED
 - [ ] ~~php artisan route:list — full clean verification~~ — superseded by Phase 13.7 verification pass
 - [ ] ~~php artisan migrate:status — all green~~ — pending
-- [ ] ~~Full 12-step end-to-end test~~ — the 12-step multi-role flow (Faculty → HoD → Registrar) this test was designed for is being replaced by the Phase 13 single-actor flow. A new E2E test plan is needed post-Phase 13 (see Phase 13.8, pending).
+- [ ] ~~Full 12-step end-to-end test~~ — the 12-step multi-role flow (Faculty → HoD → Registrar) this test was designed for is being replaced by the Phase 13 single-actor flow. A new E2E test plan (Admin + Registrar checklists) is now provided alongside this session's work — see Phase 13.8.
 
 ### 9.12 — Excel Import Fixes ✅ DONE (March 23 session)
 - [x] Template fake sample row → notes row
@@ -382,13 +392,14 @@
 - [x] Font Awesome icons, role badge formatting, stat cards
 
 ### 11.3 Remaining Tasks
-- [ ] End-to-end workflow test — **blocked pending Phase 13 completion** (old 12-step test is obsolete under the new single-actor flow)
+- [ ] End-to-end workflow test — **blocked pending Phase 13 completion** (old 12-step test is obsolete under the new single-actor flow); Admin + Registrar manual test checklists now available (see Phase 13.8)
 - [ ] Mobile responsiveness review across all role views
 - [ ] Error handling — empty states, 404 pages, form error UX
 - [ ] Loading states for PDF generation
 - [ ] UI consistency pass across all role views
 - [ ] Remove leftover student nav links from Admin dashboard (Phase 9.3 leftover)
 - [ ] **NEW:** Remove/hide Faculty and HoD sidebar nav sections once Phase 13.6 lockout is applied
+- [ ] **NEW:** Build a COG/TOR Records tab/section (see Phase 13.10)
 
 ---
 
@@ -455,12 +466,17 @@
 
 ## PHASE 13: REGISTRAR-ONLY WORKFLOW MIGRATION 🔄 IN PROGRESS
 **Date:** July 2, 2026
-**Status:** 🔄 In Progress (~70%)
+**Status:** 🔄 In Progress (~75%)
 
 ### 13.0 Trigger — Client Requirement Change
 Client provided an updated process flowchart specifying a **single-actor workflow**: Registrar now handles the entire grade lifecycle — encode, validate, save, auto-generate COG/TOR, and verify — with no handoff to Faculty or Head of Department. This supersedes the Phase 6/9 multi-role approval chain (Faculty submits → HoD reviews → Registrar finalizes) for the encoding side of the system.
 
 **Flowchart steps (source of truth for this phase):**
+ogin (Registrar only) → Select Student Record → Encode/Update Grades
+→ Validate Grades (loop back to Edit if incomplete)
+→ Save to Database → Auto-Generate COG/TOR → Format Documents
+→ Registrar Verification (loop back to Revise if not approved)
+→ Store COG/TOR → Ready for Printing/Release
 **Strategy adopted:** *Disable, don't delete.* Faculty and HoD grade-related code stays in the codebase, dormant, in case of a future reversal — only route-level access will be cut off, not the underlying controllers/models/views/data. This is safer than deletion because `grades` and `grade_submissions` tables have Faculty/HoD baked into their column semantics (`faculty_id`, `submitted_by`/`reviewed_by`/`finalized_by`), so ripping out the code risks orphaning existing data references.
 
 ### 13.1 Registrar Direct-Encode Bug Fixes ✅ DONE
@@ -493,8 +509,9 @@ Before making further changes, pulled and reviewed the entire Registrar/Faculty/
 ### 13.4 Scope Decision — HoD Absorption ✅ CONFIRMED WITH CLIENT/DEV
 - [x] Confirmed: Registrar takes over **all** of HoD's student/enrollment/Excel responsibilities (not just grade review) — full alignment to flowchart.
 - [x] Key architectural implication flagged and accepted: HoD's student/enrollment/Excel methods are all scoped by `auth()->user()->department_id` (e.g. `Student::whereHas('course', fn($q) => $q->where('department_id', $departmentId))`). Registrar is institution-wide. Absorbing these features means **dropping department scoping entirely**, not a like-for-like copy — Registrar will see every student across every department. This is a simplification that fits the new single-actor model.
+- [x] **Client clarified Admin role scope (July 2 session):** raised the open question of whether Admin needed to be reactivated separately from Registrar. Client confirmed **Admin role stays fully active** — the Registrar Head will also hold Admin access (or both responsibilities merge into one account). No architectural change required; this was a scope clarification, not a redesign. Admin was never part of the "cut roles" discussion in the first place — only Faculty/HoD were ever slated for lockout.
 
-### 13.5 Registrar New Capabilities — Built ✅ DONE (pending browser verification)
+### 13.5 Registrar New Capabilities — Built ✅ DONE
 
 **New Controllers** (`app/Http/Controllers/Registrar/`):
 - [x] `StudentController.php` — `index` (search + course/year_level/status filters, paginated, unscoped), `create`, `store`, `edit`, `update`, `destroy` (blocked if student has existing enrollments)
@@ -505,6 +522,7 @@ Before making further changes, pulled and reviewed the entire Registrar/Faculty/
 - [x] `students/index.blade.php` — table with search/filter form, Download Template / Import Excel / Export Excel actions, SweetAlert2 delete confirm
 - [x] `students/create.blade.php`, `students/edit.blade.php` — full student form (name, course, birth date, gender, contact, address, type, year level, status)
 - [x] `enrollments/index.blade.php` — active semester banner, enroll form with dynamic JS (subject dropdown disables already-enrolled subjects per selected student), enrollments table with SweetAlert2 remove confirm
+- [x] `encode-grades.blade.php` — 3-step wizard: Step 1 (School Year → Semester → Department → Course), Step 2 (Select Student), Step 3 (grade table per subject, Save & Finalize)
 
 **New Routes** (inserted into existing `registrar` route group in `routes/web.php`, verified no naming collisions with `head_of_department.*` equivalents):
 - [x] `registrar.students.index/create/store/edit/update/destroy` (6 routes)
@@ -523,6 +541,7 @@ Before making further changes, pulled and reviewed the entire Registrar/Faculty/
 - [ ] HoD Student/Enrollment/Excel routes — **decision needed**: leave dormant-but-reachable, or lock out now that Registrar has equivalent unscoped capability (currently leaning toward locking out once 13.7 verification is complete, to avoid two active code paths writing to the same tables)
 - [ ] Planned mechanism: change `role:faculty` / `role:head_of_department` middleware requirement on affected route groups so they're unsatisfiable by any current login — controllers/models/views/data all stay untouched, fully reversible
 - [ ] Dual role-check system (13.3) needs to be accounted for — a route-level lockout via Spatie's `role:` middleware alone may not be sufficient if any other code path checks the legacy `role` column directly (e.g. `isFaculty()`); needs audit before considering Faculty/HoD access fully closed
+- [ ] **Admin role explicitly excluded from any lockout work** (confirmed 13.4) — only Faculty and HoD are in scope here.
 
 ### 13.7 Static Verification Pass ✅ DONE
 Full non-browser verification completed before UI testing, catching and fixing multiple real issues along the way:
@@ -545,25 +564,52 @@ Full non-browser verification completed before UI testing, catching and fixing m
 - [x] `Student`, `Enrollment`, `Course`, `Subject`, `Semester` model existence confirmed
 - [x] Full cache clear (`route`, `view`, `config`, `cache`, `optimize`) run before handoff to browser testing
 
-### 13.8 Browser End-to-End Test ⏳ NOT STARTED
-Planned test sequence (next session):
-1. [ ] Sidebar renders correctly for Registrar login — Academic/Grades section labels, Students + Enrollment links present
-2. [ ] `/registrar/students` loads — unscoped (all departments), table renders
-3. [ ] Add Student — form submits, validation works, appears in list
-4. [ ] Edit Student — changes persist
-5. [ ] `/registrar/enrollments` loads — active semester banner or "no active semester" warning displays correctly
-6. [ ] Enroll a student into a subject — dynamic subject dropdown correctly disables already-enrolled subjects
-7. [ ] Download Template / Export Excel — both download without error
-8. [ ] **Regression test — the original bug that started this session:** Encode Grades as Registrar → confirm no `faculty_id` DB error, confirm `GradeSubmission` record is created correctly
+### 13.8 Browser End-to-End Test 🔄 IN PROGRESS
+Manual test checklists (Admin + Registrar) now written and ready to run — see the top of this session's notes / shared separately with the dev. Partial testing already surfaced and fixed a real bug (see 13.9). Full pass not yet completed.
+
+**Admin checklist highlights:** login/dashboard access, Subjects CRUD (including the semester field, post-13.9 fix), School Years/Semesters, Departments/Courses, Users, Backup & Restore.
+
+**Registrar checklist highlights:** login/dashboard/sidebar, Students CRUD (unscoped), Enrollment (active semester banner, dynamic subject dropdown), Excel template/export, Encode Grades 3-step wizard — **including the regression test for BSIT + 1st Semester**, which was broken and is now fixed (13.9).
+
+- [ ] Full pass completion and sign-off — pending
+
+### 13.9 Subject `semester` Data & Form Bug — Root Cause Found and Fixed ✅ DONE
+**How it surfaced:** While testing Encode Grades as Registrar, selecting **BSIT + 1st Semester** returned "No subjects found for the selected course and semester. Make sure subjects are configured by the Admin." — while BSCS + 2nd Semester worked fine. Initially suspected a permissions issue; investigation showed it was a data/form bug, unrelated to any role or access control.
+
+**Root cause (two layers):**
+1. **Data layer:** The original `SubjectSeeder.php` never set a `semester` value on any of its 10 `Subject::create()` calls — all 10 seeded subjects (`IT 101`–`IT 301`, `CS 101`–`CS 401`) had a blank `semester` column. The 5 subjects that *did* work (`CS101`–`CS105`, no space in code) were created separately, later, with the correct value — unrelated to the seeder.
+2. **Code layer (the real bug):** `RegistrarController::encodeGradesForm()` filters subjects via `Subject::where('semester', $selectedSemesterModel->semester_name)`, comparing against the **full string** stored in `semesters.semester_name` (e.g. `"1st Semester"`). But the Admin **Subject create/edit forms** (`resources/views/admin/subjects/create.blade.php`, `edit.blade.php`) had `<option value="1st">`, `<option value="2nd">` — **abbreviated** values — with matching validation (`'semester' => 'required|in:1st,2nd,Summer'`) in `SubjectController.php`. So *any* subject saved or edited through the Admin UI for 1st or 2nd semester would silently fail to appear in Encode Grades, since `"1st"` never equals `"1st Semester"`. Only `"Summer"` happened to match both ways by coincidence. Confirmed live when editing `IT 101`/`IT 102` through Admin (to assign a faculty member) also — unintentionally — set their `semester` to the abbreviated `"1st"`, actively re-breaking those two rows during this same session.
+
+**Fix applied — all three layers corrected together:**
+- [x] `resources/views/admin/subjects/create.blade.php` — `<option value="1st">` / `"2nd"` → `<option value="1st Semester">` / `"2nd Semester"` (Summer unchanged)
+- [x] `resources/views/admin/subjects/edit.blade.php` — same fix, preserving the `old('semester', $subject->semester)` fallback pattern
+- [x] `app/Http/Controllers/Admin/SubjectController.php` — both `store()` and `update()` validation rules changed from `'required|in:1st,2nd,Summer'` to `'required|in:1st Semester,2nd Semester,Summer'`
+- [x] Verified via `php -l` (controller) and `php artisan view:cache` (both views) — all clean, no syntax errors
+- [x] **Manual data patch** — snapshotted the 10 affected rows before changing anything (rollback reference), then ran a `DB::table('subjects')->where('code', ...)->update(['semester' => ...])` pass fixing all 10, including correcting `IT 101`/`IT 102` from the incomplete `"1st"` back to the full `"1st Semester"`. Verified after via the same snapshot query — all 10 confirmed correct.
+- [x] **`database/seeders/SubjectSeeder.php` corrected** — added the missing `semester` key to all 10 `Subject::create()` calls, and switched `Subject::create()` → `Subject::updateOrCreate(['code' => ...], [...])` (per Lesson #46) so that re-running the seeder on a database that already has these rows **corrects** them instead of throwing a unique-constraint error on `code` or silently skipping. Verified via `php -l` and a live `php artisan db:seed --class=SubjectSeeder` run — reported "created/updated successfully," and a follow-up query confirmed all 10 subjects now hold the correct full-string semester values.
+
+**⚠️ Provisional/placeholder data — flagged for revisit:** The specific semester assigned to each of the 10 subjects (`IT 101`→`1st Semester`, `IT 102`→`2nd Semester`, etc.) follows the common odd/even course-numbering convention (odd = 1st Semester, even = 2nd Semester) as a **temporary placeholder only**. This was **not** verified against an official curriculum or prospectus — none was available at the time of this fix, and the client confirmed proceeding with the common-convention placeholder for now. **This needs to be revisited and corrected against the real curriculum once available**, since BSIT and BSCS numbering doesn't necessarily follow the same term-placement convention across institutions.
+
+**Why this matters going forward:** Without the form/validation fix, this bug would have recurred every time anyone edited a subject through the Admin UI, even after the manual data patch — the seeder fix alone wouldn't have prevented it either, since the seeder only runs once (or on `migrate:fresh --seed`), not on every edit. Fixing all three layers together (form + validation + seeder) closes the loop.
+
+### 13.10 🔔 Open Enhancement Request — COG/TOR Records Tracking Tab ⏳ NOT SCHEDULED
+Flagged during the July 2 session, not yet built:
+- [ ] No dedicated tab/section currently exists to view a **history/log of all previously generated COG and TOR documents**. Right now, COG/TOR generation is a one-off action reachable only from a student's Academic Profile page (`registrar.students.cog` / `.tor`) — there's no way to browse "all COGs generated this semester" or "all TORs generated for BSIT students" as a list.
+- [ ] Proposed: a new Registrar-side tab (e.g. `registrar.documents.index` or similar) listing all `cog_records` / `tor_records` rows — student name, document number, date generated, semester/school year, with a re-download link — so generated documents are tracked as a proper record, not just a transient PDF download.
+- [ ] Not yet scoped in detail (exact columns, filters, whether Admin should also see this) — needs a short discussion before implementation. Placing this here as a reminder so it isn't lost before the next phase of work.
 
 **Phase 13 Deliverables So Far:**
 - ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
 - ✅ `faculty_id` schema made nullable via dependency-free raw migration
 - ✅ Full Registrar Student/Enrollment/Excel management built — controllers, views, routes, sidebar
 - ✅ Static verification pass complete — all syntax, routing, view-binding, and model-dependency checks green
-- ⏳ Browser E2E test — pending
+- ✅ Admin role scope clarified with client — stays active, no lockout
+- ✅ Subject `semester` bug found and fixed at all three layers (form, validation, seeder) + data patched
+- ✅ Admin + Registrar manual E2E test checklists written
+- 🔄 Browser E2E test — in progress, partial pass done (surfaced 13.9), full pass pending
 - ⏳ Faculty/HoD route lockout — pending
 - ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
+- 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
 
 ---
 
@@ -579,21 +625,42 @@ Planned test sequence (next session):
 - [ ] Link enrollments/grades to curriculum subjects
 - [ ] Update COG generation to pull from curriculum
 - [ ] Follow CHED/SUC standard (same pattern as SAIS, AISIS)
+- [ ] **NEW:** Once real curriculum data exists, revisit and correct the provisional `semester` placeholder values set in Phase 13.9 for `IT 101`–`IT 301` and `CS 101`–`CS 401`
 
 ---
 
 ## TECHNICAL NOTES
 
 ### Grade Status ENUM — v2 Values ✅ Active
+saved                        — Faculty encoded, not yet submitted
+pending_head_of_department_review  — Submitted, awaiting HoD action
+approved_by_head_of_department     — HoD approved, in Registrar queue
+rejected                     — HoD rejected, Faculty can resubmit
+finalized                    — Registrar locked, permanent
 **Critical:** These are the ONLY valid values. MySQL throws truncation error on anything else.
 
 > **Phase 13 note:** Registrar's direct-encode path (`encodeGrades()`) now also writes a `GradeSubmission` with `dean_action => 'approved_by_head_of_department'` to stay compatible with this ENUM chain, even though no actual Dean/HoD action occurred — this is an intentional workaround, not a new valid semantic meaning for that value. See Phase 13.1.
 
 ### School Year Status ENUM ✅
+upcoming   — Not yet active (default)
+active     — Current school year (only 1 at a time)
+completed  — Past school year
 **Critical:** `inactive` is NOT a valid value.
 
 ### Semester Status ENUM ✅
+upcoming   — Not yet active (default)
+active     — Current semester (only 1 at a time)
+completed  — Past semester
 **Critical:** `inactive` is NOT valid.
+
+### Subject `semester` Field — Free Text, Must Match `semesters.semester_name` Exactly
+```php
+// Correct values as of Phase 13.9 fix:
+'semester' => '1st Semester'   // NOT '1st'
+'semester' => '2nd Semester'   // NOT '2nd'
+'semester' => 'Summer'         // unchanged, already matched
+```
+**Critical:** `subjects.semester` is a plain string column, NOT a foreign key to `semesters`. `RegistrarController::encodeGradesForm()` does an exact string match against `semesters.semester_name`. Any mismatch (abbreviation, typo, casing, trailing whitespace) causes subjects to silently disappear from Encode Grades with no error — just an empty "no subjects found" state. See Phase 13.9 for the full incident writeup.
 
 ### Head of Department Scoping Pattern
 ```php
@@ -616,6 +683,7 @@ $table->foreignId('faculty_id')->constrained('users')->comment('Faculty who enco
 ### GWA Formula
 Semester GWA   = Σ(grade × units) / Σ(units)
 Cumulative GWA = Σ(all grades × units) / Σ(all units) — all finalized semesters
+
 ### TOR Semester Label Format
 {semester_name} — SY {year_code}
 e.g. "2nd Semester — SY 2025-2026"
@@ -630,6 +698,7 @@ e.g. "2nd Semester — SY 2025-2026"
 | semesters | `semester_name`, `semester_order` | `name` |
 | Storage facade | `Storage::` (with import) | `\Storage::` |
 | grades.faculty_id | nullable as of Phase 13 (Registrar direct-entry) | never the Registrar's own `auth()->id()` |
+| subjects.semester | full string: `1st Semester`, `2nd Semester`, `Summer` (Phase 13.9 fix) | abbreviated: `1st`, `2nd` |
 
 ### Storage Notes
 - COG: `storage/app/cog/{document_number}.pdf`
@@ -648,6 +717,8 @@ e.g. "2nd Semester — SY 2025-2026"
 - **NEW (Phase 13):** `php artisan route:list > file.txt` can produce a genuinely empty file in Git Bash/MINGW (`stdout is not a tty`) — confirmed via `wc -l` returning 0. Use `--path=` filtered `route:list -v` printed directly to terminal instead of redirecting to a file for grep-based checks.
 - **NEW (Phase 13):** heredoc file-creation commands (`cat > file << 'EOF' ... EOF`) can be silently interrupted by `Ctrl+C` mid-paste, especially after a long preceding command — always verify the target file was actually created (`ls -la`, `php -l`) immediately after, don't assume success.
 - **NEW (Phase 13):** doctrine/dbal is still required in Laravel 10.x (not just <10) for `Schema::table()->change()` — only Laravel 11+ drops this requirement. For single-column nullability changes on MySQL, a raw `DB::statement('ALTER TABLE ... MODIFY ...')` inside a migration avoids adding the dependency.
+- **NEW (Phase 13):** `php artisan tinker --execute` still fails on `App\Models\X` namespace backslashes on Git Bash even when quoted — use `DB::table(...)` instead of Eloquent model class references inside `--execute` strings.
+- **NEW (Phase 13):** `SESSION_DRIVER=file` (the default) means there is no `sessions` database table — attempting `DB::table('sessions')` will throw "table doesn't exist." This is expected, not a bug; only relevant if `SESSION_DRIVER=database` is explicitly configured.
 
 ---
 
@@ -705,6 +776,10 @@ e.g. "2nd Semester — SY 2025-2026"
 65. Heredoc commands (`cat > file << 'EOF'`) run immediately after an unrelated `Ctrl+C` can silently fail to execute — the terminal returns to a fresh prompt looking exactly like success; always verify file creation explicitly (`ls -la` + `php -l`), never assume from a clean-looking prompt alone
 66. When multiple files are pasted back-to-back in one batch, content can end up saved under the wrong filename/path (e.g. a "students create" form saved as `enrollments/create.blade.php`) — verify actual file contents with `head`/`cat`, not just that a file with the expected name exists
 67. Reusable Export/Import classes that already accept a nullable scoping parameter (e.g. `new StudentsExport(null)`) can often be reused as-is across roles with different scoping needs — check constructor signatures before assuming a new class needs to be written
+68. A `<select>` dropdown's `value="..."` attribute and a foreign/related table's comparison field must use **identical strings**, not just visually-similar labels — `<option value="1st">1st Semester</option>` looks correct in the UI but silently breaks any backend query comparing against the full `"1st Semester"` string
+69. Editing one field in an Admin form (e.g. assigning a faculty member to a subject) can silently corrupt an unrelated field if that form submits ALL fields on every save, including ones the user didn't intend to touch — worth checking whether "quick edit" actions should use a scoped update instead of the full form submit
+70. When a bug is traced to a data problem, always check whether the **seeder** that originally created the data has the same root-cause bug — patching only the live database data leaves a fresh `migrate:fresh --seed` (or a client's first setup) reproducing the exact same issue
+71. `SESSION_DRIVER=file` (Laravel's default) means there's no `sessions` table in the database — querying `DB::table('sessions')` will throw "table doesn't exist," which is expected behavior, not a bug, when using the file driver
 
 ---
 
@@ -713,35 +788,32 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase | Status | Completion | Notes |
 |-------|--------|------------|-------|
 | Phase 1: Foundation | ✅ Complete | 100% | — |
-| Phase 2: Models & Seeders | ✅ Complete | 100% | updateOrCreate in seeder |
+| Phase 2: Models & Seeders | ✅ Complete | 100% | updateOrCreate in seeder; SubjectSeeder fixed Phase 13.9 |
 | Phase 3: Auth & Authorization | ✅ Complete | 100% | — |
-| Phase 4: Admin Module | ✅ Complete | 100% | Font Awesome icons, role badge formatting |
+| Phase 4: Admin Module | ✅ Complete | 100% | Font Awesome icons, role badge formatting; Subject form semester bug fixed Phase 13.9 |
 | Phase 5: Faculty Module | ✅ Complete | 100% | Slated for route lockout in Phase 13.6 |
 | Phase 6: HoD Module | ✅ Complete | 100% | Grade review + assignments slated for lockout; student/enrollment mgmt being absorbed by Registrar |
-| Phase 7: Registrar Module | ✅ Complete | 100% | Significantly extended in Phase 13 |
+| Phase 7: Registrar Module | ✅ Complete | 100% | Significantly extended in Phase 13; COG/TOR records tab flagged as open request (13.10) |
 | Phase 8: Excel Features | ✅ Complete | 100% | `null`-scoping reused by Registrar in Phase 13 |
 | Phase 9: System Restructure | ✅ Complete | 99% | Old E2E test superseded by Phase 13 flow change |
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
 | Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
-| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~70%** | **Controllers/routes/views built + statically verified. Browser E2E + Faculty/HoD lockout pending.** |
-| Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13 |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~75%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed (form + validation + seeder + data patch). Browser E2E in progress. Faculty/HoD lockout pending.** |
+| Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13; will also correct provisional semester placeholders from 13.9 |
 
 **Overall Project Completion: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
 
 ---
 
 ## NEXT STEPS — RESUME HERE
-▶️ Priority 1: Phase 13.8 — Browser End-to-End Test
+▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
+Use the Admin + Registrar manual test checklists (July 2 session) to run a full pass:
 
-Log in as Registrar — confirm sidebar renders (Academic + Grades sections)
-/registrar/students — confirm loads, unscoped across all departments
-Add Student — confirm save + list refresh
-Edit Student — confirm persistence
-/registrar/enrollments — confirm active semester banner logic
-Enroll a student — confirm dynamic subject-dropdown JS works
-Download Template / Export Excel — confirm both succeed
-Encode Grades (regression test) — confirm original faculty_id bug is fully resolved end-to-end, GradeSubmission created correctly
+Admin: Subjects CRUD, School Years/Semesters, Departments/Courses, Users, Backup & Restore
+Registrar: Students CRUD, Enrollment, Excel template/export, Encode Grades wizard
+— including the BSIT + 1st Semester regression test (confirms Phase 13.9 fix holds)
+Note exact step + error message for anything that fails
 
 ▶️ Priority 2: Phase 13.6 — Faculty/HoD Route Lockout
 
@@ -750,8 +822,15 @@ Apply role: middleware changes to Faculty group (full lockout)
 Apply role: middleware changes to HoD grade-review + assignment routes
 Audit legacy role column / isFaculty()-style checks (dual role-check system, Phase 13.3) — confirm lockout can't be bypassed through that path
 Re-run full static verification pass (route:list, view:cache, php -l) after lockout changes
+Admin role is explicitly OUT of scope for this lockout — confirmed with client (13.4)
 
-▶️ Priority 3: Phase 11 remaining (post-13)
+▶️ Priority 3: 🔔 COG/TOR Records Tracking Tab (Phase 13.10 — new, flagged this session)
+
+Scope a new Registrar (and possibly Admin) tab listing all generated cog_records/tor_records
+Define columns/filters needed (student, date, semester, school year, re-download link)
+Not yet built — discuss scope before implementation
+
+▶️ Priority 4: Phase 11 remaining (post-13)
 
 New E2E test plan reflecting single-actor flow (replaces old 12-step multi-role test)
 Mobile responsiveness
@@ -761,16 +840,19 @@ UI consistency pass
 Remove leftover student nav links from Admin dashboard
 Remove/hide Faculty + HoD sidebar sections once 13.6 lockout applied
 
-▶️ Priority 4: Phase 10 — Reporting & Analytics (unchanged, still planned)
-▶️ Priority 5: Phase 14 — Curriculum Feature (renumbered, still planned)
+▶️ Priority 5: Phase 10 — Reporting & Analytics (unchanged, still planned)
+▶️ Priority 6: Phase 14 — Curriculum Feature (renumbered, still planned)
 
 Curricula table + curriculum_subjects table
 Admin UI to build/manage curriculum per course per year
 Link enrollments/grades to curriculum subjects
 Update COG generation to pull from curriculum
 Follow CHED/SUC standard (same pattern as SAIS, AISIS)
+Revisit and correct provisional subject semester placeholders from Phase 13.9 against real curriculum
+
+
 ---
 
 **Last Updated:** July 2, 2026
-**Phase 13 Status:** 🔄 In Progress (~70%)
-**Current Focus:** Phase 13.8 Browser E2E Test → Phase 13.6 Faculty/HoD Lockout → Phase 11 UI/UX → Phase 10 Reporting → Phase 14 Curriculum
+**Phase 13 Status:** 🔄 In Progress (~75%)
+**Current Focus:** Phase 13.8 Full Browser E2E Test → Phase 13.6 Faculty/HoD Lockout → 13.10 COG/TOR Records Tab → Phase 11 UI/UX → Phase 10 Reporting → Phase 14 Curriculum

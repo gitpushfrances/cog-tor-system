@@ -31,7 +31,7 @@ class SubjectController extends Controller
             'faculty_id' => 'nullable|exists:users,id',
             'units'      => 'required|numeric|min:1|max:10',
             'year_level' => 'required|integer|min:1|max:5',
-            'semester'   => 'required|in:1st,2nd,Summer',
+            'semester'   => 'required|in:1st Semester,2nd Semester,Summer',
             'status'     => 'required|in:active,inactive',
         ]);
 
@@ -57,7 +57,7 @@ class SubjectController extends Controller
             'faculty_id' => 'nullable|exists:users,id',
             'units'      => 'required|numeric|min:1|max:10',
             'year_level' => 'required|integer|min:1|max:5',
-            'semester'   => 'required|in:1st,2nd,Summer',
+            'semester'   => 'required|in:1st Semester,2nd Semester,Summer',
             'status'     => 'required|in:active,inactive',
         ]);
 
