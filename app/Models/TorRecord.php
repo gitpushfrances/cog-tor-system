@@ -19,15 +19,16 @@ class TorRecord extends Model
         'pdf_path',
         'generated_at',
         'tor_type',
+        'is_current',
     ];
 
     protected $casts = [
         'cumulative_gwa' => 'decimal:2',
         'all_grades_data' => 'array',
         'generated_at' => 'datetime',
+        'is_current' => 'boolean',
     ];
 
-    // Relationships
     public function student()
     {
         return $this->belongsTo(Student::class);
@@ -38,7 +39,6 @@ class TorRecord extends Model
         return $this->belongsTo(User::class, 'generated_by');
     }
 
-    // Helper Methods
     public function getDocumentTitle()
     {
         $type = $this->tor_type === 'complete' ? 'Complete' : 'Partial';
@@ -55,7 +55,6 @@ class TorRecord extends Model
         return !empty($this->pdf_path) && file_exists(storage_path('app/' . $this->pdf_path));
     }
 
-    // Scopes
     public function scopeByStudent($query, $studentId)
     {
         return $query->where('student_id', $studentId);
@@ -69,6 +68,11 @@ class TorRecord extends Model
     public function scopePartial($query)
     {
         return $query->where('tor_type', 'partial');
+    }
+
+    public function scopeCurrent($query)
+    {
+        return $query->where('is_current', true);
     }
 
     public function scopeRecent($query, $limit = 10)

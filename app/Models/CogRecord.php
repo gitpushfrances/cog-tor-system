@@ -19,15 +19,16 @@ class CogRecord extends Model
         'grade_data',
         'pdf_path',
         'generated_at',
+        'is_current',
     ];
 
     protected $casts = [
         'semester_gwa' => 'decimal:2',
         'grade_data' => 'array',
         'generated_at' => 'datetime',
+        'is_current' => 'boolean',
     ];
 
-    // Relationships
     public function student()
     {
         return $this->belongsTo(Student::class);
@@ -43,7 +44,6 @@ class CogRecord extends Model
         return $this->belongsTo(User::class, 'generated_by');
     }
 
-    // Helper Methods
     public function getDocumentTitle()
     {
         return 'Certificate of Grades - ' . $this->semester->getFullName();
@@ -54,7 +54,6 @@ class CogRecord extends Model
         return !empty($this->pdf_path) && file_exists(storage_path('app/' . $this->pdf_path));
     }
 
-    // Scopes
     public function scopeByStudent($query, $studentId)
     {
         return $query->where('student_id', $studentId);
@@ -63,6 +62,11 @@ class CogRecord extends Model
     public function scopeBySemester($query, $semesterId)
     {
         return $query->where('semester_id', $semesterId);
+    }
+
+    public function scopeCurrent($query)
+    {
+        return $query->where('is_current', true);
     }
 
     public function scopeRecent($query, $limit = 10)

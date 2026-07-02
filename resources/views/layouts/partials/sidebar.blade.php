@@ -308,6 +308,11 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                 <i class="fa-solid fa-pen-to-square sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Encode Grades</span>
             </a>
+            <a href="{{ route('registrar.documents.index') }}" title="Documents"
+               class="sdb-link {{ request()->routeIs('registrar.documents.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-folder-open sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Documents</span>
+            </a>
         @endif
 
     </nav>
