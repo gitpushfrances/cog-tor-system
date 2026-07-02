@@ -592,6 +592,28 @@ Manual test checklists (Admin + Registrar) now written and ready to run — see 
 
 **Why this matters going forward:** Without the form/validation fix, this bug would have recurred every time anyone edited a subject through the Admin UI, even after the manual data patch — the seeder fix alone wouldn't have prevented it either, since the seeder only runs once (or on `migrate:fresh --seed`), not on every edit. Fixing all three layers together (form + validation + seeder) closes the loop.
 
+### 13.11 COG/TOR Duplicate "Current" Record Bug 🔄 IN PROGRESS
+**How it surfaced:** Sofia (test student) ended up with more than one `cog_records` row marked `is_current = true` for the same semester — `/registrar/documents` showed multiple "Current" COGs instead of one, with older generations never getting superseded.
+
+**Root cause:** `DocumentController::generateCog()` (and `generateTor()`) previously ran the "mark old records not-current" update and the "create new record" insert as two sequential, non-atomic statements with no logging — no way to confirm supersede actually ran, and no protection if the request died mid-way.
+
+**Fix applied — COG:**
+- [x] Wrapped the supersede + create logic in `DB::transaction()`, added `Log::info('COG supersede check', ['student_id' => ..., 'rows_superseded' => ...])` so the operation is atomic and verifiable in `storage/logs/laravel.log`.
+- [x] **Regression introduced by the fix, then caught and fixed:** `$documentNumber` was declared *inside* the transaction closure but referenced two lines *after* it (building `$path` and the `Content-Disposition` header) — PHP does not leak closure-local variables to the parent scope. This crashed the request (`Undefined variable $documentNumber`), which caused Laravel to roll back the whole transaction — meaning every prior "did the supersede fix work?" test was inconclusive not because the fix was broken, but because the crash masked it before it could be verified.
+- [x] Corrected by pulling `$documentNumber = $cog->document_number;` from the returned model **after** the closure closes, instead of relying on the closure to leak the variable.
+- [x] Verified via `php -l app/Http/Controllers/Registrar/DocumentController.php` — no syntax errors.
+
+**Fix applied — TOR (same pattern, applied second):**
+- [x] `generateTor()` had the identical non-atomic, unlogged supersede pattern and was patched to match COG: wrapped in `DB::transaction()`, added `Log::info('TOR supersede check', ['student_id' => ..., 'rows_superseded' => ...])`, and `$documentNumber = $tor->document_number;` placed correctly *after* the closure this time (applying the lesson from the COG regression instead of repeating it).
+- [ ] `php -l` confirmation on the TOR patch — **pending, not yet pasted back**
+- [ ] Live retest — generate a new COG *and* TOR for Sofia (semester with the pre-existing duplicate), confirm both `storage/logs/laravel.log` entries appear ("COG supersede check" / "TOR supersede check"), and confirm `/registrar/documents` shows at most one "Current" record per type — **pending**
+
+**Known false alarms ruled out during this debugging pass (documented so they aren't re-investigated):**
+- IDE red squiggles under `\DB` / `\Log` in the controller — cosmetic, caused by missing `laravel-ide-helper` stub files, not a real error.
+- "Unexpected endif" / SonarLint accessibility warnings reported against files under `storage/framework/views/*` — these are compiled Blade cache artifacts with hash filenames, not the actual `.blade.php` source; safe to ignore and worth excluding from the editor's watcher (`storage/framework/views/**`) to stop recurring false positives.
+
+**⚠️ Still not addressed — existing bad data:** Sofia's pre-existing duplicate "Current" COG rows are **not** retroactively fixed by this code change — the fix only prevents *new* duplicates going forward. A cleanup pass (collapse existing duplicates to one current record per student+semester/type) and a DB-level uniqueness constraint migration are both still outstanding.
+
 ### 13.10 🔔 Open Enhancement Request — COG/TOR Records Tracking Tab ⏳ NOT SCHEDULED
 Flagged during the July 2 session, not yet built:
 - [ ] No dedicated tab/section currently exists to view a **history/log of all previously generated COG and TOR documents**. Right now, COG/TOR generation is a one-off action reachable only from a student's Academic Profile page (`registrar.students.cog` / `.tor`) — there's no way to browse "all COGs generated this semester" or "all TORs generated for BSIT students" as a list.
@@ -610,6 +632,7 @@ Flagged during the July 2 session, not yet built:
 - ⏳ Faculty/HoD route lockout — pending
 - ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
 - 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
+- 🔄 COG/TOR duplicate "current" record bug — fixed for COG (verified), TOR patch applied but not yet `php -l`-confirmed or live-retested; existing duplicate data + DB uniqueness constraint still outstanding
 
 ---
 
@@ -780,6 +803,9 @@ e.g. "2nd Semester — SY 2025-2026"
 69. Editing one field in an Admin form (e.g. assigning a faculty member to a subject) can silently corrupt an unrelated field if that form submits ALL fields on every save, including ones the user didn't intend to touch — worth checking whether "quick edit" actions should use a scoped update instead of the full form submit
 70. When a bug is traced to a data problem, always check whether the **seeder** that originally created the data has the same root-cause bug — patching only the live database data leaves a fresh `migrate:fresh --seed` (or a client's first setup) reproducing the exact same issue
 71. `SESSION_DRIVER=file` (Laravel's default) means there's no `sessions` table in the database — querying `DB::table('sessions')` will throw "table doesn't exist," which is expected behavior, not a bug, when using the file driver
+72. Wrapping existing sequential code in `DB::transaction(function () use (...) { ... })` requires re-tracing every variable the old code produced — anything declared inside the closure is scoped to it and will NOT be visible on lines after the closure closes; pull needed values off the closure's return value instead
+73. A crash immediately after a transaction closure causes Laravel to roll the whole transaction back — this can make a genuinely-fixed bug look untested/unconfirmed in logs, because the crash prevents the request from ever completing far enough to prove the earlier fix worked
+74. Editor diagnostics reported against files under `storage/framework/views/*` (or any compiled/generated directory) are not your source code — compiled Blade cache files use hash filenames and regenerate on every `view:clear`; exclude these paths from the editor's file watcher rather than debugging them directly
 
 ---
 
