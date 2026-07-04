@@ -41,24 +41,24 @@ class StudentController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'student_number' => 'required|string|max:20|unique:students,student_number',
             'course_id'      => 'required|exists:courses,id',
             'first_name'     => 'required|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
             'suffix'         => 'nullable|string|max:10',
-            'birth_date'     => 'nullable|date',
-            'gender'         => 'nullable|in:Male,Female',
-            'email'          => 'nullable|email|unique:students,email',
+            'birth_date'     => 'required|date',
+            'gender'         => 'required|in:Male,Female',
+            'email'          => 'required|email|unique:students,email',
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
-            'status'         => 'required|in:active,inactive,graduated',
+            'status'         => 'required|in:active,inactive,graduated,dropped',
         ]);
 
-        Student::create($request->all());
+        Student::create($validated);
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Student added successfully.');
@@ -72,24 +72,24 @@ class StudentController extends Controller
 
     public function update(Request $request, Student $student)
     {
-        $request->validate([
+        $validated = $request->validate([
             'student_number' => 'required|string|max:20|unique:students,student_number,' . $student->id,
             'course_id'      => 'required|exists:courses,id',
             'first_name'     => 'required|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
             'suffix'         => 'nullable|string|max:10',
-            'birth_date'     => 'nullable|date',
-            'gender'         => 'nullable|in:Male,Female',
-            'email'          => 'nullable|email|unique:students,email,' . $student->id,
+            'birth_date'     => 'required|date',
+            'gender'         => 'required|in:Male,Female',
+            'email'          => 'required|email|unique:students,email,' . $student->id,
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
-            'status'         => 'required|in:active,inactive,graduated',
+            'status'         => 'required|in:active,inactive,graduated,dropped',
         ]);
 
-        $student->update($request->all());
+        $student->update($validated);
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Student updated successfully.');

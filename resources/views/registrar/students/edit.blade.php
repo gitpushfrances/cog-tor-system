@@ -84,26 +84,32 @@
                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         </div>
                         <div>
-                            <label class="block mb-1 text-sm font-medium text-gray-700">Birth Date</label>
-                            <input type="date" name="birth_date" value="{{ old('birth_date', $student->birth_date?->format('Y-m-d')) }}"
-                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Birth Date <span class="text-red-500">*</span></label>
+                            <input type="date" name="birth_date" value="{{ old('birth_date', $student->birth_date?->format('Y-m-d')) }}" required
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('birth_date') border-red-400 @else border-gray-300 @enderror">
+                            @error('birth_date')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
-                            <label class="block mb-1 text-sm font-medium text-gray-700">Gender</label>
-                            <select name="gender"
-                                    class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Gender <span class="text-red-500">*</span></label>
+                            <select name="gender" required
+                                    class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('gender') border-red-400 @else border-gray-300 @enderror">
                                 <option value="">Select Gender</option>
                                 <option value="Male" {{ old('gender', $student->gender) == 'Male' ? 'selected' : '' }}>Male</option>
                                 <option value="Female" {{ old('gender', $student->gender) == 'Female' ? 'selected' : '' }}>Female</option>
                             </select>
+                            @error('gender')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
                     {{-- Contact --}}
                     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                         <div>
-                            <label class="block mb-1 text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" name="email" value="{{ old('email', $student->email) }}"
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Email <span class="text-red-500">*</span></label>
+                            <input type="email" name="email" value="{{ old('email', $student->email) }}" required
                                    class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('email') border-red-400 @else border-gray-300 @enderror">
                             @error('email')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -159,6 +165,7 @@
                                 <option value="active" {{ old('status', $student->status) == 'active' ? 'selected' : '' }}>Active</option>
                                 <option value="inactive" {{ old('status', $student->status) == 'inactive' ? 'selected' : '' }}>Inactive</option>
                                 <option value="graduated" {{ old('status', $student->status) == 'graduated' ? 'selected' : '' }}>Graduated</option>
+                                <option value="dropped" {{ old('status', $student->status) == 'dropped' ? 'selected' : '' }}>Dropped</option>
                             </select>
                             @error('status')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
