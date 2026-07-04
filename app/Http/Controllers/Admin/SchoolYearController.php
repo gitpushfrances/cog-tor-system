@@ -24,7 +24,7 @@ class SchoolYearController extends Controller
         $request->validate([
             'year_start' => 'required|integer|min:2000|max:2100',
             'year_end'   => 'required|integer|min:2000|max:2100|gt:year_start',
-            'status'     => 'required|in:active,inactive',
+            'status'     => 'required|in:active,completed,upcoming',
         ]);
 
         if ($request->status === 'active') {
@@ -52,7 +52,7 @@ class SchoolYearController extends Controller
         $request->validate([
             'year_start' => 'required|integer|min:2000|max:2100',
             'year_end'   => 'required|integer|min:2000|max:2100|gt:year_start',
-            'status'     => 'required|in:active,inactive',
+            'status'     => 'required|in:active,completed,upcoming',
         ]);
 
         if ($request->status === 'active') {

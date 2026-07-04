@@ -75,17 +75,23 @@ class RegistrarController extends Controller
 
     public function encodeGradesForm(Request $request)
     {
-        $schoolYears = SchoolYear::orderBy('year_code', 'desc')->get();
+        $schoolYears = SchoolYear::whereIn('status', ['active', 'completed'])
+            ->orderBy('year_code', 'desc')
+            ->get();
         $departments = Department::orderBy('name')->get();
 
-        $selectedSchoolYear = $request->input('school_year_id');
+        $selectedSchoolYear = $request->input('school_year_id')
+            ?? optional(SchoolYear::where('status', 'active')->first())->id;
         $selectedSemester   = $request->input('semester_id');
         $selectedDepartment = $request->input('department_id');
         $selectedCourse     = $request->input('course_id');
         $selectedStudent    = $request->input('student_id');
 
         $semesters = $selectedSchoolYear
-            ? Semester::where('school_year_id', $selectedSchoolYear)->orderBy('semester_order')->get()
+            ? Semester::where('school_year_id', $selectedSchoolYear)
+                ->whereIn('status', ['active', 'completed'])
+                ->orderBy('semester_order')
+                ->get()
             : collect();
 
         $courses = $selectedDepartment
