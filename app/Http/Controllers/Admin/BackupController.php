@@ -30,7 +30,20 @@ class BackupController extends Controller
     public function run()
     {
         try {
-            Artisan::call('backup:run');
+            $response = \Illuminate\Support\Facades\Http::timeout(120)->get('http://localhost/cog-tor-backup-trigger/run-backup.php');
+            $result = $response->json();
+
+            \Log::info('Backup via Apache trigger result', [
+                'http_status' => $response->status(),
+                'raw_body'    => $response->body(),
+                'parsed'      => $result,
+            ]);
+
+            if (! is_array($result) || empty($result['success'])) {
+                $errorDetail = is_array($result) ? ($result['error'] ?? 'Unknown error') : 'Invalid response: ' . $response->body();
+                return back()->with('error', 'Backup failed: ' . $errorDetail);
+            }
+
             return back()->with('success', 'Backup completed successfully.');
         } catch (\Exception $e) {
             return back()->with('error', 'Backup failed: ' . $e->getMessage());

@@ -614,6 +614,44 @@ Manual test checklists (Admin + Registrar) now written and ready to run — see 
 
 **⚠️ Still not addressed — existing bad data:** Sofia's pre-existing duplicate "Current" COG rows are **not** retroactively fixed by this code change — the fix only prevents *new* duplicates going forward. A cleanup pass (collapse existing duplicates to one current record per student+semester/type) and a DB-level uniqueness constraint migration are both still outstanding.
 
+### 13.12 Backup & Restore — "Backup Now" Button Completely Non-Functional ✅ FIXED
+**How it surfaced:** Client bug report — clicking **Backup Now** on `/admin/backup` either errored or reported "success" with no zip ever appearing in Backup History, while `php artisan backup:run` from the terminal always worked correctly.
+
+**Root cause chain (three separate bugs stacked on top of each other):**
+
+1. **`config/backup.php` `notifiable` key commented out** — `\Spatie\Backup\Notifications\Notifiable::class` was commented out (a leftover from an earlier "keep the class to prevent TypeError" note, misapplied). With the key absent, `app(null)` was resolved instead of a proper Notifiable, throwing `EventHandler::determineNotifiable(): Return value must be of type Notifiable, Application returned`. Fixed by uncommenting the key.
+2. **Mail notification channel still active with no mail server available** — once notifiable resolved, Spatie tried to actually send a `BackupWasSuccessfulNotification` via `mail`, hitting `.env`'s configured `MAIL_HOST=mailpit` (a Docker/Sail-style mail catcher not present in this XAMPP/Windows setup) → connection failure. Fixed by setting every notification class's channel array to `[]` in `config/backup.php`, disabling notification delivery entirely rather than trying to stand up a working mail transport for a dev-only feature.
+3. **The real blocker — Windows/`php artisan serve` cannot spawn a subprocess that opens its own TCP socket.** Even with the config fixed, every backup triggered via the browser failed with `mysqldump: Got error: 2004: "Can't create TCP/IP socket (10106)"`, while the identical command succeeded every time from the terminal. Extensive isolation testing (see below) confirmed this is specific to `php artisan serve` itself — PHP's built-in dev server holds an active listening TCP socket in-process, and any child process it spawns (directly or via an intermediate process) appears to inherit a corrupted/blocked socket layer on this Windows machine. This is a known rough edge of PHP's built-in server on Windows, not a bug in the application, Spatie, or Laravel.
+
+**Isolation steps taken to rule out every other explanation** (documented so this reasoning isn't repeated from scratch in future sessions):
+- `SystemRoot`, `DB_HOST`, PHP binary/version — confirmed identical between CLI and web contexts
+- Restarting `php artisan serve` fresh — no change
+- Running the dev server from native `cmd.exe` instead of Git Bash — no change (ruled out shell-wrapping theories)
+- Antivirus/Windows Defender real-time protection disabled — no change
+- Spawning the exact command Spatie builds, via reflection into `MySql::getProcess()`, both `exec()` and raw `Symfony\Process` (array form, no shell) — both still hit `10106` when run from inside `php artisan serve`'s process tree
+- Spawning a **fresh, separate `php.exe` process** to run `backup:run` (`Process` with `PHP_BINARY` + `artisan` path) — still hit `10106`, since it remained a descendant of the `serve` process tree
+- The exact same command, run via XAMPP's Apache (a completely different server model with no persistent listening socket in the request-handling process) — **succeeded immediately**, both as a raw standalone `proc_open()` test script and via `mysqladmin ping`
+
+**Fix applied — route the real backup execution through Apache instead of in-process:**
+- [x] `config/backup.php` — `notifiable` uncommented; all 6 notification classes (`BackupHasFailedNotification`, `UnhealthyBackupWasFoundNotification`, `CleanupHasFailedNotification`, `BackupWasSuccessfulNotification`, `HealthyBackupWasFoundNotification`, `CleanupWasSuccessfulNotification`) changed from `['mail']` to `[]`
+- [x] Created `public/run-backup.php` — ships with the project (versioned in Git), a minimal standalone script (no Laravel bootstrap, avoids any XAMPP-bundled-PHP-vs-app's-PHP version mismatch) that uses `proc_open()` to run `backup:run` against the correct PHP binary, with the project directory as its working directory, returning JSON with exit code/stdout/stderr
+- [x] **Machine-specific path handling made portable** — rather than hardcoding a developer's absolute project path (which would break for every other machine/client that clones the repo), `run-backup.php` reads the actual project path from `storage/backup-project-path.txt`, a plain-text, one-line, git-ignored file. A committed `storage/backup-project-path.txt.example` ships instead, showing the expected format — each developer/client copies it and edits one line to match where they placed the project on their own machine
+- [x] Deployed a copy of `run-backup.php` (and its accompanying config text file) to `C:/xampp/htdocs/cog-tor-backup-trigger/` so Apache can serve it directly at `http://localhost/cog-tor-backup-trigger/run-backup.php`
+- [x] `BackupController::run()` rewritten — instead of calling `Artisan::call('backup:run')` in-process, it now makes an internal `Http::get()` call to that Apache-served path, which Apache runs using its own bundled PHP (subprocess-creation-only — Laravel itself never runs there), triggering the real backup via the project's actual PHP binary outside the `serve` process tree entirely
+- [x] Verified end-to-end via `storage/logs/laravel.log`: `http_status: 200`, `success: true`, `exit_code: 0`, real backup output (zip created, correct file size), and confirmed the new zip appears in Backup History on `/admin/backup`
+
+**New operational dependency:** Apache (and MySQL) must be running in XAMPP Control Panel whenever **Backup Now** is clicked, even though the rest of the app runs via `php artisan serve`. Backup Now will fail (connection refused) if Apache is stopped.
+
+**Setup required per machine (documented in README):** Copy `public/run-backup.php` to `C:/xampp/htdocs/cog-tor-backup-trigger/`, copy `storage/backup-project-path.txt.example` to `storage/backup-project-path.txt` (also copied alongside the script in htdocs) and `.env`-style edit the one path line to match the local project location.
+
+**Still open / lower priority:**
+- [ ] The Apache-served copy of `run-backup.php` is currently a public, unauthenticated endpoint on `localhost` — acceptable for local dev only; would need a shared-secret check (e.g. a key compared against `.env`) before any real deployment
+- [ ] Consider whether this workaround is still needed once the app moves to a real deployment target (Linux server, proper hosting) — the root `php artisan serve` limitation is Windows-dev-environment-specific and very likely won't exist in production
+
+**SweetAlert2 + loading spinner (unrelated, added same session):**
+- [x] `resources/views/admin/backup/index.blade.php` — replaced plain `confirm()` on **Backup Now** with a SweetAlert2 confirm dialog followed by a `Swal.showLoading()` spinner modal that stays open until the full-page POST reloads with the result
+- [x] Hit Lesson #44 twice in the same file — `document.getElementById`/`addEventListener` and later the entire `Swal.fire`/`showCancelButton`/`isConfirmed`/`showLoading` block got lowercased on the way into the file via a `cat`/pipe write; both instances required a full block rewrite done directly in the code editor, not via terminal pipe
+
 ### 13.10 🔔 Open Enhancement Request — COG/TOR Records Tracking Tab ⏳ NOT SCHEDULED
 Flagged during the July 2 session, not yet built:
 - [ ] No dedicated tab/section currently exists to view a **history/log of all previously generated COG and TOR documents**. Right now, COG/TOR generation is a one-off action reachable only from a student's Academic Profile page (`registrar.students.cog` / `.tor`) — there's no way to browse "all COGs generated this semester" or "all TORs generated for BSIT students" as a list.
@@ -633,6 +671,7 @@ Flagged during the July 2 session, not yet built:
 - ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
 - 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
 - 🔄 COG/TOR duplicate "current" record bug — fixed for COG (verified), TOR patch applied but not yet `php -l`-confirmed or live-retested; existing duplicate data + DB uniqueness constraint still outstanding
+- ✅ Backup & Restore "Backup Now" button — fixed (config notifiable/notification-channel bugs + `php artisan serve` Windows socket-inheritance limitation worked around via Apache-triggered execution); SweetAlert2 confirm + loading spinner added
 
 ---
 
@@ -804,8 +843,15 @@ e.g. "2nd Semester — SY 2025-2026"
 70. When a bug is traced to a data problem, always check whether the **seeder** that originally created the data has the same root-cause bug — patching only the live database data leaves a fresh `migrate:fresh --seed` (or a client's first setup) reproducing the exact same issue
 71. `SESSION_DRIVER=file` (Laravel's default) means there's no `sessions` table in the database — querying `DB::table('sessions')` will throw "table doesn't exist," which is expected behavior, not a bug, when using the file driver
 72. Wrapping existing sequential code in `DB::transaction(function () use (...) { ... })` requires re-tracing every variable the old code produced — anything declared inside the closure is scoped to it and will NOT be visible on lines after the closure closes; pull needed values off the closure's return value instead
+80. A helper script's own directory (`dirname(__DIR__)`, `__DIR__`) only reflects the *actual* project structure if the script stays inside the project — copying a "portable" script to a different physical location (e.g. XAMPP's `htdocs`) breaks any path logic based on the script's own location; for scripts that must be deployed outside the project, read the real project path from a small external config file instead of computing it from `__DIR__`
+81. Machine-specific paths (absolute install locations, developer usernames in file paths) should never be hardcoded directly into a script meant to ship with a repo — use a git-ignored config file with a committed `.example` template instead, so each machine/client sets their own value without risking silently inheriting another developer's path
 73. A crash immediately after a transaction closure causes Laravel to roll the whole transaction back — this can make a genuinely-fixed bug look untested/unconfirmed in logs, because the crash prevents the request from ever completing far enough to prove the earlier fix worked
 74. Editor diagnostics reported against files under `storage/framework/views/*` (or any compiled/generated directory) are not your source code — compiled Blade cache files use hash filenames and regenerate on every `view:clear`; exclude these paths from the editor's file watcher rather than debugging them directly
+75. Commenting out a package config key "to be safe" can be worse than deleting it — an absent `notifiable` config value silently resolves to the service container itself via `app(null)`, producing a confusing TypeError far from the actual missing setting
+76. `php artisan serve` on Windows can prevent child processes (including ones spawned by packages like Spatie Backup, via `mysqldump`) from successfully opening their own TCP sockets (`WSAEPROVIDERFAILEDINIT` / error 10106) — this is tied to the dev server holding its own listening socket in-process, not to the command being run, the shell, antivirus, or Windows networking in general; the same command succeeds identically via CLI or through Apache
+77. When ruling out a suspected cause, prefer a test that actually exercises the failing behavior (e.g. a real network connection attempt) over one that merely proves related capability (`mysqldump --version` proves the binary runs, but never opens a socket — it cannot reproduce a connection-layer bug)
+78. XAMPP's bundled Apache PHP version can differ from a project's actual required PHP version (e.g. XAMPP's 8.2 vs. project's required 8.4) — running a Laravel app through Apache may require pointing Apache at the correct PHP install (FastCGI/PHP-FPM) rather than assuming XAMPP's bundled PHP is sufficient; a standalone PHP script with no Composer/Laravel bootstrap is a fast way to test Apache-level behavior without hitting this mismatch
+79. Defining a single active `<VirtualHost *:80>` in `httpd-vhosts.conf` makes it the default handler for ALL requests on that port, including plain `localhost` — add an explicit `ServerName localhost` vhost pointing at the normal `htdocs` root to avoid unrelated requests being silently captured by a project-specific vhost
 
 ---
 
@@ -833,6 +879,9 @@ e.g. "2nd Semester — SY 2025-2026"
 ---
 
 ## NEXT STEPS — RESUME HERE
+▶️ Priority 0: Phase 13.11 — Finish COG/TOR Duplicate-Record Fix Verification
+Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR generation for Sofia (semester with the pre-existing duplicate) — confirm both log lines appear and `/registrar/documents` shows one "Current" per type. Only after that: write the cleanup script for Sofia's existing duplicate COG rows, then apply the DB-level uniqueness constraint migration.
+
 ▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
 Use the Admin + Registrar manual test checklists (July 2 session) to run a full pass:
 

@@ -267,6 +267,18 @@ Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF downlo
    > For WAMP: `C:/wamp64/bin/mysql/mysqlX.X.XX/bin/`
    > For Laragon: `C:/laragon/bin/mysql/mysql-X.X.XX-winx64/bin/`
 
+8b. **Enable the Backup Now button (Windows only)**
+
+   The **Backup Now** button in the Admin UI requires a small helper script and Apache running alongside `php artisan serve`. This works around a Windows-specific limitation where PHP's built-in dev server can't spawn the `mysqldump` subprocess the backup needs — see CHANGELOG.md Phase 13.12 for the full explanation.
+
+   One-time setup, per machine:
+   1. Copy `public/run-backup.php` to `C:/xampp/htdocs/cog-tor-backup-trigger/run-backup.php` (create the folder if needed)
+   2. Copy `storage/backup-project-path.txt.example` to `C:/xampp/htdocs/cog-tor-backup-trigger/backup-project-path.txt`
+   3. Open that copied text file and replace the example path with the full path to **your own** copy of this project (e.g. `C:/Users/YourName/Desktop/cog-tor-system`)
+   4. Make sure XAMPP's **Apache** module is running (in addition to MySQL) whenever you plan to use the Backup Now button
+
+   If Apache is not running, Backup Now will fail; use `php artisan backup:run` from the terminal as a fallback instead.
+
 9. **Build assets**
 ```bash
    npm run build
@@ -312,6 +324,8 @@ The system includes a full database backup and restore feature accessible via th
 3. Click **Backup Now** and confirm
 4. The backup zip will appear in the Backup History table
 
+> ⚠️ **Requires Apache running.** On Windows dev environments, `php artisan serve` cannot reliably spawn the `mysqldump` subprocess the backup needs (a known Windows-specific limitation — see CHANGELOG.md Phase 13.12 for full detail). The **Backup Now** button works by triggering the backup through Apache instead. Before clicking Backup Now, make sure **both Apache and MySQL are running** in your XAMPP Control Panel — the rest of the app can still run normally via `php artisan serve`. If Apache is stopped, Backup Now will fail with a connection error.
+
 ### How to Restore from Backup
 1. Download the backup zip from Backup History
 2. Extract the `.sql` file from inside the zip
@@ -325,7 +339,7 @@ The system includes a full database backup and restore feature accessible via th
 php artisan backup:run
 ```
 
-Backups are stored at `storage/app/cog-tor-backup/` as timestamped `.zip` files.
+Backups are stored at `storage/app/cog-tor-backup/` as timestamped `.zip` files. This CLI command always works regardless of Apache/dev-server setup, and can be used as a fallback if the Backup Now button is unavailable.
 
 ### Notification Warning
 The message `Sending notification failed` after `backup:run` is **harmless** — it appears because no mail driver is configured. The backup still completes successfully.
@@ -441,6 +455,7 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Audit log has no UI | Post-Phase 11 |
 | Registrar COG/TOR template not yet matched to official form | Blocked — awaiting physical template from Registrar's office |
 | Excel Report of Grades import not yet built | Blocked — awaiting format from panel |
+| Backup Now button requires Apache running (Windows dev environments) | Documented workaround — see CHANGELOG.md Phase 13.12; expected to work without this workaround on real server deployments |
 
 ---
 

@@ -15,10 +15,9 @@
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-700 mb-2">Create Backup</h3>
             <p class="text-sm text-gray-500 mb-4">Creates a full backup of the database and stores it locally. This may take a few seconds.</p>
-            <form method="POST" action="{{ route('admin.backup.run') }}">
+            <form method="POST" action="{{ route('admin.backup.run') }}" id="backup-form">
                 @csrf
-                <button type="submit"
-                    onclick="return confirm('Run backup now?')"
+                <button type="button" id="backup-now-btn"
                     class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-5 py-2 rounded">
                     Backup Now
                 </button>
@@ -81,4 +80,32 @@
         </div>
 
     </div>
+
+    @push('scripts')
+    <script>
+        document.getElementById('backup-now-btn').addEventListener('click', function () {
+            Swal.fire({
+                title: 'Run backup now?',
+                text: 'This will create a full backup of the database.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, backup now',
+                confirmButtonColor: '#2563eb',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Backing up...',
+                        text: 'Please wait, this may take a few seconds.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    document.getElementById('backup-form').submit();
+                }
+            });
+        });
+    </script>
+    @endpush
 </x-app-layout>
