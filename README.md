@@ -15,10 +15,10 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 
 This system streamlines the academic grading workflow. As of **Phase 13**, the workflow is being migrated from a multi-tier approval chain (Faculty → Head of Department → Registrar) to a **single-actor Registrar workflow**, per an updated client flowchart — the Registrar now encodes, validates, saves, and generates COG/TOR directly, with Faculty and Head of Department being phased out of the grade pipeline (disabled, not deleted, for reversibility). The system also includes automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
 
-> **Phase 13 In Progress (~70%) — Registrar-Only Workflow Migration, started July 2, 2026.** Registrar direct-encode bugs fixed, `faculty_id` made nullable, and full Registrar-side Student/Enrollment/Excel management built to absorb HoD's responsibilities. Statically verified (syntax, routing, view-binding all green). **Not yet done:** browser end-to-end test, and disabling Faculty/HoD routes. See CHANGELOG.md for full detail.
+> **Phase 13 In Progress (~85%) — Registrar-Only Workflow Migration, started July 2, 2026.** Registrar direct-encode bugs fixed, `faculty_id` made nullable, full Registrar-side Student/Enrollment/Excel management built, and Faculty/HoD roles fully locked out (route-level, reversible) with test accounts removed. **Not yet done:** full browser end-to-end test pass. See CHANGELOG.md for full detail.
 
 ### Key Features
-- **Four-Role System** — Admin, Faculty, Head of Department, Registrar *(Faculty and HoD's grade-related roles are being phased out per Phase 13 — see note below)*
+- **Two-Role System** — Admin, Registrar *(Faculty and Head of Department roles locked out at the route level per Phase 13.6 — code/data preserved, reversible, see note below)*
 - **🆕 Registrar Direct Grade Encoding** — Registrar encodes, validates, and saves grades directly, no Faculty/HoD handoff required (Phase 13)
 - **🆕 Registrar Student Management** — Full CRUD, institution-wide (not department-scoped) — absorbed from Head of Department (Phase 13)
 - **🆕 Registrar Enrollment Management** — Enroll/remove students per active semester, institution-wide — absorbed from Head of Department (Phase 13)
@@ -244,10 +244,10 @@ Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF downlo
    | Role | Email | Password | Notes |
    |------|-------|----------|-------|
    | Admin | admin@cogtor.test | password | Full system config access |
-   | Head of Department | hod@cogtor.test | password | Scoped to department_id=1 — grade review/assignment slated for lockout (Phase 13.6) |
-   | Faculty | faculty@cogtor.test | password | department_id=1 — slated for lockout (Phase 13.6) |
    | Registrar | registrar@cogtor.test | password | 🆕 Now handles direct grade encoding + student/enrollment/Excel management (Phase 13) |
-   | Pending | pending@cogtor.test | password | Blocked by status middleware |
+   | Pending | pending@cogtor.test | password | Blocked by status middleware — seeded with legacy `faculty` role string, harmless since role is locked out |
+
+   > Faculty and Head of Department test accounts (`faculty@cogtor.test`, `hod@cogtor.test`) were removed from the seeder as of Phase 13.6 — those roles are locked out at the route level (`role:faculty_disabled` / `role:head_of_department_disabled`), so no login can reach them.
 
    > **Note:** Seeder uses `updateOrCreate` — safe to re-run. department_id is always applied correctly.
 
@@ -446,8 +446,7 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Issue | Status |
 |-------|--------|
 | 🆕 Browser end-to-end test for Registrar's new Student/Enrollment/Excel/Encode-Grades flow not yet run | Next session — Phase 13.8 |
-| 🆕 Faculty and HoD grade-related routes still live, not yet locked out | Planned — Phase 13.6 |
-| 🆕 Dual role-check system (Spatie `HasRoles` vs legacy `role` column) not yet audited for lockout safety | Planned — part of Phase 13.6 |
+| 🆕 Dual role-check system (Spatie `HasRoles` vs legacy `role` column) — confirmed no bypass path in views/routes, `User.php` helper methods left as inert dead code | ✅ Done — Phase 13.6 |
 | Old 12-step multi-role end-to-end test is obsolete under the new single-actor flow | New test plan needed post-Phase 13 |
 | Admin dashboard still shows student nav links | Cleanup Phase 11 |
 | PDF storage not publicly accessible | Fix before production |

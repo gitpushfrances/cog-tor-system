@@ -16,10 +16,8 @@ Route::get('/', function () {
 
 Route::get('/dashboard', function () {
     $user = auth()->user();
-    if ($user->hasRole('admin'))              return redirect()->route('admin.dashboard');
-    if ($user->hasRole('head_of_department')) return redirect()->route('head_of_department.dashboard');
-    if ($user->hasRole('faculty'))            return redirect()->route('faculty.dashboard');
-    if ($user->hasRole('registrar'))          return redirect()->route('registrar.dashboard');
+    if ($user->hasRole('admin'))     return redirect()->route('admin.dashboard');
+    if ($user->hasRole('registrar')) return redirect()->route('registrar.dashboard');
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
@@ -86,7 +84,7 @@ Route::middleware(['auth', 'status', 'role:head_of_department'])->prefix('head-o
 });
 
 // Faculty Routes
-Route::middleware(['auth', 'status', 'role:faculty'])->prefix('faculty')->name('faculty.')->group(function () {
+Route::middleware(['auth', 'status', 'role:faculty_disabled'])->prefix('faculty')->name('faculty.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\Faculty\FacultyController::class, 'index'])->name('dashboard');
     Route::get('/subjects', [App\Http\Controllers\Faculty\FacultyController::class, 'subjects'])->name('subjects');
     Route::get('/subjects/{subject}/grades/template', [App\Http\Controllers\Faculty\ExcelController::class, 'downloadTemplate'])->name('subjects.grades.template');

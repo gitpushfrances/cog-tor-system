@@ -35,8 +35,6 @@ class UserController extends Controller
 
         $counts = [
             'all'       => User::where('id', '!=', auth()->id())->count(),
-            'faculty'   => User::where('id', '!=', auth()->id())->whereHas('roles', fn($q) => $q->where('name', 'faculty'))->count(),
-            'head_of_department' => User::where('id', '!=', auth()->id())->whereHas('roles', fn($q) => $q->where('name', 'head_of_department'))->count(),
             'registrar' => User::where('id', '!=', auth()->id())->whereHas('roles', fn($q) => $q->where('name', 'registrar'))->count(),
         ];
 
@@ -45,7 +43,7 @@ class UserController extends Controller
 
     public function create()
     {
-        $roles       = Role::whereIn('name', ['faculty', 'head_of_department', 'registrar'])->get();
+        $roles       = Role::whereIn('name', ['registrar'])->get();
         $departments = Department::active()->orderBy('name')->get();
         return view('admin.users.create', compact('roles', 'departments'));
     }
@@ -58,7 +56,6 @@ class UserController extends Controller
             'password'      => 'required|string|min:8|confirmed',
             'role'          => 'required|exists:roles,name',
             'status'        => 'required|in:active,pending,inactive',
-            'department_id' => 'required_if:role,head_of_department,faculty|nullable|exists:departments,id',
         ]);
 
         $user = User::create([
@@ -66,7 +63,6 @@ class UserController extends Controller
             'email'         => $validated['email'],
             'password'      => Hash::make($validated['password']),
             'status'        => $validated['status'],
-            'department_id' => in_array($validated['role'], ['faculty', 'head_of_department']) ? ($validated['department_id'] ?? null) : null,
             'approved_by'   => $validated['status'] === 'active' ? auth()->id() : null,
             'approved_at'   => $validated['status'] === 'active' ? now() : null,
         ]);
@@ -79,7 +75,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        $roles       = Role::whereIn('name', ['faculty', 'head_of_department', 'registrar'])->get();
+        $roles       = Role::whereIn('name', ['registrar'])->get();
         $departments = Department::active()->orderBy('name')->get();
         return view('admin.users.edit', compact('user', 'roles', 'departments'));
     }
@@ -92,7 +88,6 @@ class UserController extends Controller
             'password'      => 'nullable|string|min:8|confirmed',
             'role'          => 'required|exists:roles,name',
             'status'        => 'required|in:active,pending,inactive',
-            'department_id' => 'required_if:role,head_of_department,faculty|nullable|exists:departments,id',
         ]);
 
         $user->update([
@@ -100,7 +95,6 @@ class UserController extends Controller
             'email'         => $validated['email'],
             'password'      => $validated['password'] ? Hash::make($validated['password']) : $user->password,
             'status'        => $validated['status'],
-            'department_id' => in_array($validated['role'], ['faculty', 'head_of_department']) ? ($validated['department_id'] ?? null) : null,
             'approved_by'   => $validated['status'] === 'active' && !$user->approved_by ? auth()->id() : $user->approved_by,
             'approved_at'   => $validated['status'] === 'active' && !$user->approved_at ? now() : $user->approved_at,
         ]);

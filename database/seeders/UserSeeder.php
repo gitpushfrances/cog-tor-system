@@ -26,38 +26,6 @@ class UserSeeder extends Seeder
         );
         $admin->assignRole('admin');
 
-        // Head of Department User
-        $hod = User::updateOrCreate(
-            ['email' => 'hod@cogtor.test'],
-            [
-                'name'              => 'Head of CCS',
-                'password'          => Hash::make('password'),
-                'role'              => 'head_of_department',
-                'status'            => 'active',
-                'department_id'     => $department?->id,
-                'approved_by'       => $admin->id,
-                'approved_at'       => now(),
-                'email_verified_at' => now(),
-            ]
-        );
-        $hod->assignRole('head_of_department');
-
-        // Faculty User
-        $faculty = User::updateOrCreate(
-            ['email' => 'faculty@cogtor.test'],
-            [
-                'name'              => 'Juan Dela Cruz',
-                'password'          => Hash::make('password'),
-                'role'              => 'faculty',
-                'status'            => 'active',
-                'department_id'     => $department?->id,
-                'approved_by'       => $hod->id,
-                'approved_at'       => now(),
-                'email_verified_at' => now(),
-            ]
-        );
-        $faculty->assignRole('faculty');
-
         // Registrar User
         $registrar = User::updateOrCreate(
             ['email' => 'registrar@cogtor.test'],
@@ -87,9 +55,7 @@ class UserSeeder extends Seeder
         $pendingFaculty->assignRole('faculty');
 
         $this->command->info('Test user accounts seeded successfully!');
-        $this->command->info('Admin:     admin@cogtor.test / password');
-        $this->command->info('HOD:       hod@cogtor.test / password (department: ' . ($department?->name ?? 'NONE - run AcademicStructureSeeder first') . ')');
-        $this->command->info('Faculty:   faculty@cogtor.test / password');
+        // Registrar User$this->command->info('Admin:     admin@cogtor.test / password');
         $this->command->info('Registrar: registrar@cogtor.test / password');
         $this->command->info('Pending:   pending@cogtor.test / password (cannot login)');
     }

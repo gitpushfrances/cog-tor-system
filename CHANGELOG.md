@@ -12,7 +12,7 @@
 ## ⚡ RESUME POINT — READ THIS FIRST
 
 **Current Phase:** Phase 13 — Registrar-Only Workflow Migration
-**Status:** 🔄 In Progress (~75%) — Controllers, routes, and views built and statically verified. Subject `semester` data bug found and fixed (root cause + patch + seeder). Browser end-to-end test NOT yet fully run. Faculty/HoD grade-related routes NOT yet disabled (still live).
+**Status:** 🔄 In Progress (~85%) — Controllers, routes, and views built and statically verified. Subject `semester` data bug found and fixed (root cause + patch + seeder). Faculty/HoD roles locked out at route level (Phase 13.6 done), test accounts removed. Browser end-to-end test NOT yet fully run.
 
 ### 🔔 Open Enhancement Request (not yet scheduled)
 > **Add a dedicated COG/TOR Records tab/section** so generated documents are tracked and retrievable as a proper history/log, rather than only accessible at the moment of generation. See "COG/TOR Records Tracking" note under Phase 13.10 below and in Next Steps.
@@ -534,14 +534,20 @@ Before making further changes, pulled and reviewed the entire Registrar/Faculty/
 - [x] Registrar block reorganized into `Academic` (Students, Enrollment) and `Grades` (Encode Grades) section labels — matches HoD's existing sidebar grouping convention for visual consistency
 - [x] Icons: `fa-user-graduate` (Students), `fa-clipboard-list` (Enrollment) — same icons HoD's own sidebar already uses for equivalent links
 
-### 13.6 Faculty/HoD Route Lockout ⏳ NOT STARTED
-- [ ] Faculty route group (`role:faculty`) — full lockout planned (entire grade encoding/submit/resubmit workflow obsolete)
-- [ ] HoD grade review routes (`submissions.review/approve/reject`) — lockout planned (obsolete)
-- [ ] HoD Subject Assignment routes — lockout planned (nothing will consume assignments once Faculty is disabled)
-- [ ] HoD Student/Enrollment/Excel routes — **decision needed**: leave dormant-but-reachable, or lock out now that Registrar has equivalent unscoped capability (currently leaning toward locking out once 13.7 verification is complete, to avoid two active code paths writing to the same tables)
-- [ ] Planned mechanism: change `role:faculty` / `role:head_of_department` middleware requirement on affected route groups so they're unsatisfiable by any current login — controllers/models/views/data all stay untouched, fully reversible
-- [ ] Dual role-check system (13.3) needs to be accounted for — a route-level lockout via Spatie's `role:` middleware alone may not be sufficient if any other code path checks the legacy `role` column directly (e.g. `isFaculty()`); needs audit before considering Faculty/HoD access fully closed
-- [ ] **Admin role explicitly excluded from any lockout work** (confirmed 13.4) — only Faculty and HoD are in scope here.
+### 13.6 Faculty/HoD Route Lockout ✅ DONE (July 10 session)
+**Client decision:** full removal was ruled out (too risky — `grades`/`grade_submissions` FK semantics), route-level lockout only, with test accounts hard-deleted.
+
+- [x] `routes/web.php` — `role:faculty` → `role:faculty_disabled`, `role:head_of_department` → `role:head_of_department_disabled` on both route groups. Neither string is a seeded Spatie role, so `hasAnyRole()` always returns `false` → clean 403 via `CheckRole` middleware (verified: no exception path, confirmed via `cat -n app/Http/Middleware/CheckRole.php`).
+- [x] Dead login-redirect branches removed from `routes/web.php` (`/dashboard` closure) and `AuthenticatedSessionController::store()` — both previously had `elseif` branches for `head_of_department`/`faculty` that are now unreachable.
+- [x] `User.php`'s legacy `isFaculty()`/`isHeadOfDepartment()` helpers left untouched as inert dead code — confirmed via grep no view/route calls them directly, no bypass path exists.
+- [x] Sidebar nav (`sidebar.blade.php`) — both `@if(hasRole('head_of_department'))` and `@if(hasRole('faculty'))` blocks removed entirely.
+- [x] Admin User Management (`UserController.php` + `admin/users/index.blade.php`) — Faculty/HoD tabs, role-count queries, role dropdown options (`create()`/`edit()`), and `department_id` validation/assignment logic all removed. Only `all`/`registrar` tabs remain.
+- [x] **Test accounts hard-deleted** (not just left dormant) — `faculty@cogtor.test` (id 3) and `hod@cogtor.test` (id 2) removed from `users` table. Required nulling `approved_by` first on both rows (found via `users_approved_by_foreign` FK violation — `faculty@cogtor.test.approved_by` pointed at the HoD's own id).
+- [x] `UserSeeder.php` — HoD and Faculty `updateOrCreate` blocks removed entirely, along with their `$this->command->info()` lines. `pending@cogtor.test` intentionally left as-is (still seeds with legacy `role => 'faculty'` string but is functionally inert now that the role is locked out — flagged, not yet cleaned up).
+- [x] Verified: `php -l` clean on all 4 touched PHP files, `php artisan view:cache` compiles clean, `php artisan route:list --path=admin/users -v` shows 9 routes all `CheckRole:admin`.
+- [x] **Admin role confirmed untouched** — no changes to `role:admin` middleware or Admin routes.
+
+**Still open:** `pending@cogtor.test` seeder entry uses the now-locked-out `faculty` role — low priority, revisit if it causes confusion during testing.
 
 ### 13.7 Static Verification Pass ✅ DONE
 Full non-browser verification completed before UI testing, catching and fixing multiple real issues along the way:
@@ -667,7 +673,7 @@ Flagged during the July 2 session, not yet built:
 - ✅ Subject `semester` bug found and fixed at all three layers (form, validation, seeder) + data patched
 - ✅ Admin + Registrar manual E2E test checklists written
 - 🔄 Browser E2E test — in progress, partial pass done (surfaced 13.9), full pass pending
-- ⏳ Faculty/HoD route lockout — pending
+- ✅ Faculty/HoD route lockout — done (route-level `_disabled` role strings, test accounts hard-deleted, dual role-check audited)
 - ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
 - 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
 - 🔄 COG/TOR duplicate "current" record bug — fixed for COG (verified), TOR patch applied but not yet `php -l`-confirmed or live-retested; existing duplicate data + DB uniqueness constraint still outstanding
@@ -845,6 +851,7 @@ e.g. "2nd Semester — SY 2025-2026"
 72. Wrapping existing sequential code in `DB::transaction(function () use (...) { ... })` requires re-tracing every variable the old code produced — anything declared inside the closure is scoped to it and will NOT be visible on lines after the closure closes; pull needed values off the closure's return value instead
 80. A helper script's own directory (`dirname(__DIR__)`, `__DIR__`) only reflects the *actual* project structure if the script stays inside the project — copying a "portable" script to a different physical location (e.g. XAMPP's `htdocs`) breaks any path logic based on the script's own location; for scripts that must be deployed outside the project, read the real project path from a small external config file instead of computing it from `__DIR__`
 81. Machine-specific paths (absolute install locations, developer usernames in file paths) should never be hardcoded directly into a script meant to ship with a repo — use a git-ignored config file with a committed `.example` template instead, so each machine/client sets their own value without risking silently inheriting another developer's path
+82. When hard-deleting a seeded test account, check every FK column pointing at `users.id` first — not just the obvious ones — a seeder can wire one test account's `approved_by` to another test account's id, causing a delete order dependency that isn't visible from the schema alone
 73. A crash immediately after a transaction closure causes Laravel to roll the whole transaction back — this can make a genuinely-fixed bug look untested/unconfirmed in logs, because the crash prevents the request from ever completing far enough to prove the earlier fix worked
 74. Editor diagnostics reported against files under `storage/framework/views/*` (or any compiled/generated directory) are not your source code — compiled Blade cache files use hash filenames and regenerate on every `view:clear`; exclude these paths from the editor's file watcher rather than debugging them directly
 75. Commenting out a package config key "to be safe" can be worse than deleting it — an absent `notifiable` config value silently resolves to the service container itself via `app(null)`, producing a confusing TypeError far from the actual missing setting
@@ -871,7 +878,7 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
 | Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
-| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~75%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed (form + validation + seeder + data patch). Browser E2E in progress. Faculty/HoD lockout pending.** |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~85%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done — route-level, test accounts removed. Browser E2E pending.** |
 | Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13; will also correct provisional semester placeholders from 13.9 |
 
 **Overall Project Completion: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
@@ -890,14 +897,7 @@ Registrar: Students CRUD, Enrollment, Excel template/export, Encode Grades wizar
 — including the BSIT + 1st Semester regression test (confirms Phase 13.9 fix holds)
 Note exact step + error message for anything that fails
 
-▶️ Priority 2: Phase 13.6 — Faculty/HoD Route Lockout
-
-Decide final scope: lock out HoD student/enrollment/Excel routes now, or leave dormant a while longer
-Apply role: middleware changes to Faculty group (full lockout)
-Apply role: middleware changes to HoD grade-review + assignment routes
-Audit legacy role column / isFaculty()-style checks (dual role-check system, Phase 13.3) — confirm lockout can't be bypassed through that path
-Re-run full static verification pass (route:list, view:cache, php -l) after lockout changes
-Admin role is explicitly OUT of scope for this lockout — confirmed with client (13.4)
+✅ Phase 13.6 — Faculty/HoD Route Lockout — DONE (July 10 session, see above)
 
 ▶️ Priority 3: 🔔 COG/TOR Records Tracking Tab (Phase 13.10 — new, flagged this session)
 

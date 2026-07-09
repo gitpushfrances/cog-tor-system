@@ -3,7 +3,7 @@
         <div style="display:flex;align-items:center;justify-content:space-between;">
             <div>
                 <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">User Management</h2>
-                <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">Manage faculty, heads of departments, and registrar accounts</p>
+                <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">Manage admin and registrar accounts</p>
             </div>
             <a href="{{ route('admin.users.create') }}"
                style="background:#c9a84c;color:#fff;padding:8px 18px;border-radius:8px;font-size:0.875rem;font-weight:600;text-decoration:none;transition:background 0.15s;"
@@ -31,7 +31,7 @@
 
             <div style="display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #e2d9c8;background:#faf8f4;">
                 <div style="display:flex;gap:4px;">
-                    @foreach([['all','All',$counts['all']],['faculty','Faculty',$counts['faculty']],['head_of_department','Head of Dept',$counts['head_of_department']],['registrar','Registrar',$counts['registrar']]] as [$key,$label,$count])
+                    @foreach([['all','All',$counts['all']],['registrar','Registrar',$counts['registrar']]] as [$key,$label,$count])
                     <a href="{{ route('admin.users.index', array_merge(request()->query(), ['role' => $key])) }}"
                        style="display:flex;align-items:center;gap:6px;padding:14px 16px;font-size:0.8rem;font-weight:600;text-decoration:none;border-bottom:2px solid {{ $role === $key ? '#c9a84c' : 'transparent' }};color:{{ $role === $key ? '#c9a84c' : '#6b5f4a' }};transition:color 0.15s;">
                         {{ $label }}
@@ -88,19 +88,17 @@
                         <td style="padding:14px 20px;color:#6b5f4a;">{{ $user->email }}</td>
                         <td style="padding:14px 20px;">
                             @php
-                                $roleColors = ['faculty'=>['#fef3c7','#92400e'],'head_of_department'=>['#ede9fe','#5b21b6'],'registrar'=>['#d1fae5','#065f46']];
+                                $roleColors = ['registrar'=>['#d1fae5','#065f46']];
                                 $rc = $roleColors[$userRole] ?? ['#f3f4f6','#374151'];
                             @endphp
                             <span style="background:{{ $rc[0] }};color:{{ $rc[1] }};padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;">
-                                {{ ['faculty'=>'Faculty','head_of_department'=>'Head of Department','registrar'=>'Registrar','admin'=>'Admin'][$userRole] ?? ucwords(str_replace('_',' ',$userRole)) }}
+                                {{ ['registrar'=>'Registrar','admin'=>'Admin'][$userRole] ?? ucwords(str_replace('_',' ',$userRole)) }}
                             </span>
                         </td>
                         <td style="padding:14px 20px;">
                             @if($user->department)
                                 <span style="font-size:0.8rem;color:#1a1a2e;font-weight:500;">{{ $user->department->code }}</span>
                                 <div style="font-size:0.7rem;color:#8a7a60;">{{ $user->department->name }}</div>
-                            @elseif(in_array($userRole, ['faculty','head_of_department']))
-                                <span style="font-size:0.75rem;color:#b8a88a;font-style:italic;">Unassigned</span>
                             @else
                                 <span style="font-size:0.75rem;color:#d4c9b4;">—</span>
                             @endif
