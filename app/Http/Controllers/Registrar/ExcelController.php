@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Registrar;
 use App\Http\Controllers\Controller;
 use App\Exports\StudentsExport;
 use App\Imports\StudentsImport;
+use App\Exports\MasterlistExport;
+use App\Imports\MasterlistImport;
 use App\Models\Course;
+use App\Models\Semester;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 
@@ -75,5 +78,39 @@ class ExcelController extends Controller
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Students imported successfully.');
+    }
+
+    public function masterlistTemplate()
+    {
+        return Excel::download(
+            new MasterlistExport(),
+            'masterlist_template.xlsx'
+        );
+    }
+
+    public function importMasterlist(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls|max:5120',
+        ]);
+
+        $import = new MasterlistImport();
+        Excel::import($import, $request->file('file'));
+
+        $errors = $import->getErrors();
+
+        if (!empty($errors)) {
+            return redirect()->route('registrar.students.index')
+                ->with('import_errors', $errors)
+                ->with('warning', count($errors) . ' row(s) had issues.');
+        }
+
+        $message = $import->getImportedCount() . ' grade(s) imported successfully.';
+        if ($import->getStudentsCreatedCount() > 0) {
+            $message .= ' ' . $import->getStudentsCreatedCount() . ' new student(s) were auto-created — please update their birth date and email under Edit Student.';
+        }
+
+        return redirect()->route('registrar.students.index')
+                         ->with('success', $message);
     }
 }

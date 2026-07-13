@@ -15,7 +15,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     </head>
-    <body class="font-sans antialiased" style="background-color:#f1f5f9;" style="overflow-y:auto;">
+    <body class="font-sans antialiased" style="background-color:#f1f5f9;overflow-y:auto;">
         <script>
             // Apply margin before paint — zero flicker
             document.documentElement.style.setProperty(

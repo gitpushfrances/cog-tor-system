@@ -139,48 +139,7 @@ html, body { height: 100%; }
 
         @endif
 
-        @if(auth()->user()->hasRole('head_of_department'))
-            <a href="{{ route('head_of_department.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-gauge-high sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">Dashboard</span>
-            </a>
-            <a href="{{ route('head_of_department.students.index') }}" title="Students"
-               class="sdb-link {{ request()->routeIs('head_of_department.students.*') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-user-graduate sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">Students</span>
-            </a>
-        @endif
-            <a href="{{ route('head_of_department.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('head_of_department.dashboard') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-gauge-high sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">Dashboard</span>
-            </a>
-            <a href="{{ route('head_of_department.students.index') }}" title="Students"
-               class="sdb-link {{ request()->routeIs('head_of_department.students.*') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-user-graduate sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">Students</span>
-            </a>
-        @endif
 
-        @if(auth()->user()->hasRole('faculty'))
-            <a href="{{ route('faculty.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('faculty.dashboard') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-gauge-high sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">Dashboard</span>
-            </a>
-            <a href="{{ route('faculty.subjects') }}" title="My Subjects"
-               class="sdb-link {{ request()->routeIs('faculty.subjects*') ? 'sdb-active' : '' }}"
-               :class="collapsed ? 'sdb-collapsed' : ''">
-                <i class="fa-solid fa-chalkboard-user sdb-icon"></i>
-                <span x-show="!collapsed" class="sdb-label">My Subjects</span>
-            </a>
-        @endif
 
         @if(auth()->user()->hasRole('registrar'))
             <a href="{{ route('registrar.dashboard') }}" title="Dashboard"

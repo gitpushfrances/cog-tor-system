@@ -112,6 +112,8 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/tor/{tor}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadTor'])->name('tor.download');
     Route::get('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGradesForm'])->name('encode-grades');
     Route::post('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGrades'])->name('encode-grades.store');
+    Route::get('/students/{student}/grade-history', [App\Http\Controllers\Registrar\RegistrarController::class, 'studentGradeHistory'])->name('students.grade-history');
+    Route::post('/students/{student}/quick-grade', [App\Http\Controllers\Registrar\RegistrarController::class, 'quickEncodeGrade'])->name('students.quick-grade');
 
     // Student Management
     Route::get('/students', [App\Http\Controllers\Registrar\StudentController::class, 'index'])->name('students.index');
@@ -130,6 +132,8 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
     Route::get('/excel/export-students', [App\Http\Controllers\Registrar\ExcelController::class, 'exportStudents'])->name('excel.export-students');
     Route::post('/excel/import-students', [App\Http\Controllers\Registrar\ExcelController::class, 'importStudents'])->name('excel.import-students');
+    Route::get('/excel/masterlist-template', [App\Http\Controllers\Registrar\ExcelController::class, 'masterlistTemplate'])->name('excel.masterlist-template');
+    Route::post('/excel/masterlist-import', [App\Http\Controllers\Registrar\ExcelController::class, 'importMasterlist'])->name('excel.masterlist-import');
     Route::get('/documents', [App\Http\Controllers\Registrar\DocumentController::class, 'documentsIndex'])->name('documents.index');
     Route::get('/cog/{cog}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewCog'])->name('cog.preview');
     Route::get('/tor/{tor}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewTor'])->name('tor.preview');

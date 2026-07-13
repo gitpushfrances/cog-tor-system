@@ -28,14 +28,18 @@
                 <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">Finalized Grades</div>
                 <div style="font-size:2rem;font-weight:700;color:#059669;">{{ $stats['finalized_grades'] }}</div>
             </div>
-            <div style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">COG Generated</div>
+            <a href="{{ route('registrar.documents.index', ['type' => 'cog']) }}"
+               style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-decoration:none;display:block;transition:border-color 0.15s;"
+               onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2d9c8'">
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">COG Generated <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;"></i></div>
                 <div style="font-size:2rem;font-weight:700;color:#2563eb;">{{ $stats['cog_generated'] }}</div>
-            </div>
-            <div style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">TOR Generated</div>
+            </a>
+            <a href="{{ route('registrar.documents.index', ['type' => 'tor']) }}"
+               style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-decoration:none;display:block;transition:border-color 0.15s;"
+               onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#e2d9c8'">
+                <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">TOR Generated <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;"></i></div>
                 <div style="font-size:2rem;font-weight:700;color:#7c3aed;">{{ $stats['tor_generated'] }}</div>
-            </div>
+            </a>
         </div>
 
         {{-- Tabs --}}

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Registrar;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Course;
+use App\Models\Semester;
 use Illuminate\Http\Request;
 
 class StudentController extends Controller

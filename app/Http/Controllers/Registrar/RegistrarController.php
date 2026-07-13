@@ -86,6 +86,9 @@ class RegistrarController extends Controller
         $selectedDepartment = $request->input('department_id');
         $selectedCourse     = $request->input('course_id');
         $selectedStudent    = $request->input('student_id');
+        $search             = $request->input('search');
+        $targetSemesterHint = $request->input('target_semester');
+        $selectedYearLevel  = $request->input('year_level');
 
         $semesters = $selectedSchoolYear
             ? Semester::where('school_year_id', $selectedSchoolYear)
@@ -94,34 +97,58 @@ class RegistrarController extends Controller
                 ->get()
             : collect();
 
-        $courses = $selectedDepartment
-            ? Course::where('department_id', $selectedDepartment)->active()->orderBy('name')->get()
-            : collect();
+        $courses = Course::active()
+            ->when($selectedDepartment, fn($q) => $q->where('department_id', $selectedDepartment))
+            ->orderBy('name')
+            ->get();
 
         $subjects  = collect();
-        $students  = collect();
+        $yearLevels = collect();
         $existingGrades = collect();
         $selectedStudentModel = null;
         $selectedSemesterModel = null;
 
-        if ($selectedCourse && $selectedSemester) {
+        if ($selectedCourse) {
+            $yearLevels = Subject::where('course_id', $selectedCourse)
+                ->active()
+                ->distinct()
+                ->orderBy('year_level')
+                ->pluck('year_level');
+        }
+
+        if ($selectedCourse && $selectedSemester && $selectedYearLevel) {
             $selectedSemesterModel = Semester::find($selectedSemester);
 
             $subjects = Subject::where('course_id', $selectedCourse)
                 ->where('semester', $selectedSemesterModel->semester_name ?? '')
+                ->where('year_level', $selectedYearLevel)
                 ->active()
                 ->orderBy('name')
                 ->get();
+        } elseif ($selectedSemester) {
+            $selectedSemesterModel = Semester::find($selectedSemester);
+        }
 
-            $students = Student::where('course_id', $selectedCourse)
-                ->active()
-                ->orderBy('last_name')
-                ->get();
+        // Student list loads independently — filters just narrow it, never gate it.
+        $students = Student::with('course.department')
+            ->active()
+            ->when($selectedDepartment, fn($q) => $q->whereHas('course', fn($q) =>
+                $q->where('department_id', $selectedDepartment)))
+            ->when($selectedCourse, fn($q) => $q->where('course_id', $selectedCourse))
+            ->when($search, fn($q) => $q->where(function ($q) use ($search) {
+                $q->where('first_name', 'like', "%{$search}%")
+                  ->orWhere('last_name', 'like', "%{$search}%")
+                  ->orWhere('student_number', 'like', "%{$search}%");
+            }))
+            ->orderBy('last_name')
+            ->paginate(20)
+            ->withQueryString();
+
+        if ($selectedStudent) {
+            $selectedStudentModel = Student::find($selectedStudent);
         }
 
         if ($selectedStudent && $selectedSemester) {
-            $selectedStudentModel = Student::find($selectedStudent);
-
             $existingGrades = Enrollment::with(['grade', 'subject'])
                 ->where('student_id', $selectedStudent)
                 ->where('semester_id', $selectedSemester)
@@ -131,11 +158,142 @@ class RegistrarController extends Controller
 
         return view('registrar.encode-grades', compact(
             'schoolYears', 'departments', 'semesters', 'courses',
-            'subjects', 'students', 'existingGrades',
+            'subjects', 'yearLevels', 'students', 'existingGrades',
             'selectedSchoolYear', 'selectedSemester', 'selectedDepartment',
             'selectedCourse', 'selectedStudent', 'selectedStudentModel',
-            'selectedSemesterModel'
+            'selectedSemesterModel', 'search', 'targetSemesterHint', 'selectedYearLevel'
         ));
+    }
+
+    public function studentGradeHistory(Student $student)
+    {
+        $student->load('course.department');
+
+        $subjects = Subject::where('course_id', $student->course_id)
+            ->active()
+            ->orderBy('year_level')
+            ->orderBy('semester')
+            ->orderBy('name')
+            ->get();
+
+        $enrollmentsBySubject = Enrollment::with('grade')
+            ->where('student_id', $student->id)
+            ->get()
+            ->keyBy('subject_id');
+
+        $gradeIds = $enrollmentsBySubject->pluck('grade.id')->filter()->values();
+
+        $submissionsByGradeId = GradeSubmission::whereIn('grade_id', $gradeIds)
+            ->get()
+            ->keyBy('grade_id');
+
+        $userLookup = \App\Models\User::whereIn(
+            'id',
+            $submissionsByGradeId->pluck('finalized_by')->filter()->unique()
+        )->get(['id', 'name', 'email'])->keyBy('id');
+
+        $rows = $subjects->map(function ($subject) use ($enrollmentsBySubject, $submissionsByGradeId, $userLookup) {
+            $enrollment = $enrollmentsBySubject->get($subject->id);
+            $grade = $enrollment?->grade;
+            $submission = $grade ? $submissionsByGradeId->get($grade->id) : null;
+            $encoder = $submission ? $userLookup->get($submission->finalized_by) : null;
+
+            return [
+                'subject_id'    => $subject->id,
+                'year_level'    => $subject->year_level,
+                'semester'      => $subject->semester,
+                'code'          => $subject->code,
+                'subject'       => $subject->name,
+                'units'         => $subject->units,
+                'grade'         => $grade?->grade !== null ? number_format($grade->grade, 2) : null,
+                'status'        => $grade?->status,
+                'encoded'       => (bool) $grade,
+                'encoded_by'    => $encoder?->name,
+                'encoded_email' => $encoder?->email,
+                'encoded_at'    => $submission?->finalized_at?->format('M d, Y g:i A'),
+            ];
+        });
+
+        return response()->json([
+            'name'       => $student->getFullName(),
+            'number'     => $student->student_number,
+            'student_id' => $student->id,
+            'course_id'  => $student->course_id,
+            'course'     => $student->course?->code,
+            'department' => $student->course?->department?->name,
+            'rows'       => $rows,
+        ]);
+    }
+    public function quickEncodeGrade(Request $request, Student $student)
+    {
+        $request->validate([
+            'subject_id' => 'required|exists:subjects,id',
+            'grade'      => 'required|numeric|min:1.00|max:5.00',
+        ]);
+
+        $subject = Subject::findOrFail($request->input('subject_id'));
+
+        $schoolYear = SchoolYear::where('status', 'active')->first();
+        if (!$schoolYear) {
+            return response()->json(['error' => 'No active school year is configured.'], 422);
+        }
+
+        $semester = Semester::where('school_year_id', $schoolYear->id)
+            ->where('semester_name', $subject->semester)
+            ->first();
+
+        if (!$semester) {
+            return response()->json([
+                'error' => "No semester named \"{$subject->semester}\" exists under {$schoolYear->year_code}. Set it up first, or encode this one manually via the filter above."
+            ], 422);
+        }
+
+        $registrarId = auth()->id();
+
+        $enrollment = Enrollment::updateOrCreate(
+            [
+                'student_id'  => $student->id,
+                'subject_id'  => $subject->id,
+                'semester_id' => $semester->id,
+            ],
+            [
+                'enrolled_by'     => $registrarId,
+                'enrollment_date' => now()->toDateString(),
+                'status'          => 'enrolled',
+            ]
+        );
+
+        $grade = Grade::updateOrCreate(
+            ['enrollment_id' => $enrollment->id],
+            [
+                'faculty_id' => null,
+                'grade'      => $request->input('grade'),
+                'status'     => 'finalized',
+            ]
+        );
+
+        GradeSubmission::updateOrCreate(
+            ['grade_id' => $grade->id],
+            [
+                'submitted_by' => $registrarId,
+                'reviewed_by'  => $registrarId,
+                'finalized_by' => $registrarId,
+                'submitted_at' => now(),
+                'reviewed_at'  => now(),
+                'finalized_at' => now(),
+                'dean_action'  => 'approved_by_head_of_department',
+                'dean_remarks' => 'Direct entry by Registrar',
+            ]
+        );
+
+        return response()->json([
+            'success'       => true,
+            'grade'         => number_format($grade->grade, 2),
+            'status'        => $grade->status,
+            'encoded_by'    => auth()->user()->name,
+            'encoded_email' => auth()->user()->email,
+            'encoded_at'    => now()->format('M d, Y g:i A'),
+        ]);
     }
 
     public function encodeGrades(Request $request)

@@ -6,22 +6,18 @@
                 <p class="mt-1 text-sm text-gray-500">Manage all students</p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('registrar.excel.student-template') }}"
+                <a href="{{ route('registrar.excel.masterlist-template') }}"
                    class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                    <i class="fas fa-download"></i> Download Template
+                    <i class="fas fa-download"></i> Download Masterlist
                 </a>
-                <form action="{{ route('registrar.excel.import-students') }}" method="POST" enctype="multipart/form-data" class="inline">
+                <form action="{{ route('registrar.excel.masterlist-import') }}" method="POST" enctype="multipart/form-data" class="inline">
                     @csrf
                     <label class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
-                        <i class="fas fa-file-import"></i> Import Excel
-                        <input type="file" name="file" accept=".xlsx,.xls,.csv" class="hidden"
+                        <i class="fas fa-file-import"></i> Import Masterlist
+                        <input type="file" name="file" accept=".xlsx,.xls" class="hidden"
                                onchange="this.form.submit()">
                     </label>
                 </form>
-                <a href="{{ route('registrar.excel.export-students') }}"
-                   class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                    <i class="fas fa-file-export"></i> Export Excel
-                </a>
                 <a href="{{ route('registrar.students.create') }}"
                    class="inline-flex items-center px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
                     + Add Student
@@ -71,11 +67,13 @@
                     </select>
 
                     <select name="year_level" class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        <option value="">All Year Levels</option>
-                        @for($i = 1; $i <= 5; $i++)
-                            <option value="{{ $i }}" {{ request('year_level') == $i ? 'selected' : '' }}>Year {{ $i }}</option>
-                        @endfor
-                    </select>
+                            <option value="">All Year Levels</option>
+                            @for($i = 1; $i <= 5; $i++)
+                                <option value="{{ $i }}" {{ request('year_level') == $i ? 'selected' : '' }}>Year {{ $i }}</option>
+                            @endfor
+                        </select>
+
+
 
                     <select name="status" class="px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                         <option value="">All Status</option>
