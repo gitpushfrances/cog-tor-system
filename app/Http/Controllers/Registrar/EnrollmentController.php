@@ -11,14 +11,48 @@ use Illuminate\Http\Request;
 
 class EnrollmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $activeSemester = Semester::active()->first();
 
-        $enrollments = Enrollment::with(['student', 'subject.course', 'semester'])
-            ->when($activeSemester, fn($q) => $q->where('semester_id', $activeSemester->id))
-            ->latest()
-            ->paginate(20);
+        $dateFilter = $request->get('date_filter', 'all');
+        $groupBy    = $request->get('group_by', 'none');
+        $dateFrom   = $request->get('date_from');
+        $dateTo     = $request->get('date_to');
+
+        $query = Enrollment::with(['student.course.department', 'subject.course', 'semester'])
+            ->when($activeSemester, fn($q) => $q->where('semester_id', $activeSemester->id));
+
+        if ($dateFilter === 'today') {
+            $query->whereDate('enrollment_date', today());
+        } elseif ($dateFilter === 'week') {
+            $query->where('enrollment_date', '>=', now()->subWeek());
+        } elseif ($dateFilter === 'month') {
+            $query->where('enrollment_date', '>=', now()->subMonth());
+        } elseif ($dateFilter === 'custom') {
+            if ($dateFrom) {
+                $query->whereDate('enrollment_date', '>=', $dateFrom);
+            }
+            if ($dateTo) {
+                $query->whereDate('enrollment_date', '<=', $dateTo);
+            }
+        }
+
+        $grouped = null;
+        $enrollments = null;
+
+        if ($groupBy !== 'none') {
+            $all = $query->latest('enrollment_date')->get();
+
+            $grouped = match ($groupBy) {
+                'subject'    => $all->groupBy(fn($e) => $e->subject->code . ' — ' . $e->subject->name),
+                'department' => $all->groupBy(fn($e) => $e->student->course->department->name ?? 'Unassigned'),
+                'year_level' => $all->groupBy(fn($e) => 'Year ' . $e->student->year_level),
+                default      => null,
+            };
+        } else {
+            $enrollments = $query->latest('enrollment_date')->paginate(20)->withQueryString();
+        }
 
         $students = Student::active()->orderBy('last_name')->get();
         $subjects = Subject::active()->orderBy('code')->get();
@@ -28,7 +62,10 @@ class EnrollmentController extends Controller
             ->groupBy('student_id')
             ->map(fn($rows) => $rows->pluck('subject_id')->toArray());
 
-        return view('registrar.enrollments.index', compact('enrollments', 'students', 'subjects', 'activeSemester', 'enrolledMap'));
+        return view('registrar.enrollments.index', compact(
+            'enrollments', 'grouped', 'students', 'subjects', 'activeSemester', 'enrolledMap',
+            'dateFilter', 'groupBy', 'dateFrom', 'dateTo'
+        ));
     }
 
     public function store(Request $request)
@@ -41,29 +78,32 @@ class EnrollmentController extends Controller
         $activeSemester = Semester::active()->firstOrFail();
 
         $subject = Subject::findOrFail($request->subject_id);
+        $student = Student::findOrFail($request->student_id);
 
-        try {
-            [$enrollment, $created] = Enrollment::firstOrCreate(
-                [
-                    'student_id'  => $request->student_id,
-                    'subject_id'  => $subject->id,
-                    'semester_id' => $activeSemester->id,
-                ],
-                [
-                    'enrolled_by'     => auth()->id(),
-                    'enrollment_date' => now(),
-                    'status'          => 'enrolled',
-                ]
-            );
-        } catch (\Illuminate\Database\QueryException $e) {
-            return back()->with('error', 'Student is already enrolled in this subject for the active semester.');
+        $alreadyEnrolled = Enrollment::where([
+            'student_id'  => $student->id,
+            'subject_id'  => $subject->id,
+            'semester_id' => $activeSemester->id,
+        ])->exists();
+
+        if ($alreadyEnrolled) {
+            return back()
+                ->withInput(['student_id' => $student->id])
+                ->with('error', 'Student is already enrolled in this subject for the active semester.');
         }
 
-        if (!$created) {
-            return back()->with('error', 'Student is already enrolled in this subject for the active semester.');
-        }
+        Enrollment::create([
+            'student_id'      => $student->id,
+            'subject_id'      => $subject->id,
+            'semester_id'     => $activeSemester->id,
+            'enrolled_by'     => auth()->id(),
+            'enrollment_date' => now(),
+            'status'          => 'enrolled',
+        ]);
 
-        return back()->with('success', 'Student enrolled successfully.');
+        return back()
+            ->withInput(['student_id' => $student->id])
+            ->with('success', "{$student->getFullName()} has been enrolled in {$subject->code} — {$subject->name} for {$activeSemester->semester_name}.");
     }
 
     public function destroy(Enrollment $enrollment)

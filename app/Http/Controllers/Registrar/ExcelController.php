@@ -97,20 +97,12 @@ class ExcelController extends Controller
         $import = new MasterlistImport();
         Excel::import($import, $request->file('file'));
 
-        $errors = $import->getErrors();
-
-        if (!empty($errors)) {
-            return redirect()->route('registrar.students.index')
-                ->with('import_errors', $errors)
-                ->with('warning', count($errors) . ' row(s) had issues.');
-        }
-
-        $message = $import->getImportedCount() . ' grade(s) imported successfully.';
-        if ($import->getStudentsCreatedCount() > 0) {
-            $message .= ' ' . $import->getStudentsCreatedCount() . ' new student(s) were auto-created — please update their birth date and email under Edit Student.';
-        }
-
         return redirect()->route('registrar.students.index')
-                         ->with('success', $message);
+            ->with('import_report', [
+                'imported'  => $import->getImportedCount(),
+                'successes' => $import->getSuccesses(),
+                'warnings'  => $import->getWarnings(),
+                'errors'    => $import->getErrors(),
+            ]);
     }
 }

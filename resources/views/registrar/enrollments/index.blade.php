@@ -43,7 +43,7 @@
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
                         <option value="">Select student...</option>
                         @foreach($students as $student)
-                            <option value="{{ $student->id }}">{{ $student->getFullName() }} — {{ $student->student_number }}</option>
+                            <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>{{ $student->getFullName() }} — {{ $student->student_number }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -75,71 +75,130 @@
 
         {{-- Enrollments Table --}}
         <div class="overflow-hidden bg-white border border-gray-200 shadow-sm rounded-xl">
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-100">
                 <h3 class="text-sm font-semibold text-gray-700">
                     Enrollments
-                    <span class="ml-2 text-xs font-normal text-gray-400">{{ $enrollments->total() }} total</span>
+                    <span class="ml-2 text-xs font-normal text-gray-400">
+                        {{ $grouped ? $grouped->flatten()->count() : $enrollments->total() }} total
+                    </span>
                 </h3>
+
+                <form method="GET" action="{{ route('registrar.enrollments.index') }}" id="enrollment-filters" class="flex flex-wrap items-center gap-2">
+                    <select name="date_filter" id="date-filter-select" onchange="handleDateFilterChange(this)"
+                        class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <option value="all" {{ $dateFilter === 'all' ? 'selected' : '' }}>All Dates</option>
+                        <option value="today" {{ $dateFilter === 'today' ? 'selected' : '' }}>Today</option>
+                        <option value="week" {{ $dateFilter === 'week' ? 'selected' : '' }}>Past Week</option>
+                        <option value="month" {{ $dateFilter === 'month' ? 'selected' : '' }}>Past Month</option>
+                        <option value="custom" {{ $dateFilter === 'custom' ? 'selected' : '' }}>Custom Range</option>
+                    </select>
+
+                    <span id="custom-range-fields" class="flex items-center gap-1" style="{{ $dateFilter === 'custom' ? '' : 'display:none;' }}">
+                        <input type="date" name="date_from" value="{{ $dateFrom }}"
+                            class="px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <span class="text-xs text-gray-400">to</span>
+                        <input type="date" name="date_to" value="{{ $dateTo }}"
+                            class="px-2 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <button type="submit"
+                            class="px-3 py-1.5 text-xs font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800">
+                            Apply
+                        </button>
+                    </span>
+
+                    <select name="group_by" onchange="this.form.submit()"
+                        class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                        <option value="none" {{ $groupBy === 'none' ? 'selected' : '' }}>No Grouping</option>
+                        <option value="subject" {{ $groupBy === 'subject' ? 'selected' : '' }}>Group by Subject</option>
+                        <option value="department" {{ $groupBy === 'department' ? 'selected' : '' }}>Group by Department</option>
+                        <option value="year_level" {{ $groupBy === 'year_level' ? 'selected' : '' }}>Group by Year Level</option>
+                    </select>
+                </form>
             </div>
 
-            @if($enrollments->isEmpty())
+            @php
+                $isEmpty = $grouped ? $grouped->isEmpty() : $enrollments->isEmpty();
+            @endphp
+
+            @if($isEmpty)
                 <div class="px-6 py-12 text-sm text-center text-gray-400">
                     <i class="block mb-2 text-2xl fa-solid fa-clipboard-list"></i>
-                    No enrollments found for the active semester.
+                    No enrollments found for the selected filters.
                 </div>
             @else
-                <table class="w-full text-sm">
-                    <thead class="text-xs tracking-wider text-gray-500 uppercase bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left">Student</th>
-                            <th class="px-6 py-3 text-left">Subject</th>
-                            <th class="px-6 py-3 text-left">Semester</th>
-                            <th class="px-6 py-3 text-left">Status</th>
-                            <th class="px-6 py-3 text-left">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @foreach($enrollments as $enrollment)
-                        <tr class="transition hover:bg-gray-50">
-                            <td class="px-6 py-3">
-                                <div class="font-medium text-gray-800">{{ $enrollment->student->getFullName() }}</div>
-                                <div class="text-xs text-gray-400">{{ $enrollment->student->student_number }}</div>
-                            </td>
-                            <td class="px-6 py-3">
-                                <div class="font-medium text-gray-800">{{ $enrollment->subject->code }}</div>
-                                <div class="text-xs text-gray-400">{{ $enrollment->subject->name }}</div>
-                            </td>
-                            <td class="px-6 py-3 text-gray-600">{{ $enrollment->semester->semester_name }}</td>
-                            <td class="px-6 py-3">
-                                <span class="px-2 py-1 rounded-full text-xs font-semibold
-                                    {{ $enrollment->status === 'enrolled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
-                                    {{ ucfirst($enrollment->status) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-3">
-                                @if(!$enrollment->grade()->exists())
-                                <form id="delete-enrollment-{{ $enrollment->id }}"
-                                    method="POST" action="{{ route('registrar.enrollments.destroy', $enrollment) }}">
-                                    @csrf @method('DELETE')
-                                    <button type="button"
-                                        onclick="confirmRemoveEnrollment({{ $enrollment->id }}, '{{ addslashes($enrollment->student->getFullName()) }}', '{{ addslashes($enrollment->subject->code) }}')"
-                                        style="background:transparent;color:#ef4444;font-size:0.75rem;font-weight:500;border:none;cursor:pointer;padding:0;transition:color 0.15s;"
-                                        onmouseover="this.style.color='#b91c1c'"
-                                        onmouseout="this.style.color='#ef4444'">
-                                        Remove
-                                    </button>
-                                </form>
-                                @else
-                                    <span class="text-xs text-gray-400">Has grade</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                @php $rowsToRender = $grouped ? $grouped : ['' => $enrollments]; @endphp
+
+                @foreach($rowsToRender as $groupLabel => $rows)
+                    @if($groupLabel !== '')
+                        <div class="flex items-center gap-2 px-6 py-3 text-xs font-bold tracking-wide uppercase border-t border-b"
+                             style="background:#fef3e2; border-color:#f5d9a8; color:#92610c;">
+                            <i class="fa-solid fa-layer-group"></i>
+                            {{ $groupLabel }}
+                            <span class="px-2 py-0.5 text-xs font-semibold text-white rounded-full" style="background:#c9a84c;">{{ $rows->count() }}</span>
+                        </div>
+                    @endif
+
+                    <table class="w-full text-sm">
+                        @if($loop->first)
+                        <thead class="text-xs tracking-wider text-gray-500 uppercase bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left">Student</th>
+                                <th class="px-6 py-3 text-left">Subject</th>
+                                <th class="px-6 py-3 text-left">Semester</th>
+                                <th class="px-6 py-3 text-left">Enrolled On</th>
+                                <th class="px-6 py-3 text-left">Status</th>
+                                <th class="px-6 py-3 text-left">Actions</th>
+                            </tr>
+                        </thead>
+                        @endif
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($rows as $enrollment)
+                            <tr class="transition hover:bg-gray-50">
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-gray-800">{{ $enrollment->student->getFullName() }}</div>
+                                    <div class="text-xs text-gray-400">{{ $enrollment->student->student_number }}</div>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <div class="font-medium text-gray-800">{{ $enrollment->subject->code }}</div>
+                                    <div class="text-xs text-gray-400">{{ $enrollment->subject->name }}</div>
+                                </td>
+                                <td class="px-6 py-3 text-gray-600">{{ $enrollment->semester->semester_name }}</td>
+                                <td class="px-6 py-3 text-xs text-gray-500">
+                                    {{ $enrollment->enrollment_date?->format('M d, Y') ?? '—' }}
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="px-2 py-1 rounded-full text-xs font-semibold
+                                        {{ $enrollment->status === 'enrolled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                        {{ ucfirst($enrollment->status) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-3">
+                                    @if(!$enrollment->grade()->exists())
+                                    <form id="delete-enrollment-{{ $enrollment->id }}"
+                                        method="POST" action="{{ route('registrar.enrollments.destroy', $enrollment) }}">
+                                        @csrf @method('DELETE')
+                                        <button type="button"
+                                            onclick="confirmRemoveEnrollment({{ $enrollment->id }}, '{{ addslashes($enrollment->student->getFullName()) }}', '{{ addslashes($enrollment->subject->code) }}')"
+                                            style="background:transparent;color:#ef4444;font-size:0.75rem;font-weight:500;border:none;cursor:pointer;padding:0;transition:color 0.15s;"
+                                            onmouseover="this.style.color='#b91c1c'"
+                                            onmouseout="this.style.color='#ef4444'">
+                                            Remove
+                                        </button>
+                                    </form>
+                                    @else
+                                        <span class="text-xs text-gray-400">Has grade</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                @endforeach
+
+                @if(!$grouped)
                 <div class="px-6 py-4 border-t border-gray-100">
                     {{ $enrollments->links() }}
                 </div>
+                @endif
             @endif
         </div>
 
@@ -177,6 +236,16 @@
     });
 
     if (studentSelect.value) studentSelect.dispatchEvent(new Event('change'));
+
+    function handleDateFilterChange(select) {
+        const customFields = document.getElementById('custom-range-fields');
+        if (select.value === 'custom') {
+            customFields.style.display = 'flex';
+        } else {
+            customFields.style.display = 'none';
+            select.form.submit();
+        }
+    }
 
     function confirmRemoveEnrollment(id, studentName, subjectCode) {
         Swal.fire({

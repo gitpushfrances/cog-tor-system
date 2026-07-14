@@ -5,12 +5,12 @@ namespace App\Imports;
 use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\Grade;
+use App\Models\GradeSubmission;
 use App\Models\SchoolYear;
 use App\Models\Semester;
 use App\Models\Student;
 use App\Models\Subject;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 
 class MasterlistImport implements ToCollection
@@ -25,9 +25,11 @@ class MasterlistImport implements ToCollection
     protected int $headerRow = 7;  // 0-indexed row 8 — Subject Code row
     protected int $sampleRow = 9;  // 0-indexed row 10
 
+    protected array $successes = [];
+    protected array $warnings = [];
     protected array $errors = [];
     protected int $importedCount = 0;
-    protected int $studentsCreatedCount = 0;
+    protected int $studentsCreatedCount = 0; // always 0 now — students must pre-exist; kept for controller message compatibility
 
     protected ?Course $course = null;
     protected ?int $yearLevel = null;
@@ -42,6 +44,20 @@ class MasterlistImport implements ToCollection
 
     public function collection(Collection $rows)
     {
+        // The template workbook ships with hidden lookup sheets (CourseLookup,
+        // SubjectLookup) that back the dropdown validation in the Worksheet tab.
+        // Laravel Excel's ToCollection runs collection() once per sheet, so without
+        // this guard those lookup sheets would each report a false
+        // "course code not selected" error. Only the actual data sheet has real
+        // course/year/school-year values in the expected header cells.
+        $courseCodeProbe = trim((string) ($rows[2][2] ?? ''));
+        $isLookupSheet = $courseCodeProbe === '' && $rows->contains(function ($row) {
+            return collect($row)->contains(fn ($cell) => trim((string) $cell) !== '');
+        });
+        if ($isLookupSheet) {
+            return;
+        }
+
         $courseCode   = trim((string) ($rows[2][2] ?? ''));
         $yearLevelRaw = trim((string) ($rows[2][7] ?? ''));
         $schoolYear   = trim((string) ($rows[4][2] ?? ''));
@@ -91,95 +107,63 @@ class MasterlistImport implements ToCollection
             $semester = $isFirstSem ? $this->firstSemester : $this->secondSemester;
 
             if (!$semester) {
-                $this->errors[] = "No {$semesterName} found for School Year {$schoolYear} — subject \"{$code}\" skipped.";
+                $this->errors[] = "No {$semesterName} found for School Year {$schoolYear} — subject \"{$code}\" column skipped.";
                 continue;
             }
 
-            $subject = Subject::firstOrCreate(
-                [
-                    'course_id'  => $this->course->id,
-                    'code'       => $code,
-                    'year_level' => $this->yearLevel,
-                    'semester'   => $semesterName,
-                ],
-                [
-                    'name'   => $code,
-                    'units'  => 3,
-                    'status' => 'active',
-                ]
-            );
+            // Subject must already exist in the catalog — do not auto-create.
+            $subject = Subject::where([
+                'course_id'  => $this->course->id,
+                'code'       => $code,
+                'year_level' => $this->yearLevel,
+                'semester'   => $semesterName,
+            ])->first();
+
+            if (!$subject) {
+                $this->errors[] = "Subject \"{$code}\" was not found for {$this->course->code} Year {$this->yearLevel}, {$semesterName} — check the code and that it's under the correct semester column. Column skipped.";
+                continue;
+            }
 
             $subjectByCol[$c] = ['subject' => $subject, 'semester' => $semester];
         }
 
         if (empty($subjectByCol)) {
-            $this->errors[] = 'No subject codes found in the column headers — nothing to import.';
+            $this->errors[] = 'No valid subject codes found in the column headers — nothing to import.';
             return;
         }
 
-        // --- Walk student rows, tracking MALE/FEMALE so we can infer gender for auto-created students ---
-        $currentGender = null;
-
+        // --- Walk student rows, skipping MALE/FEMALE group header rows and the sample row ---
         foreach ($rows as $index => $row) {
             if ($index <= $this->headerRow || $index === $this->sampleRow) {
                 continue;
             }
 
             $colA = strtoupper(trim((string) ($row[0] ?? '')));
-            if ($colA === 'MALE') {
-                $currentGender = 'Male';
-                continue;
-            }
-            if ($colA === 'FEMALE') {
-                $currentGender = 'Female';
-                continue;
-            }
-            if ($colA === 'SAMPLE') {
+            if ($colA === 'MALE' || $colA === 'FEMALE' || $colA === 'SAMPLE') {
                 continue;
             }
 
             $studentNumber = trim((string) ($row[1] ?? ''));
-            $studentName   = Str::title(trim((string) ($row[$this->nameCol] ?? '')));
 
-            if ($studentNumber === '' && $studentName === '') {
+            if ($studentNumber === '') {
                 continue;
             }
 
-            $student = null;
-            if ($studentNumber !== '') {
-                $student = Student::where('student_number', $studentNumber)->first();
-            }
-            if (!$student && $studentName !== '') {
-                $student = Student::where('course_id', $this->course->id)
-                    ->where('year_level', $this->yearLevel)
-                    ->get()
-                    ->first(fn($s) => strcasecmp($s->getFullName(), $studentName) === 0);
-            }
+            $student = Student::where('student_number', $studentNumber)->first();
 
-            // --- Auto-create the student if not found, instead of skipping ---
             if (!$student) {
-                if ($studentNumber === '' || $studentName === '') {
-                    $this->errors[] = 'Row ' . ($index + 1) . ': missing Student No. or Name — cannot auto-create, skipped.';
-                    continue;
-                }
+                $this->errors[] = 'Row ' . ($index + 1) . ": Student No. \"{$studentNumber}\" was not found. Add the student via Student Management first, then re-import — row skipped.";
+                continue;
+            }
 
-                [$firstName, $middleName, $lastName] = $this->parseName($studentName);
+            if ((int) $student->year_level !== $this->yearLevel) {
+                $this->errors[] = 'Row ' . ($index + 1) . ": {$student->getFullName()} ({$studentNumber}) is Year {$student->year_level} on record, but the sheet declares Year Level {$this->yearLevel} — row skipped entirely.";
+                continue;
+            }
 
-                $student = Student::create([
-                    'student_number' => $studentNumber,
-                    'course_id'      => $this->course->id,
-                    'first_name'     => $firstName,
-                    'middle_name'    => $middleName,
-                    'last_name'      => $lastName,
-                    'birth_date'     => '2000-01-01', // placeholder — Registrar should correct via Edit Student
-                    'gender'         => $currentGender ?? 'Male',
-                    'email'          => Str::slug($studentNumber) . '@pending.cogtor.local', // placeholder, unique
-                    'year_level'     => $this->yearLevel,
-                    'student_type'   => 'Regular',
-                    'status'         => 'active',
-                ]);
-
-                $this->studentsCreatedCount++;
+            $sheetName = trim((string) ($row[$this->nameCol] ?? ''));
+            if ($sheetName !== '' && !$this->namesLikelyMatch($sheetName, $student->getFullName())) {
+                $this->warnings[] = 'Row ' . ($index + 1) . ": Name \"{$sheetName}\" does not match the system record \"{$student->getFullName()}\" for Student No. {$studentNumber} — please double-check this is the right student. Grade(s) were still imported using the Student No.";
             }
 
             foreach ($subjectByCol as $col => $info) {
@@ -187,55 +171,85 @@ class MasterlistImport implements ToCollection
                 if ($gradeVal === '' || !is_numeric($gradeVal)) {
                     continue;
                 }
-                $this->upsertGrade($student, $info['subject'], $info['semester'], (float) $gradeVal);
+
+                $enrollment = Enrollment::where([
+                    'student_id'  => $student->id,
+                    'subject_id'  => $info['subject']->id,
+                    'semester_id' => $info['semester']->id,
+                ])->first();
+
+                if (!$enrollment) {
+                    $this->errors[] = 'Row ' . ($index + 1) . ": {$student->getFullName()} ({$studentNumber}) is not enrolled in {$info['subject']->code} for {$info['semester']->semester_name} — enroll them first via Enrollment Management. Grade skipped.";
+                    continue;
+                }
+
+                $this->upsertGrade($enrollment, (float) $gradeVal);
+                $this->successes[] = 'Row ' . ($index + 1) . ": {$student->getFullName()} ({$studentNumber}) — {$info['subject']->code} ({$info['semester']->semester_name}): grade " . number_format((float) $gradeVal, 2) . ' imported.';
             }
         }
     }
 
-    protected function parseName(string $fullName): array
+    /**
+     * Loose, format-agnostic name check — see class-level notes in prior revisions.
+     * Only meant to catch a genuinely different person on the row, not exact formatting.
+     */
+    protected function namesLikelyMatch(string $sheetName, string $systemName): bool
     {
-        // Expected convention: "Lastname, Firstname M."
-        if (str_contains($fullName, ',')) {
-            [$last, $rest] = array_map('trim', explode(',', $fullName, 2));
-            $parts = preg_split('/\s+/', trim($rest));
-            $first = array_shift($parts) ?? $rest;
-            $middle = $parts ? implode(' ', $parts) : null;
-            return [$first, $middle, $last];
+        $tokenize = function (string $name) {
+            return collect(preg_split('/[\s,]+/', strtolower($name)))
+                ->map(fn ($w) => rtrim($w, '.'))
+                ->filter(fn ($w) => $w !== '');
+        };
+
+        $sheetTokens  = $tokenize($sheetName);
+        $systemTokens = $tokenize($systemName);
+
+        if ($sheetTokens->isEmpty() || $systemTokens->isEmpty()) {
+            return true;
         }
 
-        // Fallback: "Firstname Middle Lastname"
-        $parts = preg_split('/\s+/', trim($fullName));
-        $last = array_pop($parts) ?? $fullName;
-        $first = array_shift($parts) ?? $last;
-        $middle = $parts ? implode(' ', $parts) : null;
-        return [$first, $middle, $last];
+        return $sheetTokens->every(fn ($t) => $systemTokens->contains($t))
+            || $systemTokens->every(fn ($t) => $sheetTokens->contains($t));
     }
 
-    protected function upsertGrade(Student $student, Subject $subject, Semester $semester, float $gradeValue): void
+    protected function upsertGrade(Enrollment $enrollment, float $gradeValue): void
     {
-        $enrollment = Enrollment::firstOrCreate(
-            [
-                'student_id'  => $student->id,
-                'subject_id'  => $subject->id,
-                'semester_id' => $semester->id,
-            ],
-            [
-                'enrolled_by'     => auth()->id(),
-                'enrollment_date' => now(),
-                'status'          => 'enrolled',
-            ]
-        );
+        $registrarId = auth()->id();
 
-        Grade::updateOrCreate(
+        $grade = Grade::updateOrCreate(
             ['enrollment_id' => $enrollment->id],
             [
-                'faculty_id' => auth()->id(),
+                'faculty_id' => null,
                 'grade'      => $gradeValue,
                 'status'     => 'finalized',
             ]
         );
 
+        GradeSubmission::updateOrCreate(
+            ['grade_id' => $grade->id],
+            [
+                'submitted_by' => $registrarId,
+                'reviewed_by'  => $registrarId,
+                'finalized_by' => $registrarId,
+                'submitted_at' => now(),
+                'reviewed_at'  => now(),
+                'finalized_at' => now(),
+                'dean_action'  => 'approved_by_head_of_department',
+                'dean_remarks' => 'Bulk import via Masterlist',
+            ]
+        );
+
         $this->importedCount++;
+    }
+
+    public function getSuccesses(): array
+    {
+        return $this->successes;
+    }
+
+    public function getWarnings(): array
+    {
+        return $this->warnings;
     }
 
     public function getErrors(): array

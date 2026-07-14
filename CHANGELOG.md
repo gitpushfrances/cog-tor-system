@@ -658,6 +658,34 @@ Manual test checklists (Admin + Registrar) now written and ready to run — see 
 - [x] `resources/views/admin/backup/index.blade.php` — replaced plain `confirm()` on **Backup Now** with a SweetAlert2 confirm dialog followed by a `Swal.showLoading()` spinner modal that stays open until the full-page POST reloads with the result
 - [x] Hit Lesson #44 twice in the same file — `document.getElementById`/`addEventListener` and later the entire `Swal.fire`/`showCancelButton`/`isConfirmed`/`showLoading` block got lowercased on the way into the file via a `cat`/pipe write; both instances required a full block rewrite done directly in the code editor, not via terminal pipe
 
+### 13.13 Masterlist Import — Strict Subject Validation & Categorized Report Modal ✅ DONE
+**Trigger:** Manual testing of the Masterlist Import feature (bulk grade import via Excel) surfaced a silent-failure risk — a subject code typed under the wrong semester column, or a typo'd code, was being auto-created as a phantom/duplicate `Subject` row instead of being rejected.
+
+**Fixes applied to `app/Imports/MasterlistImport.php`:**
+- [x] Subject lookup made strict — `Subject::where([...])->first()` against `course_id` + `code` + `year_level` + `semester`, no more auto-create on miss. A column that doesn't resolve is skipped with a specific error naming the code, course, year, and semester checked.
+- [x] New row-level guard — a row is skipped entirely if the sheet's declared Year Level doesn't match the student's own `year_level` on record, checked before any subject columns are processed for that row.
+- [x] Results split into three buckets — `successes[]`, `warnings[]` (name mismatch, still imported), `errors[]` (skipped, with reason) — instead of one flat error list.
+- [x] **Blank/lookup-sheet guard fix:** the template workbook ships with hidden lookup sheets (`CourseLookup`, `SubjectLookup`) backing the dropdown validation on the data-entry sheet. `Maatwebsite\Excel`'s `ToCollection` runs `collection()` once per sheet, so these were each triggering a false "Course Code not selected" error. Root cause traced via `listWorksheetNames()` on the actual template file. Fixed by checking whether the expected header cell (course code) is empty while the sheet still has other content — if so, treat it as a non-data lookup sheet and skip silently, rather than guessing from "is the whole sheet blank."
+
+**New UI — categorized SweetAlert2 import report** (`resources/views/registrar/students/index.blade.php`):
+- [x] Session-flashed `import_report` (imported count + successes/warnings/errors arrays) rendered as a single SweetAlert2 modal on page load via a small `window.__importReport` data-island script + logic added to the existing `@push('scripts')` block — no new dependency, reuses SweetAlert2 already used elsewhere in the app.
+- [x] Iterated twice on visual design per feedback: v1 was flat color-coded lists; v2 added stat cards with counts; **final version** uses elevated white cards (border + shadow) with icon/count/subtitle per category, a dynamic header/icon based on outcome (Import Completed / Completed with Warnings / Import Failed / Nothing to Import), independently-scrollable sections per category (capped height, so one long list can't push others off-screen), and a scoped `<style>` block injected into the Swal `html` string (not Tailwind utility classes — dynamically-injected classes don't compile via the Tailwind CDN, see Lesson #40) so markup stays semantic instead of using inline styles on every element.
+- [x] Confirmed root-cause of a specific test-sheet failure during this work: sheet used `CS 101`/`CS 102`/`CS 301`, which are real subjects but belong to a *different course* (`course_id => 2`, not BSIT) and different year levels — not a bug, correct rejection behavior. Documented as a data/curriculum-entry issue, not a code issue.
+
+### 13.14 Enrollment Management — Bug Fixes & New Filters ✅ DONE
+**Trigger:** Manual testing of `registrar.enrollments.store` showed brand-new enrollments being incorrectly reported as "already enrolled."
+
+**Root cause — `Registrar/EnrollmentController.php`:**
+- [x] `store()` used `[$enrollment, $created] = Enrollment::firstOrCreate(...)` — **`firstOrCreate()` does not return a `[model, wasCreated]` tuple in Laravel**, it returns only the model. The destructuring assignment silently mis-assigned `$created`, which evaluated falsy regardless of whether a new row was actually inserted — meaning the row *was* being created correctly, but the response always claimed a duplicate. Fixed by replacing with an explicit `->where([...])->exists()` check before an explicit `Enrollment::create(...)` call — no tuple assumptions.
+- [x] Success message upgraded to name the actual student and subject (`"{$student->getFullName()} has been enrolled in {$subject->code} — {$subject->name} for {$activeSemester->semester_name}."`) instead of a generic "Student enrolled successfully." — closes a UX gap where the registrar couldn't tell who/what an enrollment confirmation was actually for.
+- [x] `store()` now calls `->withInput(['student_id' => $student->id])` on both the success and duplicate-error redirect paths, and `students/index`-style `old('student_id')` selection was added to the Student `<select>` in `enrollments/index.blade.php` — keeps the selected student in the dropdown after a redirect instead of resetting the form, letting a registrar enroll one student into multiple subjects back-to-back. The page's existing cascading JS (`if (studentSelect.value) studentSelect.dispatchEvent(new Event('change'))`) already handled re-triggering the Subject dropdown repopulation on load — no JS changes needed for this part.
+
+**New filters added to `EnrollmentController::index()` and `enrollments/index.blade.php`:**
+- [x] `date_filter` query param — `all` / `today` / `week` / `month` / `custom`, filtering on `enrollment_date`. Custom reveals two `<input type="date">` fields (`date_from`/`date_to`) with an explicit Apply button, since a date range can't sensibly auto-submit on every keystroke like the preset dropdown does.
+- [x] `group_by` query param — `none` / `subject` / `department` / `year_level`, using `Collection::groupBy()` on eager-loaded `student.course.department` / `subject` / `student.year_level`. Grouped view intentionally drops pagination (loads the full filtered set) since group-then-paginate doesn't compose cleanly — documented as a deliberate simplification, not a bug.
+- [x] Added an "Enrolled On" column to the enrollments table, showing `enrollment_date` regardless of filter state.
+- [x] Group section headers styled as a distinct amber banner (`#fef3e2` background, `#c9a84c` accent matching the existing Enroll button color) with an icon and pill count badge — first version blended into the table background and was hard to spot while scrolling; fixed after visual feedback.
+
 ### 13.10 🔔 Open Enhancement Request — COG/TOR Records Tracking Tab ⏳ NOT SCHEDULED
 Flagged during the July 2 session, not yet built:
 - [ ] No dedicated tab/section currently exists to view a **history/log of all previously generated COG and TOR documents**. Right now, COG/TOR generation is a one-off action reachable only from a student's Academic Profile page (`registrar.students.cog` / `.tor`) — there's no way to browse "all COGs generated this semester" or "all TORs generated for BSIT students" as a list.
@@ -678,6 +706,8 @@ Flagged during the July 2 session, not yet built:
 - 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
 - 🔄 COG/TOR duplicate "current" record bug — fixed for COG (verified), TOR patch applied but not yet `php -l`-confirmed or live-retested; existing duplicate data + DB uniqueness constraint still outstanding
 - ✅ Backup & Restore "Backup Now" button — fixed (config notifiable/notification-channel bugs + `php artisan serve` Windows socket-inheritance limitation worked around via Apache-triggered execution); SweetAlert2 confirm + loading spinner added
+- ✅ Masterlist Import — strict subject validation (no more phantom auto-created subjects), row-level year-level mismatch check, categorized SweetAlert2 import report (successes/warnings/errors), lookup-sheet false-error fix
+- ✅ Enrollment Management — fixed `firstOrCreate` tuple-destructuring bug causing false "already enrolled" errors on new enrollments, added named success messages, added student-dropdown persistence across submissions, added date-range + group-by filters
 
 ---
 
@@ -852,6 +882,11 @@ e.g. "2nd Semester — SY 2025-2026"
 80. A helper script's own directory (`dirname(__DIR__)`, `__DIR__`) only reflects the *actual* project structure if the script stays inside the project — copying a "portable" script to a different physical location (e.g. XAMPP's `htdocs`) breaks any path logic based on the script's own location; for scripts that must be deployed outside the project, read the real project path from a small external config file instead of computing it from `__DIR__`
 81. Machine-specific paths (absolute install locations, developer usernames in file paths) should never be hardcoded directly into a script meant to ship with a repo — use a git-ignored config file with a committed `.example` template instead, so each machine/client sets their own value without risking silently inheriting another developer's path
 82. When hard-deleting a seeded test account, check every FK column pointing at `users.id` first — not just the obvious ones — a seeder can wire one test account's `approved_by` to another test account's id, causing a delete order dependency that isn't visible from the schema alone
+83. Laravel's `firstOrCreate()` returns a single model, not a `[model, wasCreated]` tuple — destructuring it (`[$a, $b] = firstOrCreate(...)`) silently mis-assigns both variables without throwing, so a "successful create" branch can look identical to a "duplicate found" branch at runtime. Use an explicit `->exists()` check before `create()` instead when the created/not-created distinction matters.
+84. A spreadsheet template can validly contain more than one sheet (e.g. hidden lookup sheets backing dropdown data validation) — `ToCollection`'s `collection()` runs once per sheet automatically, so a "was this sheet actually filled in for import" check needs to test for the *expected data* being present, not just "is every cell blank," or lookup/reference sheets get misread as failed submissions.
+85. Dynamically-generated modal/report HTML (e.g. built as a JS string for SweetAlert2) can use a scoped `<style>` block injected inline with the markup for real CSS classes — this avoids both the Tailwind-CDN dynamic-class limitation (Lesson #40) and the maintainability cost of inline `style="..."` on every element.
+86. `->withInput([...])` on a redirect only repopulates fields a view explicitly checks for via `old('field')` — adding the controller-side call alone does nothing without a matching `old('field') == ... ? 'selected' : ''` (or similar) check in the Blade template.
+87. Grouping a result set (`Collection::groupBy()`) and paginating it don't compose — grouping requires the full filtered set in memory. When a UI offers both, treat them as mutually exclusive display modes rather than trying to paginate within groups.
 73. A crash immediately after a transaction closure causes Laravel to roll the whole transaction back — this can make a genuinely-fixed bug look untested/unconfirmed in logs, because the crash prevents the request from ever completing far enough to prove the earlier fix worked
 74. Editor diagnostics reported against files under `storage/framework/views/*` (or any compiled/generated directory) are not your source code — compiled Blade cache files use hash filenames and regenerate on every `view:clear`; exclude these paths from the editor's file watcher rather than debugging them directly
 75. Commenting out a package config key "to be safe" can be worse than deleting it — an absent `notifiable` config value silently resolves to the service container itself via `app(null)`, producing a confusing TypeError far from the actual missing setting
@@ -878,7 +913,7 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
 | Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
-| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~85%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done — route-level, test accounts removed. Browser E2E pending.** |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~88%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done. Masterlist import validation + report UI done. Enrollment bug fixes + filters done. Browser E2E pending.** |
 | Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13; will also correct provisional semester placeholders from 13.9 |
 
 **Overall Project Completion: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
@@ -888,6 +923,9 @@ e.g. "2nd Semester — SY 2025-2026"
 ## NEXT STEPS — RESUME HERE
 ▶️ Priority 0: Phase 13.11 — Finish COG/TOR Duplicate-Record Fix Verification
 Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR generation for Sofia (semester with the pre-existing duplicate) — confirm both log lines appear and `/registrar/documents` shows one "Current" per type. Only after that: write the cleanup script for Sofia's existing duplicate COG rows, then apply the DB-level uniqueness constraint migration.
+
+✅ Phase 13.13 — Masterlist Import Validation & Report UI — DONE (see above)
+✅ Phase 13.14 — Enrollment Bug Fixes & Filters — DONE (see above)
 
 ▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
 Use the Admin + Registrar manual test checklists (July 2 session) to run a full pass:
