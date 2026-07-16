@@ -391,12 +391,24 @@ Phase 14    Was Phase 13 — Curriculum Feature (renumbered)
 - [x] Admin, HoD, Faculty, Registrar dashboards redesigned
 - [x] Font Awesome icons, role badge formatting, stat cards
 
+### 11.4 Brand Identity & Color System Overhaul 🔄 IN PROGRESS (July 14 session)
+**Trigger:** University-branded rebrand requested — replace generic navy/gold theme with official ESSU green + gold palette, apply the real university seal in place of the placeholder graduation-cap icon.
+
+- [x] University seal logo processed — background removed via border-connected flood fill (preserves internal white ring/circle seal details, unlike a naive white color-key), feathered edge, cropped to content. Generated at 32/64/128/256/512px + full-res transparent PNG.
+- [x] Logo assets placed at `public/images/logo/` — `essu-seal.png` (primary, sidebar + login), `essu-seal-full.png` (login backdrop watermark), `essu-horizontal.png` (seal + wordmark lockup, reserved for future COG/TOR PDF header — not yet wired in)
+- [x] Color palette defined — primary greens (`#4b6043` darkest → `#95bb72` soft) from the university's palette reference; gold (`#c9a84c` family) retained as accent since it's already in the seal artwork and was already used app-wide; status badges (Approved/Rejected/Pending) intentionally left on standard Tailwind colors to avoid visual collision with brand green
+- [x] `resources/views/layouts/guest.blade.php` (login page) — navy hex/rgba swapped to green via `sed`; seal image replaces the generic graduation-cap icon badge; full-size seal added as a low-opacity (`0.08`) watermark on the left panel; "Excellence · Integrity · Accountability" slogan added under the brand name
+- [x] `resources/views/layouts/partials/sidebar.blade.php` — tan/khaki neutrals swapped to green via `sed`; active/hover nav states changed gold → green (gold kept only on the logo tile background and user-avatar-initial circle, both intentional accents); sidebar logo swapped from Font Awesome icon to the real seal image on a white backing tile (needed for the seal's fine detail to stay legible on the green sidebar)
+- [x] `resources/views/layouts/app.blade.php` — page content background changed from neutral gray (`#f1f5f9`) to green-tinted off-white (`#eef4e7`)
+- [ ] Registrar/Admin content-page buttons and badges (e.g. gold "Search" button on Encode Grades, similar controls elsewhere) — not yet converted, pending per-page pass
+- [ ] Additional login page imagery (user has more assets planned) — explicitly deferred, general rebrand pass prioritized first per client direction
+
 ### 11.3 Remaining Tasks
 - [ ] End-to-end workflow test — **blocked pending Phase 13 completion** (old 12-step test is obsolete under the new single-actor flow); Admin + Registrar manual test checklists now available (see Phase 13.8)
 - [ ] Mobile responsiveness review across all role views
 - [ ] Error handling — empty states, 404 pages, form error UX
 - [ ] Loading states for PDF generation
-- [ ] UI consistency pass across all role views
+- [ ] UI consistency pass across all role views — 🔄 **started July 14 session** (login page + sidebar rebranded to green; other role/content pages still pending, see 11.4)
 - [ ] Remove leftover student nav links from Admin dashboard (Phase 9.3 leftover)
 - [ ] **NEW:** Remove/hide Faculty and HoD sidebar nav sections once Phase 13.6 lockout is applied
 - [ ] **NEW:** Build a COG/TOR Records tab/section (see Phase 13.10)
@@ -653,10 +665,24 @@ Manual test checklists (Admin + Registrar) now written and ready to run — see 
 **Still open / lower priority:**
 - [ ] The Apache-served copy of `run-backup.php` is currently a public, unauthenticated endpoint on `localhost` — acceptable for local dev only; would need a shared-secret check (e.g. a key compared against `.env`) before any real deployment
 - [ ] Consider whether this workaround is still needed once the app moves to a real deployment target (Linux server, proper hosting) — the root `php artisan serve` limitation is Windows-dev-environment-specific and very likely won't exist in production
+- [x] Additional per-machine setup gaps found and fixed on a second developer machine — see Phase 13.15
+- [ ] **Under consideration:** exporting backups directly as a standalone `.json` or `.sql` file (instead of only inside a `.zip`) for faster backup/restore — a plain `.sql` dump is already what's inside the zip today (see 12.7), so this would mainly mean exposing/downloading it directly rather than requiring the user to extract it from the zip first; a `.json` export would need a defined schema/structure decision before implementation. Not yet scoped or scheduled — flagged here for a future session.
 
 **SweetAlert2 + loading spinner (unrelated, added same session):**
 - [x] `resources/views/admin/backup/index.blade.php` — replaced plain `confirm()` on **Backup Now** with a SweetAlert2 confirm dialog followed by a `Swal.showLoading()` spinner modal that stays open until the full-page POST reloads with the result
 - [x] Hit Lesson #44 twice in the same file — `document.getElementById`/`addEventListener` and later the entire `Swal.fire`/`showCancelButton`/`isConfirmed`/`showLoading` block got lowercased on the way into the file via a `cat`/pipe write; both instances required a full block rewrite done directly in the code editor, not via terminal pipe
+
+### 13.15 Backup Now — Additional Per-Machine Root Causes Found on Second Machine Setup ✅ FIXED
+**How it surfaced:** Setting up the Phase 13.12 fix fresh on a second developer machine (RANEA GRACE's) surfaced three additional issues that hadn't appeared on the original machine — all specific to per-machine environment differences, not the application code.
+
+1. **Hardcoded `--host=localhost` silently overriding `DB_HOST`** — `config/database.php`'s `mysql.dump` array had `'add_extra_option' => '--host=localhost'` left over from initial XAMPP setup. This CLI flag is appended directly to every `mysqldump` command Spatie builds, so it silently overrode `DB_HOST=127.0.0.1` in `.env` no matter how many times `.env` was edited or `config:clear`/`config:cache` was run. Fixed by changing the value to `'--host=127.0.0.1'`.
+2. **A single active project vhost became the default handler for ALL of port 80** — adding a `<VirtualHost *:80>` block for the project's `.test` domain (per Phase 13.12/Lesson #79) meant Apache treated it as the default vhost for any unmatched request, including plain `localhost` — which broke the `http://localhost/cog-tor-backup-trigger/run-backup.php` trigger URL with a 404 (specifically Laravel's own styled 404 page, since the request was being routed into the project's app instead of `htdocs`). Fixed by adding an explicit `<VirtualHost *:80>` block for `ServerName localhost` pointing at `C:/xampp/htdocs`, listed **first** in `httpd-vhosts.conf`.
+3. **Apache could not read most of the project's files when the project lives inside a Windows user profile folder** (`C:\Users\<name>\Desktop\...`) — once DB dumping worked, the resulting backup zip was only ~12 KB instead of ~5.7 MB, because Spatie's file-backup step silently found almost nothing to zip. Confirmed via the same command zipping ~1779 files correctly when run from the terminal under the interactive user's own permissions. Fixed by granting **Read & execute / List folder contents / Read** NTFS permissions on the project folder.
+4. **`run-backup.php` was calling `backup:run` with `--only-db`**, producing database-only backups rather than the full project+database backup the button is expected to produce. Fixed by removing the `--only-db` flag.
+
+**Confirmed fixed via:** `curl http://localhost/cog-tor-backup-trigger/run-backup.php` returning `{"success":true,...}` standalone, then a full "Backup Now" click from the browser producing a ~5.7 MB zip (matching file count of a terminal-run `php artisan backup:run`) in Backup History.
+
+**Note for future machine setups:** these three issues don't throw obvious "misconfigured" errors — they surface as different, seemingly-unrelated symptoms (wrong host error → 404 → undersized zip) at each step. Check all three explicitly on any new machine, not just Phase 13.12's original fix.
 
 ### 13.13 Masterlist Import — Strict Subject Validation & Categorized Report Modal ✅ DONE
 **Trigger:** Manual testing of the Masterlist Import feature (bulk grade import via Excel) surfaced a silent-failure risk — a subject code typed under the wrong semester column, or a typo'd code, was being auto-created as a phantom/duplicate `Subject` row instead of being rejected.
@@ -705,7 +731,7 @@ Flagged during the July 2 session, not yet built:
 - ⏳ Dual role-check system audit (Spatie vs legacy `role` column) — pending, relevant to lockout work
 - 🔔 COG/TOR Records tracking tab — flagged, not yet scheduled
 - 🔄 COG/TOR duplicate "current" record bug — fixed for COG (verified), TOR patch applied but not yet `php -l`-confirmed or live-retested; existing duplicate data + DB uniqueness constraint still outstanding
-- ✅ Backup & Restore "Backup Now" button — fixed (config notifiable/notification-channel bugs + `php artisan serve` Windows socket-inheritance limitation worked around via Apache-triggered execution); SweetAlert2 confirm + loading spinner added
+- ✅ Backup & Restore "Backup Now" button — fixed (config notifiable/notification-channel bugs + `php artisan serve` Windows socket-inheritance limitation worked around via Apache-triggered execution); SweetAlert2 confirm + loading spinner added; additional per-machine root causes (hardcoded DB host flag, vhost default-handler conflict, NTFS folder permissions, `--only-db` flag) found and fixed on a second machine — see Phase 13.15
 - ✅ Masterlist Import — strict subject validation (no more phantom auto-created subjects), row-level year-level mismatch check, categorized SweetAlert2 import report (successes/warnings/errors), lookup-sheet false-error fix
 - ✅ Enrollment Management — fixed `firstOrCreate` tuple-destructuring bug causing false "already enrolled" errors on new enrollments, added named success messages, added student-dropdown persistence across submissions, added date-range + group-by filters
 
@@ -887,6 +913,7 @@ e.g. "2nd Semester — SY 2025-2026"
 85. Dynamically-generated modal/report HTML (e.g. built as a JS string for SweetAlert2) can use a scoped `<style>` block injected inline with the markup for real CSS classes — this avoids both the Tailwind-CDN dynamic-class limitation (Lesson #40) and the maintainability cost of inline `style="..."` on every element.
 86. `->withInput([...])` on a redirect only repopulates fields a view explicitly checks for via `old('field')` — adding the controller-side call alone does nothing without a matching `old('field') == ... ? 'selected' : ''` (or similar) check in the Blade template.
 87. Grouping a result set (`Collection::groupBy()`) and paginating it don't compose — grouping requires the full filtered set in memory. When a UI offers both, treat them as mutually exclusive display modes rather than trying to paginate within groups.
+88. `!important` inside a bash/sed command run interactively in Git Bash triggers history expansion (same root cause as Lesson #56's `!` issue) and silently aborts the *entire* multi-flag `sed` command, not just the affected `-e` clause — run `set +H` once per session before any sed/bash one-liner containing `!important` or other `!`-prefixed content
 73. A crash immediately after a transaction closure causes Laravel to roll the whole transaction back — this can make a genuinely-fixed bug look untested/unconfirmed in logs, because the crash prevents the request from ever completing far enough to prove the earlier fix worked
 74. Editor diagnostics reported against files under `storage/framework/views/*` (or any compiled/generated directory) are not your source code — compiled Blade cache files use hash filenames and regenerate on every `view:clear`; exclude these paths from the editor's file watcher rather than debugging them directly
 75. Commenting out a package config key "to be safe" can be worse than deleting it — an absent `notifiable` config value silently resolves to the service container itself via `app(null)`, producing a confusing TypeError far from the actual missing setting
@@ -894,6 +921,10 @@ e.g. "2nd Semester — SY 2025-2026"
 77. When ruling out a suspected cause, prefer a test that actually exercises the failing behavior (e.g. a real network connection attempt) over one that merely proves related capability (`mysqldump --version` proves the binary runs, but never opens a socket — it cannot reproduce a connection-layer bug)
 78. XAMPP's bundled Apache PHP version can differ from a project's actual required PHP version (e.g. XAMPP's 8.2 vs. project's required 8.4) — running a Laravel app through Apache may require pointing Apache at the correct PHP install (FastCGI/PHP-FPM) rather than assuming XAMPP's bundled PHP is sufficient; a standalone PHP script with no Composer/Laravel bootstrap is a fast way to test Apache-level behavior without hitting this mismatch
 79. Defining a single active `<VirtualHost *:80>` in `httpd-vhosts.conf` makes it the default handler for ALL requests on that port, including plain `localhost` — add an explicit `ServerName localhost` vhost pointing at the normal `htdocs` root to avoid unrelated requests being silently captured by a project-specific vhost
+89. A CLI flag hardcoded into a package's config (e.g. `mysqldump`'s `--host=...` via Spatie's `add_extra_option`) takes precedence over the same setting configured through `.env`/`DB_HOST` — always grep the whole `config/` directory for the literal value you're debugging, not just the obvious connection array, when a `.env` change appears to have no effect
+90. NTFS folder permissions can allow a process to serve a web request from a folder while still blocking that same process from recursively reading the folder's contents — a "the site loads fine" result doesn't rule out a permissions problem for background file-processing tasks run by the same server
+91. When a backup script accepts a flag like `--only-db`, a small output size is by design, not a bug — always check the actual command and flags being run before assuming a small output file indicates failure
+92. The same underlying fix (e.g. an Apache-triggered backup workaround) can require different follow-up fixes on different machines — a hardcoded DB host flag, vhost ordering, and folder permissions can each independently block the fix, and each fails with a different, seemingly unrelated symptom
 
 ---
 
@@ -966,6 +997,6 @@ Revisit and correct provisional subject semester placeholders from Phase 13.9 ag
 
 ---
 
-**Last Updated:** July 2, 2026
-**Phase 13 Status:** 🔄 In Progress (~75%)
-**Current Focus:** Phase 13.8 Full Browser E2E Test → Phase 13.6 Faculty/HoD Lockout → 13.10 COG/TOR Records Tab → Phase 11 UI/UX → Phase 10 Reporting → Phase 14 Curriculum
+**Last Updated:** July 17, 2026
+**Phase 13 Status:** 🔄 In Progress (~88%)
+**Current Focus:** Phase 13.15 Backup Now per-machine hardening (done, second machine verified) → Phase 11.4 Brand Identity/UI Rebrand (in progress) → Phase 13.8 Full Browser E2E Test → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum

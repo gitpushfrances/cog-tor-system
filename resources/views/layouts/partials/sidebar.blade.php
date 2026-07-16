@@ -9,8 +9,8 @@ html, body { height: 100%; }
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: #f5f0e8;
-    border-right: 2px solid #e2d9c8;
+    background: #eef4e7;
+    border-right: 2px solid #d3e3c8;
     font-family: 'DM Sans', sans-serif;
     overflow: visible;
     box-shadow: 4px 0 24px rgba(0,0,0,0.08);
@@ -25,12 +25,12 @@ html, body { height: 100%; }
     font-size: 0.62rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: #b8a88a;
+    color: #8aa377;
     font-weight: 700;
 }
 .sdb-divider {
     margin: 10px 8px;
-    border-top: 1px solid #e2d9c8;
+    border-top: 1px solid #d3e3c8;
 }
 .sdb-link {
     display: flex;
@@ -41,7 +41,7 @@ html, body { height: 100%; }
     margin-bottom: 2px;
     border-radius: 10px;
     text-decoration: none;
-    color: #4a4535;
+    color: #33422c;
     font-size: 0.875rem;
     font-weight: 500;
     transition: background 0.15s, color 0.15s;
@@ -51,20 +51,20 @@ html, body { height: 100%; }
     white-space: nowrap;
     overflow: hidden;
 }
-.sdb-link:hover { background: rgba(201,168,76,0.12); color: #1a1a2e; }
-.sdb-link:hover .sdb-icon { color: #c9a84c; }
-.sdb-active { background: rgba(201,168,76,0.18) !important; color: #7a5c1e !important; }
-.sdb-active .sdb-icon { color: #c9a84c !important; }
+.sdb-link:hover { background: rgba(135,171,105,0.18); color: #223019; }
+.sdb-link:hover .sdb-icon { color: #4b6043; }
+.sdb-active { background: rgba(101,131,84,0.24) !important; color: #223019 !important; }
+.sdb-active .sdb-icon { color: #384a32 !important; }
 .sdb-collapsed { justify-content: center !important; padding-left: 0 !important; padding-right: 0 !important; }
 
-.sdb-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; color: #8a7a60; transition: color 0.15s; }
+.sdb-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; color: #6b8058; transition: color 0.15s; }
 .sdb-label { white-space: nowrap; overflow: hidden; }
-.sdb-chevron { font-size: 0.65rem; color: #b8a88a; transition: transform 0.2s; flex-shrink: 0; }
+.sdb-chevron { font-size: 0.65rem; color: #8aa377; transition: transform 0.2s; flex-shrink: 0; }
 
 .sdb-children {
     margin: 3px 0 4px 20px;
     padding-left: 14px;
-    border-left: 2px solid #e2d9c8;
+    border-left: 2px solid #d3e3c8;
     display: none;
 }
 .sdb-children.open { display: block; }
@@ -76,14 +76,14 @@ html, body { height: 100%; }
     padding: 8px 10px;
     border-radius: 8px;
     text-decoration: none;
-    color: #6b5f4a;
+    color: #4f6142;
     font-size: 0.825rem;
     font-weight: 500;
     transition: background 0.15s, color 0.15s;
     margin-bottom: 2px;
 }
-.sdb-child:hover { background: rgba(201,168,76,0.1); color: #7a5c1e; }
-.sdb-child-active { color: #c9a84c !important; font-weight: 600; }
+.sdb-child:hover { background: rgba(135,171,105,0.16); color: #33422c; }
+.sdb-child-active { color: #4b6043 !important; font-weight: 600; }
 .sdb-child-icon { font-size: 0.75rem; width: 14px; text-align: center; flex-shrink: 0; }
 
 .sdb-logout-btn {
@@ -94,8 +94,8 @@ html, body { height: 100%; }
     padding: 7px 11px;
     border-radius: 8px;
     background: transparent;
-    border: 1px solid #d4c9b4;
-    color: #8a7a60;
+    border: 1px solid #c7dab8;
+    color: #6b8058;
     cursor: pointer;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
     font-family: 'DM Sans', sans-serif;
@@ -104,7 +104,7 @@ html, body { height: 100%; }
 
 nav::-webkit-scrollbar { width: 3px; }
 nav::-webkit-scrollbar-track { background: transparent; }
-nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
+nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
 
 #main-content { transition: margin-left 0.3s ease; }
 
@@ -123,16 +123,16 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
 <div id="sidebar">
 
     {{-- ── LOGO ROW ── --}}
-    <div style="height:68px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #e2d9c8;flex-shrink:0;position:relative;z-index:2;">
+    <div style="height:68px;display:flex;align-items:center;padding:0 16px;border-bottom:1px solid #d3e3c8;flex-shrink:0;position:relative;z-index:2;">
 
         <a href="{{ route('dashboard') }}"
            title="COG-TOR System"
            style="display:flex;align-items:center;gap:11px;text-decoration:none;min-width:0;overflow:hidden;flex:1;">
-            <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(145deg,#e8c96e,#c9a84c,#9e7428);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(201,168,76,0.35);">
-                <i class="fa-solid fa-graduation-cap" style="color:#fff;font-size:1.05rem;"></i>
+            <div style="width:42px;height:42px;border-radius:10px;background:#ffffff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 10px rgba(75,96,67,0.25);padding:3px;">
+                <img src="{{ asset('images/logo/essu-seal.png') }}" alt="ESSU Seal" style="width:100%;height:100%;object-fit:contain;">
             </div>
             <div class="sidebar-label" style="min-width:0;">
-                <div style="font-weight:700;font-size:0.95rem;color:#1a1a2e;letter-spacing:0.01em;line-height:1.1;">COG-TOR</div>
+                <div style="font-weight:700;font-size:0.95rem;color:#223019;letter-spacing:0.01em;line-height:1.1;">COG-TOR</div>
                 <div style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:#c9a84c;font-weight:600;">System</div>
             </div>
         </a>
@@ -141,9 +141,9 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
         <button id="sidebar-toggle-btn"
                 onclick="sidebarToggle()"
                 title="Toggle sidebar"
-                style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#f5f0e8;border:2px solid #e2d9c8;color:#c9a84c;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:2px 0 8px rgba(0,0,0,0.12);transition:background 0.15s,color 0.15s,border-color 0.15s;z-index:50;flex-shrink:0;"
-                onmouseover="this.style.background='#c9a84c';this.style.color='#fff';this.style.borderColor='#c9a84c';"
-                onmouseout="this.style.background='#f5f0e8';this.style.color='#c9a84c';this.style.borderColor='#e2d9c8';">
+                style="position:absolute;right:-14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#eef4e7;border:2px solid #d3e3c8;color:#658354;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:2px 0 8px rgba(0,0,0,0.12);transition:background 0.15s,color 0.15s,border-color 0.15s;z-index:50;flex-shrink:0;"
+                onmouseover="this.style.background='#4b6043';this.style.color='#fff';this.style.borderColor='#4b6043';"
+                onmouseout="this.style.background='#eef4e7';this.style.color='#658354';this.style.borderColor='#d3e3c8';">
             <i id="toggle-icon" class="fa-solid fa-angles-left" style="font-size:0.65rem;"></i>
         </button>
     </div>
@@ -264,7 +264,7 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
     </nav>
 
     {{-- ── FOOTER ── --}}
-    <div style="flex-shrink:0;border-top:2px solid #e2d9c8;background:#ede8de;">
+    <div style="flex-shrink:0;border-top:2px solid #d3e3c8;background:#e6efdc;">
         <div id="sidebar-footer-row" class="sidebar-footer-row"
              style="display:flex;align-items:center;padding:12px 14px;gap:10px;">
 
@@ -279,8 +279,8 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                     <span style="color:#fff;font-size:0.85rem;font-weight:700;">{{ strtoupper(substr(Auth::user()->name, 0, 1)) }}</span>
                 </div>
                 <div class="sidebar-label sidebar-footer-text" style="flex:1;min-width:0;">
-                    <div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->name }}</div>
-                    <div style="font-size:0.68rem;color:#8a7a60;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->email }}</div>
+                    <div style="font-size:0.85rem;font-weight:600;color:#223019;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->name }}</div>
+                    <div style="font-size:0.68rem;color:#6b8058;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->email }}</div>
                 </div>
             </a>
 
@@ -290,7 +290,7 @@ nav::-webkit-scrollbar-thumb { background: #d4c9b4; border-radius: 3px; }
                         title="Log Out"
                         class="sdb-logout-btn"
                         onmouseover="this.style.background='rgba(239,68,68,0.1)';this.style.borderColor='rgba(239,68,68,0.4)';this.style.color='#dc2626';"
-                        onmouseout="this.style.background='transparent';this.style.borderColor='#d4c9b4';this.style.color='#8a7a60';">
+                        onmouseout="this.style.background='transparent';this.style.borderColor='#c7dab8';this.style.color='#6b8058';">
                     <i class="fa-solid fa-right-from-bracket" style="font-size:0.85rem;"></i>
                     <span class="sidebar-label sidebar-footer-text"
                           style="font-size:0.8rem;font-weight:500;white-space:nowrap;">Log Out</span>

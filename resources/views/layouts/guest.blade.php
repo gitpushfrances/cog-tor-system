@@ -17,16 +17,16 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --navy:    #0c1b36;
-            --navy-2:  #152847;
-            --navy-3:  #1d3461;
-            --navy-4:  #254882;
+            --navy:    #384a32;
+            --navy-2:  #4b6043;
+            --navy-3:  #658354;
+            --navy-4:  #75975e;
             --gold:    #c9a84c;
             --gold-l:  #e8c96e;
             --gold-xl: #f5e0a0;
             --gold-d:  #9e7428;
-            --cream:   #f8f4ed;
-            --cream-2: #f0ead8;
+            --cream:   #f6f8f2;
+            --cream-2: #eaf1e3;
             --white:   #ffffff;
             --text:    #111827;
             --muted:   #64748b;
@@ -59,7 +59,7 @@
             background:
                 radial-gradient(ellipse 90% 55% at 15% 90%, rgba(201,168,76,0.14) 0%, transparent 60%),
                 radial-gradient(ellipse 70% 45% at 85% 5%,  rgba(201,168,76,0.09) 0%, transparent 55%),
-                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(21,40,71,0.5) 0%, transparent 70%);
+                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(75,96,67,0.5) 0%, transparent 70%);
             pointer-events: none;
         }
 
@@ -190,7 +190,7 @@
             content: '';
             position: absolute; inset: 0;
             background-image: radial-gradient(circle at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 50%),
-                              radial-gradient(circle at 10% 80%, rgba(12,27,54,0.04) 0%, transparent 45%);
+                              radial-gradient(circle at 10% 80%, rgba(56,74,50,0.04) 0%, transparent 45%);
             pointer-events: none;
         }
 
@@ -203,8 +203,8 @@
             padding: 2.5rem 2.25rem 2rem;
             box-shadow:
                 0 1px 3px rgba(0,0,0,0.04),
-                0 8px 24px rgba(12,27,54,0.08),
-                0 24px 56px rgba(12,27,54,0.06);
+                0 8px 24px rgba(56,74,50,0.08),
+                0 24px 56px rgba(56,74,50,0.06);
             border: 1px solid rgba(226,232,240,0.8);
             animation: riseIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
         }
@@ -290,7 +290,7 @@
         .field-input:focus {
             background: var(--white);
             border-color: var(--navy-3);
-            box-shadow: 0 0 0 3px rgba(29,52,97,0.08);
+            box-shadow: 0 0 0 3px rgba(101,131,84,0.08);
         }
 
         .field-input:focus ~ .field-icon { color: var(--navy-3); }
@@ -360,12 +360,12 @@
             letter-spacing: 0.03em;
             cursor: pointer;
             transition: transform 0.15s, box-shadow 0.2s;
-            box-shadow: 0 4px 14px rgba(12,27,54,0.25), 0 1px 3px rgba(12,27,54,0.15);
+            box-shadow: 0 4px 14px rgba(56,74,50,0.25), 0 1px 3px rgba(56,74,50,0.15);
         }
 
         .btn-submit:hover {
             transform: translateY(-1.5px);
-            box-shadow: 0 8px 22px rgba(12,27,54,0.32), 0 2px 6px rgba(12,27,54,0.18);
+            box-shadow: 0 8px 22px rgba(56,74,50,0.32), 0 2px 6px rgba(56,74,50,0.18);
         }
 
         .btn-submit:active { transform: translateY(0); }
@@ -389,6 +389,33 @@
             display: flex; align-items: center; justify-content: center; gap: 0.4rem;
         }
 
+        .panel-watermark {
+            position: absolute;
+            width: 640px; height: 640px;
+            right: -160px; bottom: -160px;
+            opacity: 0.08;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .brand-seal-img {
+            width: 84px; height: 84px;
+            object-fit: contain;
+            margin: 0 auto 1.1rem;
+            display: block;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.35));
+        }
+
+        .brand-slogan {
+            font-size: 0.62rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(232,201,110,0.75);
+            margin-top: 0.5rem;
+        }
+        .brand-slogan span { color: rgba(232,201,110,0.4); margin: 0 0.35rem; }
+
         /* ─── RESPONSIVE ─────────────────────────────── */
         @media (max-width: 768px) {
             .auth-shell { flex-direction: column; }
@@ -405,25 +432,27 @@
 
     {{-- ── LEFT PANEL ── --}}
     <div class="panel-left">
+        <img src="{{ asset('images/logo/essu-seal-full.png') }}" alt="" class="panel-watermark" aria-hidden="true">
         <div class="ring ring-1"></div>
         <div class="ring ring-2"></div>
         <div class="ring ring-3"></div>
         <div class="dots">@for($i=0;$i<30;$i++)<span></span>@endfor</div>
 
         <div class="brand">
-            <div class="brand-seal"><i class="fas fa-graduation-cap"></i></div>
+            <img src="{{ asset('images/logo/essu-seal.png') }}" alt="Eastern Samar State University Seal" class="brand-seal-img">
             <div class="brand-name">COG-TOR System</div>
             <div class="brand-tag">Academic Records Management</div>
+            <div class="brand-slogan">Excellence <span>&middot;</span> Integrity <span>&middot;</span> Accountability</div>
         </div>
 
         {{-- SVG Document Illustration --}}
         <div class="illus-wrap">
             <svg viewBox="0 0 260 220" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <!-- Back document (shadow layer) -->
-                <rect x="55" y="30" width="145" height="175" rx="10" fill="#162845" opacity="0.7"/>
+                <rect x="55" y="30" width="145" height="175" rx="10" fill="#4b6043" opacity="0.7"/>
 
                 <!-- Main document body -->
-                <rect x="40" y="18" width="145" height="175" rx="10" fill="#1d3461"/>
+                <rect x="40" y="18" width="145" height="175" rx="10" fill="#658354"/>
                 <rect x="40" y="18" width="145" height="175" rx="10" stroke="rgba(201,168,76,0.25)" stroke-width="1.5"/>
 
                 <!-- Gold header bar -->
@@ -433,7 +462,7 @@
                 <!-- Seal circle -->
                 <circle cx="112" cy="37" r="16" fill="url(#sealGrad)" opacity="0.95"/>
                 <circle cx="112" cy="37" r="12" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
-                <text x="112" y="42" text-anchor="middle" font-size="12" fill="#0c1b36" font-family="serif">✦</text>
+                <text x="112" y="42" text-anchor="middle" font-size="12" fill="#384a32" font-family="serif">✦</text>
 
                 <!-- Document lines -->
                 <rect x="58" y="70" width="108" height="5" rx="2.5" fill="rgba(255,255,255,0.55)"/>
@@ -454,7 +483,7 @@
                 <!-- Floating badge -->
                 <g transform="translate(165, 10)" filter="url(#badgeShadow)">
                     <rect width="54" height="26" rx="13" fill="url(#badgeGrad)"/>
-                    <text x="27" y="17" text-anchor="middle" font-size="8.5" font-family="'DM Sans',sans-serif" font-weight="600" fill="#0c1b36" letter-spacing="0.5">OFFICIAL</text>
+                    <text x="27" y="17" text-anchor="middle" font-size="8.5" font-family="'DM Sans',sans-serif" font-weight="600" fill="#384a32" letter-spacing="0.5">OFFICIAL</text>
                 </g>
 
                 <!-- Corner fold -->

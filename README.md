@@ -271,13 +271,18 @@ Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF downlo
 
 8b. **Enable the Backup Now button (Windows only)**
 
-   The **Backup Now** button in the Admin UI requires a small helper script and Apache running alongside `php artisan serve`. This works around a Windows-specific limitation where PHP's built-in dev server can't spawn the `mysqldump` subprocess the backup needs — see CHANGELOG.md Phase 13.12 for the full explanation.
+   The **Backup Now** button in the Admin UI requires a small helper script and Apache running alongside `php artisan serve`. This works around a Windows-specific limitation where PHP's built-in dev server can't spawn the `mysqldump` subprocess the backup needs — see CHANGELOG.md Phase 13.12 (and 13.15 for additional per-machine fixes) for the full explanation.
 
    One-time setup, per machine:
    1. Copy `public/run-backup.php` to `C:/xampp/htdocs/cog-tor-backup-trigger/run-backup.php` (create the folder if needed)
    2. Copy `storage/backup-project-path.txt.example` to `C:/xampp/htdocs/cog-tor-backup-trigger/backup-project-path.txt`
    3. Open that copied text file and replace the example path with the full path to **your own** copy of this project (e.g. `C:/Users/YourName/Desktop/cog-tor-system`)
-   4. Make sure XAMPP's **Apache** module is running (in addition to MySQL) whenever you plan to use the Backup Now button
+   4. Check `config/database.php` — under the `mysql` connection's `dump` array, confirm `add_extra_option` is set to `'--host=127.0.0.1'` (not `localhost`) — this hardcoded flag silently overrides `DB_HOST` in `.env` if left on `localhost` (see Lesson #89)
+   5. Add a virtual host for the project in `C:/xampp/apache/conf/extra/httpd-vhosts.conf`, **and** add an explicit `ServerName localhost` vhost pointing at `C:/xampp/htdocs`, listed **first** in the file — otherwise Apache treats the project's vhost as the default handler for all of port 80, breaking the backup trigger URL (see Lesson #79)
+   6. If the project folder lives inside your Windows user profile (e.g. `C:\Users\YourName\Desktop\...`), grant Apache read access: right-click the project folder → Properties → Security → Edit → Add `Everyone` → check **Read & execute**, **List folder contents**, **Read** → Apply. Without this, Backup Now can silently succeed with a near-empty zip (see Lesson #90)
+   7. Make sure XAMPP's **Apache** module is running (in addition to MySQL) whenever you plan to use the Backup Now button
+
+   Quick test before relying on the button: run `curl http://localhost/cog-tor-backup-trigger/run-backup.php` directly — it should return `{"success":true,...}`. If it 404s, recheck step 5; if it returns a host/socket error, recheck step 4; if the resulting zip is unexpectedly small, recheck step 6.
 
    If Apache is not running, Backup Now will fail; use `php artisan backup:run` from the terminal as a fallback instead.
 
@@ -326,7 +331,7 @@ The system includes a full database backup and restore feature accessible via th
 3. Click **Backup Now** and confirm
 4. The backup zip will appear in the Backup History table
 
-> ⚠️ **Requires Apache running.** On Windows dev environments, `php artisan serve` cannot reliably spawn the `mysqldump` subprocess the backup needs (a known Windows-specific limitation — see CHANGELOG.md Phase 13.12 for full detail). The **Backup Now** button works by triggering the backup through Apache instead. Before clicking Backup Now, make sure **both Apache and MySQL are running** in your XAMPP Control Panel — the rest of the app can still run normally via `php artisan serve`. If Apache is stopped, Backup Now will fail with a connection error.
+> ⚠️ **Requires Apache running.** On Windows dev environments, `php artisan serve` cannot reliably spawn the `mysqldump` subprocess the backup needs (a known Windows-specific limitation — see CHANGELOG.md Phase 13.12 and 13.15 for full detail). The **Backup Now** button works by triggering the backup through Apache instead. Before clicking Backup Now, make sure **both Apache and MySQL are running** in your XAMPP Control Panel — the rest of the app can still run normally via `php artisan serve`. If Apache is stopped, Backup Now will fail with a connection error. If the resulting backup is unexpectedly small (a few KB instead of several MB), see the per-machine setup steps in section 8b — this is usually a folder-permission issue, not a code bug.
 
 ### How to Restore from Backup
 1. Download the backup zip from Backup History
@@ -508,6 +513,6 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 ---
 
-**Last Updated:** July 2, 2026
+**Last Updated:** July 17, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus
