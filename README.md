@@ -23,7 +23,7 @@ This system streamlines the academic grading workflow. As of **Phase 13**, the w
 - **🆕 Registrar Student Management** — Full CRUD, institution-wide (not department-scoped) — absorbed from Head of Department (Phase 13)
 - **🆕 Registrar Enrollment Management** — Enroll/remove students per active semester, institution-wide — absorbed from Head of Department (Phase 13)
 - **🆕 Registrar Excel Import/Export** — Bulk student import/export, unscoped — absorbed from Head of Department (Phase 13)
-- **🆕 Masterlist Import Validation** — Strict subject/year-level checks on bulk grade import, with a categorized success/warning/error report shown after each import (Phase 13)
+- **🆕 Masterlist Import Validation** — Strict subject/year-level checks on bulk grade import, with a categorized success/warning/error report shown after each import; Download/Import Masterlist now live on the Encode Grades tab, not Student Management, since the masterlist is grade data scoped by term, not student bio-data (Phase 13)
 - **🆕 Enrollment Filters** — Filter enrollment history by date (today/week/month/custom range) and group by subject, department, or year level (Phase 13)
 - **Grade Submission Workflow (legacy, being phased out)** — Faculty submits → HoD bulk approves → Registrar bulk finalizes per subject
 - **Department-Scoped HoD (legacy)** — Each HoD manages their department only via `department_id` — student/enrollment/Excel management being absorbed by Registrar; grade review/faculty assignment slated for lockout

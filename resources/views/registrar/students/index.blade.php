@@ -6,18 +6,6 @@
                 <p class="mt-1 text-sm text-gray-500">Manage all students</p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('registrar.excel.masterlist-template') }}"
-                   class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50">
-                    <i class="fas fa-download"></i> Download Masterlist
-                </a>
-                <form action="{{ route('registrar.excel.masterlist-import') }}" method="POST" enctype="multipart/form-data" class="inline">
-                    @csrf
-                    <label class="inline-flex items-center px-3 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded cursor-pointer hover:bg-gray-50">
-                        <i class="fas fa-file-import"></i> Import Masterlist
-                        <input type="file" name="file" accept=".xlsx,.xls" class="hidden"
-                               onchange="this.form.submit()">
-                    </label>
-                </form>
                 <a href="{{ route('registrar.students.create') }}"
                    class="inline-flex items-center px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
                     + Add Student
@@ -40,11 +28,7 @@
                 <div class="px-4 py-3 mb-4 text-yellow-800 bg-yellow-100 rounded">{{ session('warning') }}</div>
             @endif
 
-            @if(session('import_report'))
-                <script>
-                    window.__importReport = @json(session('import_report'));
-                </script>
-            @endif
+
 
             {{-- Filters --}}
             <div class="p-4 mb-4 bg-white rounded-lg shadow">
@@ -195,91 +179,6 @@
         });
     });
 
-    if (window.__importReport) {
-        const r = window.__importReport;
-
-        const styles = `
-            <style>
-                .isr-stats { display:flex; gap:10px; margin-bottom:18px; }
-                .isr-stat { flex:1; background:#fff; border:1px solid #e5e7eb; border-radius:10px;
-                    padding:14px 8px; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,.05); }
-                .isr-stat-count { font-size:24px; font-weight:700; line-height:1.2; }
-                .isr-stat-label { font-size:11px; font-weight:600; color:#374151; margin-top:2px; }
-                .isr-stat-sub { font-size:10.5px; color:#9ca3af; margin-top:1px; }
-                .isr-section { text-align:left; border-radius:8px; border:1px solid; margin-bottom:10px; overflow:hidden; }
-                .isr-section-head { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; font-weight:600; font-size:12.5px; }
-                .isr-badge { font-size:11px; font-weight:700; border-radius:999px; padding:1px 9px; color:#fff; }
-                .isr-list { list-style:none; margin:0; padding:2px 14px 10px; max-height:140px; overflow-y:auto; }
-                .isr-list li { font-size:12.5px; color:#374151; line-height:1.5; padding:6px 0; border-bottom:1px solid rgba(0,0,0,.05); }
-                .isr-list li:last-child { border-bottom:none; }
-                .isr-success { background:#ECFDF5; border-color:#BBF7D0; }
-                .isr-success .isr-section-head { color:#16A34A; }
-                .isr-success .isr-badge { background:#16A34A; }
-                .isr-warning { background:#FFFBEB; border-color:#FCD34D; }
-                .isr-warning .isr-section-head { color:#B45309; }
-                .isr-warning .isr-badge { background:#D97706; }
-                .isr-error { background:#FEF2F2; border-color:#FCA5A5; }
-                .isr-error .isr-section-head { color:#DC2626; }
-                .isr-error .isr-badge { background:#DC2626; }
-            </style>
-        `;
-
-        const formatItem = function (msg) {
-            const parts = msg.split(' — ');
-            return parts.length > 1
-                ? '<li><strong>' + parts[0] + '</strong> — ' + parts.slice(1).join(' — ') + '</li>'
-                : '<li>' + msg + '</li>';
-        };
-
-        const stat = function (count, label, sub, color) {
-            return '<div class="isr-stat"><div class="isr-stat-count" style="color:' + color + ';">' + count + '</div>' +
-                '<div class="isr-stat-label">' + label + '</div>' +
-                '<div class="isr-stat-sub">' + sub + '</div></div>';
-        };
-
-        const section = function (variant, title, items) {
-            if (!items.length) return '';
-            return '<div class="isr-section isr-' + variant + '">' +
-                '<div class="isr-section-head"><span>' + title + '</span><span class="isr-badge">' + items.length + '</span></div>' +
-                '<ul class="isr-list">' + items.map(formatItem).join('') + '</ul>' +
-            '</div>';
-        };
-
-        // Determine overall outcome for the header
-        let icon = 'success', title = 'Import Completed';
-        if (r.imported === 0 && !r.warnings.length && !r.errors.length) {
-            icon = 'info'; title = 'Nothing to Import';
-        } else if (r.errors.length && r.imported === 0) {
-            icon = 'error'; title = 'Import Failed';
-        } else if (r.errors.length || r.warnings.length) {
-            icon = 'warning'; title = 'Import Completed with Warnings';
-        }
-
-        let html = styles;
-
-        html += '<div class="isr-stats">' +
-            stat(r.imported, 'Imported', r.imported ? 'Successfully saved' : 'No records', '#16A34A') +
-            stat(r.warnings.length, 'Warnings', r.warnings.length ? 'Imported, needs review' : 'No issues', '#D97706') +
-            stat(r.errors.length, 'Skipped', r.errors.length ? 'Not imported' : 'No issues', '#DC2626') +
-        '</div>';
-
-        html += section('success', 'Successfully Imported', r.successes);
-        html += section('warning', 'Needs Review', r.warnings);
-        html += section('error', 'Failed — Not Imported', r.errors);
-
-        if (!r.successes.length && !r.warnings.length && !r.errors.length) {
-            html += '<div style="text-align:center; font-size:13px; color:#6b7280; padding:8px 0 4px;">No records were found in the file to import.</div>';
-        }
-
-        Swal.fire({
-            title: title,
-            html: html,
-            icon: icon,
-            width: 700,
-            confirmButtonColor: '#2563eb',
-            confirmButtonText: 'Done',
-        });
-    }
-</script>
+    </script>
 @endpush
 </x-app-layout>

@@ -718,6 +718,24 @@ Flagged during the July 2 session, not yet built:
 - [ ] Proposed: a new Registrar-side tab (e.g. `registrar.documents.index` or similar) listing all `cog_records` / `tor_records` rows — student name, document number, date generated, semester/school year, with a re-download link — so generated documents are tracked as a proper record, not just a transient PDF download.
 - [ ] Not yet scoped in detail (exact columns, filters, whether Admin should also see this) — needs a short discussion before implementation. Placing this here as a reminder so it isn't lost before the next phase of work.
 
+### 13.16 Masterlist Relocation & Encode Grades History UX Refinement ✅ DONE (July 22 session)
+
+**Trigger:** Download Masterlist / Import Masterlist buttons were sitting on Student Management (`registrar/students`), but the masterlist is grade data scoped to a School Year/Semester/Course, not student bio-data — logically misplaced next to CRUD actions for student records. Client flagged this as inconsistent.
+
+**Masterlist relocation:**
+- [x] `ExcelController::importMasterlist()` — redirect target changed from `registrar.students.index` → `registrar.encode-grades`. `import_report` flash payload (imported/successes/warnings/errors) unchanged.
+- [x] `registrar/students/index.blade.php` — Download Masterlist / Import Masterlist buttons removed from header; `import_report` script block and its SweetAlert2 rendering logic removed from `@push('scripts')`. Delete-confirm SweetAlert2 logic (unrelated) left untouched.
+- [x] `registrar/encode-grades.blade.php` — same two buttons added to header, restyled to match this page's existing gold-accent inline-style system (not copied verbatim from the Students page's Tailwind classes). `import_report` script block and its full SweetAlert2 rendering logic moved over verbatim into a new `@push('scripts')` block (this page previously had none).
+- [x] No route, controller-signature, `MasterlistExport`, or `MasterlistImport` changes needed — confirmed both classes take no request-scoped constructor params (Course/School Year/Year Level are read from the sheet's own header cells at import time), so this was a pure move, not a rewire.
+- [x] **Regression caught before browser testing:** first pass of the edit left a stray `</x-app-layout>` closing tag mid-file (from an earlier find-and-replace inserting content in the wrong spot) — `php -l` and `php artisan view:cache` both passed clean despite this, since neither validates Blade component nesting. Caught by inspecting the full file directly; fixed by removing the duplicate tag. **Lesson:** Blade component-tag mismatches inside a page will not surface via `php -l` or `view:cache` — always visually confirm structure (or load the page in-browser) after edits that move content across `<x-slot>`/component boundaries, don't rely on static checks alone.
+
+**Encode Grades — student history modal, view vs. edit split:**
+- [x] `registrar/encode-grades.blade.php` — student list's "History" column renamed to "Action"; single eye-icon button replaced with two buttons: eye (`viewHistory(id, false)`, read-only) and pencil (`viewHistory(id, true)`, editable).
+- [x] `viewHistory(id, editable)` now takes a second param, stored in module-level `historyEditable`, read by the two render functions below.
+- [x] History modal's grade table — Action column (Edit/Encode buttons + status badge) now only renders when `historyEditable` is `true`; column widths on the remaining columns widen slightly to fill the space when it's hidden, rather than leaving a gap.
+- [x] `openGradeEditModal()` / `submitGradeEditModal()` / `closeGradeEditModal()` unchanged — they're only reachable from buttons that now only exist in edit mode, so no additional guarding needed.
+- [x] `/registrar/students/{id}/grade-history` endpoint unchanged — same response payload powers both modes; only client-side rendering branches on `historyEditable`.
+
 **Phase 13 Deliverables So Far:**
 - ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
 - ✅ `faculty_id` schema made nullable via dependency-free raw migration
@@ -997,6 +1015,6 @@ Revisit and correct provisional subject semester placeholders from Phase 13.9 ag
 
 ---
 
-**Last Updated:** July 17, 2026
-**Phase 13 Status:** 🔄 In Progress (~88%)
-**Current Focus:** Phase 13.15 Backup Now per-machine hardening (done, second machine verified) → Phase 11.4 Brand Identity/UI Rebrand (in progress) → Phase 13.8 Full Browser E2E Test → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum
+**Last Updated:** July 22, 2026
+**Phase 13 Status:** 🔄 In Progress (~89%)
+**Current Focus:** Phase 13.16 Masterlist relocation + Encode Grades history UX (done) → Phase 11.4 Brand Identity/UI Rebrand (in progress) → Phase 13.8 Full Browser E2E Test → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum

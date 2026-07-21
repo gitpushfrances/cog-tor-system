@@ -97,7 +97,7 @@ class ExcelController extends Controller
         $import = new MasterlistImport();
         Excel::import($import, $request->file('file'));
 
-        return redirect()->route('registrar.students.index')
+        return redirect()->route('registrar.encode-grades')
             ->with('import_report', [
                 'imported'  => $import->getImportedCount(),
                 'successes' => $import->getSuccesses(),
