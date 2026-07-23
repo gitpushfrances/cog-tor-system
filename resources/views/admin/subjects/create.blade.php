@@ -23,24 +23,12 @@
                         <select name="course_id" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
                             <option value="">-- Select Course --</option>
                             @foreach($courses as $course)
-                                <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                                <option value="{{ $course->id }}" {{ old('course_id', $selectedCourseId) == $course->id ? 'selected' : '' }}>
                                     {{ $course->code }} - {{ $course->department->code ?? '' }}
                                 </option>
                             @endforeach
                         </select>
                         @error('course_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Assign Faculty <span class="text-gray-400">(optional)</span></label>
-                        <select name="faculty_id" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
-                            <option value="">-- Unassigned --</option>
-                            @foreach($faculties as $faculty)
-                                <option value="{{ $faculty->id }}" {{ old('faculty_id') == $faculty->id ? 'selected' : '' }}>
-                                    {{ $faculty->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('faculty_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Units</label>

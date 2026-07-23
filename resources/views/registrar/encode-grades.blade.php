@@ -558,12 +558,18 @@ function submitGradeEditModal() {
             timerProgressBar: true,
         });
     })
-    .catch(() => {
+    .catch((err) => {
+        console.error('Grade save error:', err);
         closeGradeEditModal();
+
+        const message = err instanceof TypeError
+            ? 'Could not reach the server. Check your connection and try again.'
+            : 'The grade was saved, but the page display failed to update. Please refresh.';
+
         Swal.fire({
-            title: 'Network Error',
-            text: 'Could not reach the server. Check your connection and try again.',
-            icon: 'error',
+            title: err instanceof TypeError ? 'Network Error' : 'Saved — Refresh Needed',
+            text: message,
+            icon: err instanceof TypeError ? 'error' : 'warning',
             confirmButtonColor: '#c9a84c',
         });
     });

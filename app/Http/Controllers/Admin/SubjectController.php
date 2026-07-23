@@ -11,15 +11,22 @@ class SubjectController extends Controller
 {
     public function index()
     {
-        $subjects = Subject::with(['course', 'course.department', 'faculty'])->paginate(15);
-        return view('admin.subjects.index', compact('subjects'));
+        $courses = Course::with(['department', 'subjects' => function ($query) {
+            $query->orderBy('year_level')->orderBy('semester')->orderBy('code');
+        }])->orderBy('code')->get();
+
+        $courses->each(function ($course) {
+            $course->groupedSubjects = $course->subjects->groupBy(['year_level', 'semester']);
+        });
+
+        return view('admin.subjects.index', compact('courses'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $courses = Course::where('status', 'active')->with('department')->get();
-        $faculties = User::role('faculty')->where('status', 'active')->get();
-        return view('admin.subjects.create', compact('courses', 'faculties'));
+        $selectedCourseId = $request->query('course_id');
+        return view('admin.subjects.create', compact('courses', 'selectedCourseId'));
     }
 
     public function store(Request $request)
@@ -28,14 +35,13 @@ class SubjectController extends Controller
             'code'       => 'required|string|max:20|unique:subjects,code',
             'name'       => 'required|string|max:255',
             'course_id'  => 'required|exists:courses,id',
-            'faculty_id' => 'nullable|exists:users,id',
             'units'      => 'required|numeric|min:1|max:10',
             'year_level' => 'required|integer|min:1|max:5',
             'semester'   => 'required|in:1st Semester,2nd Semester,Summer',
             'status'     => 'required|in:active,inactive',
         ]);
 
-        Subject::create($request->all());
+        Subject::create($request->only(['code', 'name', 'course_id', 'units', 'year_level', 'semester', 'status']));
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject created successfully.');
@@ -44,8 +50,7 @@ class SubjectController extends Controller
     public function edit(Subject $subject)
     {
         $courses = Course::where('status', 'active')->with('department')->get();
-        $faculties = User::role('faculty')->where('status', 'active')->get();
-        return view('admin.subjects.edit', compact('subject', 'courses', 'faculties'));
+        return view('admin.subjects.edit', compact('subject', 'courses'));
     }
 
     public function update(Request $request, Subject $subject)
@@ -54,14 +59,13 @@ class SubjectController extends Controller
             'code'       => 'required|string|max:20|unique:subjects,code,' . $subject->id,
             'name'       => 'required|string|max:255',
             'course_id'  => 'required|exists:courses,id',
-            'faculty_id' => 'nullable|exists:users,id',
             'units'      => 'required|numeric|min:1|max:10',
             'year_level' => 'required|integer|min:1|max:5',
             'semester'   => 'required|in:1st Semester,2nd Semester,Summer',
             'status'     => 'required|in:active,inactive',
         ]);
 
-        $subject->update($request->all());
+        $subject->update($request->only(['code', 'name', 'course_id', 'units', 'year_level', 'semester', 'status']));
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject updated successfully.');

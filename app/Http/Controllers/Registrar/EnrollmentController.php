@@ -62,9 +62,11 @@ class EnrollmentController extends Controller
             ->groupBy('student_id')
             ->map(fn($rows) => $rows->pluck('subject_id')->toArray());
 
+        $studentCourseMap = $students->pluck('course_id', 'id');
+
         return view('registrar.enrollments.index', compact(
             'enrollments', 'grouped', 'students', 'subjects', 'activeSemester', 'enrolledMap',
-            'dateFilter', 'groupBy', 'dateFrom', 'dateTo'
+            'studentCourseMap', 'dateFilter', 'groupBy', 'dateFrom', 'dateTo'
         ));
     }
 
@@ -79,6 +81,8 @@ class EnrollmentController extends Controller
 
         $subject = Subject::findOrFail($request->subject_id);
         $student = Student::findOrFail($request->student_id);
+
+        $isCrossCourse = $subject->course_id !== $student->course_id;
 
         $alreadyEnrolled = Enrollment::where([
             'student_id'  => $student->id,
@@ -101,9 +105,15 @@ class EnrollmentController extends Controller
             'status'          => 'enrolled',
         ]);
 
+        $message = "{$student->getFullName()} has been enrolled in {$subject->code} — {$subject->name} for {$activeSemester->semester_name}.";
+
+        if ($isCrossCourse) {
+            $message .= ' (Irregular enrollment — subject is outside their course.)';
+        }
+
         return back()
             ->withInput(['student_id' => $student->id])
-            ->with('success', "{$student->getFullName()} has been enrolled in {$subject->code} — {$subject->name} for {$activeSemester->semester_name}.");
+            ->with('success', $message);
     }
 
     public function destroy(Enrollment $enrollment)

@@ -35,31 +35,29 @@
         @if($activeSemester)
         <div class="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
             <h3 class="mb-4 text-sm font-semibold text-gray-700">Enroll a Student</h3>
-            <form method="POST" action="{{ route('registrar.enrollments.store') }}" class="flex flex-wrap items-end gap-3">
+            <form method="POST" action="{{ route('registrar.enrollments.store') }}" id="enroll-form" class="flex flex-wrap items-end gap-3">
                 @csrf
                 <div class="flex-1 min-w-48">
                     <label class="block mb-1 text-xs font-medium text-gray-600">Student</label>
-                    <select name="student_id" id="student-select" required
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <select name="student_id" id="student-select" required>
                         <option value="">Select student...</option>
                         @foreach($students as $student)
-                            <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>{{ $student->getFullName() }} — {{ $student->student_number }}</option>
+                            <option value="{{ $student->id }}" {{ old('student_id') == $student->id ? 'selected' : '' }}>{{ $student->student_number }} — {{ $student->getFullName() }}</option>
                         @endforeach
                     </select>
                 </div>
 
                 <div class="flex-1 min-w-48">
                     <label class="block mb-1 text-xs font-medium text-gray-600">Subject</label>
-                    <select name="subject_id" id="subject-select" required
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    <select name="subject_id" id="subject-select" required>
                         <option value="">Select student first...</option>
                         @foreach($subjects as $subject)
-                            <option value="{{ $subject->id }}"
-                                data-code="{{ $subject->code }}"
-                                data-name="{{ $subject->name }}">
-                                {{ $subject->code }} — {{ $subject->name }}
-                            </option>
-                        @endforeach
+                              <option value="{{ $subject->id }}"
+                                  data-label="{{ $subject->code }} — {{ $subject->name }} ({{ $subject->units }} units, Yr {{ $subject->year_level }})"
+                                  data-course="{{ $subject->course_id }}">
+                                  {{ $subject->code }} — {{ $subject->name }} ({{ $subject->units }} units, Yr {{ $subject->year_level }})
+                              </option>
+                          @endforeach
                     </select>
                 </div>
 
@@ -205,37 +203,89 @@
     </div>
 
 @push('scripts')
+<link href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.3.1/css/tom-select.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.3.1/js/tom-select.complete.min.js"></script>
 <script>
     const enrolledMap = @json($enrolledMap ?? []);
+    const studentCourseMap = @json($studentCourseMap ?? []);
 
     const studentSelect = document.getElementById('student-select');
     const subjectSelect = document.getElementById('subject-select');
+    const enrollForm = document.getElementById('enroll-form');
 
-    const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[value]:not([value=""])'));
+    const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[value]:not([value=""])'))
+        .map(opt => ({ id: opt.value, label: opt.getAttribute('data-label'), courseId: opt.getAttribute('data-course') }));
 
-    studentSelect.addEventListener('change', function () {
-        const studentId = this.value;
-        const enrolledSubjects = enrolledMap[parseInt(studentId)] || enrolledMap[studentId] || [];
-
-        subjectSelect.innerHTML = '<option value="">' + (studentId ? 'Select subject...' : 'Select student first...') + '</option>';
-
-        if (!studentId) return;
-
-        allSubjectOptions.forEach(opt => {
-            const subjectId = parseInt(opt.value);
-            const isEnrolled = enrolledSubjects.includes(subjectId);
-
-            const newOpt = document.createElement('option');
-            newOpt.value = opt.value;
-            newOpt.disabled = isEnrolled;
-            newOpt.style.color = isEnrolled ? '#9ca3af' : '';
-            newOpt.textContent = opt.getAttribute('data-code') + ' — ' + opt.getAttribute('data-name')
-                + (isEnrolled ? ' (Already Enrolled)' : '');
-            subjectSelect.appendChild(newOpt);
-        });
+    const studentTom = new TomSelect(studentSelect, {
+        placeholder: 'Search by name or student number...',
     });
 
-    if (studentSelect.value) studentSelect.dispatchEvent(new Event('change'));
+    const subjectTom = new TomSelect(subjectSelect, {
+        placeholder: 'Select student first...',
+        disabled: true,
+    });
+
+    function currentStudentCourseId() {
+        return studentCourseMap[parseInt(studentSelect.value)] ?? studentCourseMap[studentSelect.value];
+    }
+
+    studentTom.on('change', function (studentId) {
+        const enrolledSubjects = enrolledMap[parseInt(studentId)] || enrolledMap[studentId] || [];
+
+        subjectTom.clear(true);
+        subjectTom.clearOptions();
+
+        if (!studentId) {
+            subjectTom.disable();
+            return;
+        }
+
+        const studentCourseId = studentCourseMap[parseInt(studentId)] ?? studentCourseMap[studentId];
+
+        allSubjectOptions.forEach(subject => {
+            const isEnrolled = enrolledSubjects.includes(parseInt(subject.id));
+            const isDifferentCourse = parseInt(subject.courseId) !== parseInt(studentCourseId);
+            subjectTom.addOption({
+                value: subject.id,
+                text: subject.label + (isEnrolled ? ' (Already Enrolled)' : (isDifferentCourse ? ' (Different Course)' : '')),
+                disabled: isEnrolled,
+            });
+        });
+
+        subjectTom.enable();
+        subjectTom.refreshOptions(false);
+    });
+
+    if (studentSelect.value) studentTom.trigger('change', studentSelect.value);
+
+    enrollForm.addEventListener('submit', function (e) {
+        const selectedSubjectId = subjectSelect.value;
+        if (!selectedSubjectId) return;
+
+        const subject = allSubjectOptions.find(s => s.id == selectedSubjectId);
+        const studentCourseId = currentStudentCourseId();
+        const isDifferentCourse = subject && parseInt(subject.courseId) !== parseInt(studentCourseId);
+
+        if (isDifferentCourse && !enrollForm.dataset.confirmed) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Enroll as Irregular?',
+                html: `<span style="font-size:0.9rem;color:#374151;">${subject.label} is outside this student's course. Enrolling will mark this as an <strong>irregular</strong> enrollment. Continue?</span>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#c9a84c',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Enroll',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    enrollForm.dataset.confirmed = 'true';
+                    enrollForm.submit();
+                }
+            });
+        }
+    });
 
     function handleDateFilterChange(select) {
         const customFields = document.getElementById('custom-range-fields');

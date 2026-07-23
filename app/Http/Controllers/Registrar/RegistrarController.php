@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Registrar;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Models\GradeSubmission;
 use App\Models\CogRecord;
@@ -18,20 +20,34 @@ use App\Models\Department;
 
 class RegistrarController extends Controller
 {
-    public function finalizeSubject(Request $request, $subjectId)
+    public function finalizeSubject(Request $request, int $subjectId)
     {
+        $registrarId = auth()->id();
+
         $submissions = GradeSubmission::whereHas('grade.enrollment', fn($q) =>
                 $q->where('subject_id', $subjectId))
             ->approved()
             ->whereNull('finalized_at')
             ->get();
 
-        foreach ($submissions as $sub) {
-            $sub->update([
-                'finalized_at' => now(),
-                'finalized_by' => auth()->id(),
+        try {
+            DB::transaction(function () use ($submissions, $registrarId) {
+                foreach ($submissions as $sub) {
+                    $sub->update([
+                        'finalized_at' => now(),
+                        'finalized_by' => $registrarId,
+                    ]);
+                    $sub->grade->update(['status' => 'finalized']);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Finalize Subject failed, transaction rolled back', [
+                'subject_id' => $subjectId,
+                'error' => $e->getMessage(),
             ]);
-            $sub->grade->update(['status' => 'finalized']);
+
+            return redirect()->route('registrar.dashboard', ['tab' => 'finalization'])
+                ->with('error', 'Something went wrong while finalizing grades. No grades were changed. Please try again.');
         }
 
         return redirect()->route('registrar.dashboard', ['tab' => 'finalization'])
@@ -50,7 +66,7 @@ class RegistrarController extends Controller
         return redirect()->route('registrar.dashboard')->with('success', 'Grade finalized successfully.');
     }
 
-    public function unfinalizeSubject(Request $request, $subjectId)
+    public function unfinalizeSubject(Request $request, int $subjectId)
     {
         $submissions = GradeSubmission::whereHas('grade.enrollment', fn($q) =>
                 $q->where('subject_id', $subjectId))
@@ -61,12 +77,24 @@ class RegistrarController extends Controller
             return redirect()->back()->with('error', 'No finalized grades found for this subject.');
         }
 
-        foreach ($submissions as $sub) {
-            $sub->update([
-                'finalized_at' => null,
-                'finalized_by' => null,
+        try {
+            DB::transaction(function () use ($submissions) {
+                foreach ($submissions as $sub) {
+                    $sub->update([
+                        'finalized_at' => null,
+                        'finalized_by' => null,
+                    ]);
+                    $sub->grade->update(['status' => 'approved_by_head_of_department']);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Unfinalize Subject failed, transaction rolled back', [
+                'subject_id' => $subjectId,
+                'error' => $e->getMessage(),
             ]);
-            $sub->grade->update(['status' => 'approved_by_head_of_department']);
+
+            return redirect()->back()
+                ->with('error', 'Something went wrong while unfinalizing grades. No grades were changed. Please try again.');
         }
 
         return redirect()->back()
@@ -250,41 +278,57 @@ class RegistrarController extends Controller
 
         $registrarId = auth()->id();
 
-        $enrollment = Enrollment::updateOrCreate(
-            [
-                'student_id'  => $student->id,
-                'subject_id'  => $subject->id,
-                'semester_id' => $semester->id,
-            ],
-            [
-                'enrolled_by'     => $registrarId,
-                'enrollment_date' => now()->toDateString(),
-                'status'          => 'enrolled',
-            ]
-        );
+        try {
+            $grade = DB::transaction(function () use ($student, $subject, $semester, $registrarId, $request) {
+                $enrollment = Enrollment::updateOrCreate(
+                    [
+                        'student_id'  => $student->id,
+                        'subject_id'  => $subject->id,
+                        'semester_id' => $semester->id,
+                    ],
+                    [
+                        'enrolled_by'     => $registrarId,
+                        'enrollment_date' => now()->toDateString(),
+                        'status'          => 'enrolled',
+                    ]
+                );
 
-        $grade = Grade::updateOrCreate(
-            ['enrollment_id' => $enrollment->id],
-            [
-                'faculty_id' => null,
-                'grade'      => $request->input('grade'),
-                'status'     => 'finalized',
-            ]
-        );
+                $grade = Grade::updateOrCreate(
+                    ['enrollment_id' => $enrollment->id],
+                    [
+                        'faculty_id' => null,
+                        'grade'      => $request->input('grade'),
+                        'status'     => 'finalized',
+                    ]
+                );
 
-        GradeSubmission::updateOrCreate(
-            ['grade_id' => $grade->id],
-            [
-                'submitted_by' => $registrarId,
-                'reviewed_by'  => $registrarId,
-                'finalized_by' => $registrarId,
-                'submitted_at' => now(),
-                'reviewed_at'  => now(),
-                'finalized_at' => now(),
-                'dean_action'  => 'approved_by_head_of_department',
-                'dean_remarks' => 'Direct entry by Registrar',
-            ]
-        );
+                GradeSubmission::updateOrCreate(
+                    ['grade_id' => $grade->id],
+                    [
+                        'submitted_by' => $registrarId,
+                        'reviewed_by'  => $registrarId,
+                        'finalized_by' => $registrarId,
+                        'submitted_at' => now(),
+                        'reviewed_at'  => now(),
+                        'finalized_at' => now(),
+                        'dean_action'  => 'approved_by_head_of_department',
+                        'dean_remarks' => 'Direct entry by Registrar',
+                    ]
+                );
+
+                return $grade;
+            });
+        } catch (\Throwable $e) {
+            Log::error('Quick Encode Grade failed, transaction rolled back', [
+                'student_id' => $student->id,
+                'subject_id' => $subject->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'error' => 'Something went wrong while saving the grade. No changes were made. Please try again.',
+            ], 500);
+        }
 
         return response()->json([
             'success'       => true,
@@ -310,49 +354,69 @@ class RegistrarController extends Controller
         $gradesInput = $request->input('grades'); // [ subject_id => grade_value ]
         $registrarId = auth()->id();
 
-        foreach ($gradesInput as $subjectId => $gradeValue) {
-            $subject = Subject::find($subjectId);
-            if (!$subject) continue;
+        try {
+            DB::transaction(function () use ($gradesInput, $studentId, $semesterId, $registrarId) {
+                foreach ($gradesInput as $subjectId => $gradeValue) {
+                    $subject = Subject::find($subjectId);
+                    if (!$subject) {
+                        Log::warning('Encode Grades: skipped unknown subject_id', [
+                            'subject_id' => $subjectId,
+                            'student_id' => $studentId,
+                        ]);
+                        continue;
+                    }
 
-            // Upsert enrollment
-            $enrollment = Enrollment::updateOrCreate(
-                [
-                    'student_id'  => $studentId,
-                    'subject_id'  => $subjectId,
-                    'semester_id' => $semesterId,
-                ],
-                [
-                    'enrolled_by'     => $registrarId,
-                    'enrollment_date' => now()->toDateString(),
-                    'status'          => 'enrolled',
-                ]
-            );
+                    // Upsert enrollment
+                    $enrollment = Enrollment::updateOrCreate(
+                        [
+                            'student_id'  => $studentId,
+                            'subject_id'  => $subjectId,
+                            'semester_id' => $semesterId,
+                        ],
+                        [
+                            'enrolled_by'     => $registrarId,
+                            'enrollment_date' => now()->toDateString(),
+                            'status'          => 'enrolled',
+                        ]
+                    );
 
-            // Upsert grade — faculty_id null (Registrar encoded, not Faculty)
-            $grade = Grade::updateOrCreate(
-                ['enrollment_id' => $enrollment->id],
-                [
-                    'faculty_id' => null,
-                    'grade'      => $gradeValue,
-                    'status'     => 'finalized',
-                    // remarks intentionally preserved — do not null out
-                ]
-            );
+                    // Upsert grade — faculty_id null (Registrar encoded, not Faculty)
+                    $grade = Grade::updateOrCreate(
+                        ['enrollment_id' => $enrollment->id],
+                        [
+                            'faculty_id' => null,
+                            'grade'      => $gradeValue,
+                            'status'     => 'finalized',
+                            // remarks intentionally preserved — do not null out
+                        ]
+                    );
 
-            // Create GradeSubmission so stats + unfinalize work correctly
-            GradeSubmission::updateOrCreate(
-                ['grade_id' => $grade->id],
-                [
-                    'submitted_by'  => $registrarId,
-                    'reviewed_by'   => $registrarId,
-                    'finalized_by'  => $registrarId,
-                    'submitted_at'  => now(),
-                    'reviewed_at'   => now(),
-                    'finalized_at'  => now(),
-                    'dean_action'   => 'approved_by_head_of_department',
-                    'dean_remarks'  => 'Direct entry by Registrar',
-                ]
-            );
+                    // Create GradeSubmission so stats + unfinalize work correctly
+                    GradeSubmission::updateOrCreate(
+                        ['grade_id' => $grade->id],
+                        [
+                            'submitted_by'  => $registrarId,
+                            'reviewed_by'   => $registrarId,
+                            'finalized_by'  => $registrarId,
+                            'submitted_at'  => now(),
+                            'reviewed_at'   => now(),
+                            'finalized_at'  => now(),
+                            'dean_action'   => 'approved_by_head_of_department',
+                            'dean_remarks'  => 'Direct entry by Registrar',
+                        ]
+                    );
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Encode Grades failed, transaction rolled back', [
+                'student_id' => $studentId,
+                'semester_id' => $semesterId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Something went wrong while saving grades. No grades were changed. Please try again.');
         }
 
         $student = Student::find($studentId);

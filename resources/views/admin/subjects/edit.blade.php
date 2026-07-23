@@ -30,17 +30,7 @@
                         </select>
                         @error('course_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Assign Faculty <span class="text-gray-400">(optional)</span></label>
-                        <select name="faculty_id" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
-                            <option value="">-- Unassigned --</option>
-                            @foreach($faculties as $faculty)
-                                <option value="{{ $faculty->id }}" {{ old('faculty_id', $subject->faculty_id) == $faculty->id ? 'selected' : '' }}>
-                                    {{ $faculty->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Units</label>
                         <input type="number" name="units" value="{{ old('units', $subject->units) }}" min="1" max="10" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
@@ -57,7 +47,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Semester</label>
                         <select name="semester" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
-                            <option value="1st semester" {{ old('semester', $subject->semester) == '1st Semester' ? 'selected' : '' }}>1st Semester</option>
+                            <option value="1st Semester" {{ old('semester', $subject->semester) == '1st Semester' ? 'selected' : '' }}>1st Semester</option>
                             <option value="2nd Semester" {{ old('semester', $subject->semester) == '2nd Semester' ? 'selected' : '' }}>2nd Semester</option>
                             <option value="Summer" {{ old('semester', $subject->semester) == 'Summer' ? 'selected' : '' }}>Summer</option>
                         </select>

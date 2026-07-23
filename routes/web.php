@@ -119,6 +119,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/students', [App\Http\Controllers\Registrar\StudentController::class, 'index'])->name('students.index');
     Route::get('/students/create', [App\Http\Controllers\Registrar\StudentController::class, 'create'])->name('students.create');
     Route::post('/students', [App\Http\Controllers\Registrar\StudentController::class, 'store'])->name('students.store');
+    Route::get('/students/{student}/details', [App\Http\Controllers\Registrar\StudentController::class, 'show'])->name('students.show');
     Route::get('/students/{student}/edit', [App\Http\Controllers\Registrar\StudentController::class, 'edit'])->name('students.edit');
     Route::put('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'update'])->name('students.update');
     Route::delete('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'destroy'])->name('students.destroy');

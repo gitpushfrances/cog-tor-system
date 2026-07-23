@@ -100,7 +100,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200">
                         @forelse($students as $student)
-                        <tr class="hover:bg-gray-50">
+                        <tr class="transition cursor-pointer hover:bg-blue-50" onclick="openStudentDetails({{ $student->id }})">
                             <td class="px-6 py-4 font-mono text-sm text-gray-700">{{ $student->student_number }}</td>
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900">{{ $student->getFullName() }}</div>
@@ -117,7 +117,7 @@
                                     <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Inactive</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4">
+                            <td class="px-6 py-4" onclick="event.stopPropagation()">
                                 <div class="flex gap-2">
                                     <a href="{{ route('registrar.students.edit', $student) }}"
                                        class="px-3 py-1 text-xs font-medium text-blue-700 rounded bg-blue-50 hover:bg-blue-100">
@@ -147,16 +147,77 @@
                 </table>
 
                 @if($students->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-100">
-                        {{ $students->links() }}
-                    </div>
-                @endif
-            </div>
+                      <div class="px-6 py-4 border-t border-gray-100">
+                          {{ $students->links() }}
+                      </div>
+                  @endif
+              </div>
 
-        </div>
-    </div>
-    @push('scripts')
+          </div>
+      </div>
+
+      {{-- Student Details Modal --}}
+      <div id="student-details-modal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-black/50 backdrop-blur-sm" onclick="if(event.target === this) closeStudentDetails()">
+          <div id="student-details-panel" class="w-full max-w-3xl overflow-y-auto transition-all duration-200 ease-out scale-95 bg-white opacity-0 rounded-xl shadow-2xl max-h-[85vh]">
+              <div id="student-details-body">
+                  <div class="flex items-center justify-center p-16">
+                      <div class="w-8 h-8 border-4 border-gray-200 rounded-full border-t-blue-600 animate-spin"></div>
+                  </div>
+              </div>
+          </div>
+      </div>
+
+      @push('scripts')
 <script>
+    function studentDetailsUrl(id) {
+        return "{{ route('registrar.students.show', ['student' => '__ID__']) }}".replace('__ID__', id);
+    }
+
+    function openStudentDetails(id) {
+        const modal = document.getElementById('student-details-modal');
+        const panel = document.getElementById('student-details-panel');
+        const body = document.getElementById('student-details-body');
+        body.innerHTML = '<div class="flex items-center justify-center p-16"><div class="w-8 h-8 border-4 border-gray-200 rounded-full border-t-blue-600 animate-spin"></div></div>';
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        requestAnimationFrame(() => {
+            panel.classList.remove('opacity-0', 'scale-95');
+            panel.classList.add('opacity-100', 'scale-100');
+        });
+
+        fetch(studentDetailsUrl(id))
+            .then(res => res.text())
+            .then(html => { body.innerHTML = html; })
+            .catch(() => { body.innerHTML = '<div class="p-10 text-center text-red-500">Failed to load student details.</div>'; });
+    }
+
+    function closeStudentDetails() {
+        const modal = document.getElementById('student-details-modal');
+        const panel = document.getElementById('student-details-panel');
+        panel.classList.remove('opacity-100', 'scale-100');
+        panel.classList.add('opacity-0', 'scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 150);
+    }
+
+    function switchDetailTab(tab) {
+        document.querySelectorAll('[data-tab-panel]').forEach(panel => {
+            panel.style.display = panel.dataset.tabPanel === tab ? '' : 'none';
+        });
+        document.querySelectorAll('[data-tab-btn]').forEach(btn => {
+            if (btn.dataset.tabBtn === tab) {
+                btn.classList.add('border-blue-600', 'text-blue-600');
+                btn.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                btn.classList.remove('border-blue-600', 'text-blue-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            }
+        });
+    }
+
     document.querySelectorAll('.delete-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
             const name = this.dataset.name;

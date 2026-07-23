@@ -718,6 +718,29 @@ Flagged during the July 2 session, not yet built:
 - [ ] Proposed: a new Registrar-side tab (e.g. `registrar.documents.index` or similar) listing all `cog_records` / `tor_records` rows — student name, document number, date generated, semester/school year, with a re-download link — so generated documents are tracked as a proper record, not just a transient PDF download.
 - [ ] Not yet scoped in detail (exact columns, filters, whether Admin should also see this) — needs a short discussion before implementation. Placing this here as a reminder so it isn't lost before the next phase of work.
 
+### 13.17 Grade-Writing Transaction Safety & Error Handling Audit ✅ DONE (July 23 session)
+
+**Trigger:** Client-reported bug on a separate machine — Encode Grades quick-edit flow showed a "server connection error" modal, but the grade had actually saved (confirmed on page reload). Investigation showed the error was real but mislabeled, and surfaced a broader gap: none of the Registrar's grade-writing methods were transaction-wrapped.
+
+**Root cause of the reported bug:** `submitGradeEditModal()`'s single `.catch()` block in `encode-grades.blade.php` caught three unrelated failure modes under one generic "Network Error" message — a genuine unreachable-server case, a non-JSON response from the server, and a DOM-update exception thrown *after* a successful save. The third case matched the client's report exactly: save succeeds, then a `.innerHTML` update on a DOM element throws, gets caught by the same `.catch()`, and shows a false "could not reach the server" message.
+
+**Fix — `resources/views/registrar/encode-grades.blade.php`:**
+- [x] `submitGradeEditModal()` — wrapped the DOM-update block in its own `try/catch`, added `console.error()` logging, and split the outer `.catch()` to distinguish `TypeError` (genuine fetch/network failure → "Network Error") from any other error (save succeeded, UI update failed → "Saved — Refresh Needed" warning instead of a false error)
+
+**Fix — `app/Http/Controllers/Registrar/RegistrarController.php` — transaction safety added to all four grade-writing methods, none of which were previously atomic:**
+- [x] `encodeGrades()` — wrapped the per-subject `foreach` (Enrollment → Grade → GradeSubmission upserts) in `DB::transaction()`; a mid-loop failure no longer leaves some subjects finalized and others missing. Added `Log::warning()` on the previously-silent `if (!$subject) continue;` skip. Wrapped the transaction call in `try/catch` with a friendly flash-message fallback (`'Something went wrong while saving grades. No grades were changed.'`) instead of Laravel's raw 500 page.
+- [x] `quickEncodeGrade()` — same transaction wrap; `$grade` is captured via the closure's `return` value (not referenced from inside a closure after it returns — see Lesson #72) and used to build the JSON response after the transaction commits. Wrapped in `try/catch` returning a proper `500` JSON error instead of an unhandled exception, so the client-side `.then(res => res.json()...)` chain gets parseable JSON on failure instead of triggering a false "Network Error" via a failed HTML-to-JSON parse.
+- [x] `finalizeSubject()` — wrapped the bulk `foreach` (GradeSubmission + Grade status updates) in `DB::transaction()` with the same `try/catch` fallback pattern. Previously unprotected — a mid-loop failure during a bulk per-subject finalize could leave some grades finalized and others not, with no rollback.
+- [x] `unfinalizeSubject()` — same transaction + fallback pattern applied to the bulk unfinalize loop.
+- [x] `finalizeSubject(Request $request, $subjectId)` / `unfinalizeSubject(Request $request, $subjectId)` — added missing `int` type hint on `$subjectId` (Intelephense P1132), confirmed via `grep -n "function finalizeSubject\|function unfinalizeSubject"` showing `int $subjectId` on both.
+- [x] `php -l` clean on `RegistrarController.php` after all edits.
+
+**Known linter noise, deliberately not addressed:** SonarLint `php:S1142` ("4 returns, more than 3 allowed") on `quickEncodeGrade()` — flagged and reviewed; the 4 exit points are 4 genuinely distinct outcomes (no active school year / no matching semester / transaction failure / success), and consolidating them into a single return would add complexity without fixing anything real. Left as-is; suppress via Sonar config if the warning needs to disappear from the panel, not by restructuring working code.
+
+**Not yet done — deferred by choice, not oversight:**
+- [ ] Live re-test of `quickEncodeGrade()` and `encodeGrades()` failure paths (forcing an actual exception mid-transaction to confirm the friendly fallback message fires instead of a raw 500) — recommended before defense, not yet run
+- [ ] Root cause of the original client-side DOM-update exception itself was not identified (which specific element was `null` on the client's machine) — the fix makes the failure mode correctly diagnosable next time it happens, but does not by itself explain why it happened once
+
 ### 13.16 Masterlist Relocation & Encode Grades History UX Refinement ✅ DONE (July 22 session)
 
 **Trigger:** Download Masterlist / Import Masterlist buttons were sitting on Student Management (`registrar/students`), but the masterlist is grade data scoped to a School Year/Semester/Course, not student bio-data — logically misplaced next to CRUD actions for student records. Client flagged this as inconsistent.
@@ -736,6 +759,30 @@ Flagged during the July 2 session, not yet built:
 - [x] `openGradeEditModal()` / `submitGradeEditModal()` / `closeGradeEditModal()` unchanged — they're only reachable from buttons that now only exist in edit mode, so no additional guarding needed.
 - [x] `/registrar/students/{id}/grade-history` endpoint unchanged — same response payload powers both modes; only client-side rendering branches on `historyEditable`.
 
+### 13.18 Admin Subject Management Overhaul & Cross-Course "Irregular" Enrollment ✅ DONE (July 23 session)
+
+**Admin Subject Management restructure:**
+- [x] `admin/subjects/index.blade.php` + `SubjectController::index()` — flat paginated table replaced with tabs per Course/program (e.g. BSIT, BSCS), each tab subtitled with its Department; subjects within each tab grouped by Year Level then Semester via a single `groupBy(['year_level', 'semester'])` call on the eager-loaded `Course->subjects` relation
+- [x] Faculty column removed from the subject list entirely — Faculty role is locked out (Phase 13.6) and was always showing "Unassigned"
+- [x] Empty-state per course tab now shows a "+ Add Subject" button pre-filled to that course via a `course_id` query param, instead of a dead end
+- [x] `SubjectController::create()`/`store()`/`edit()`/`update()` — Faculty field (`faculty_id`) removed from both create and edit forms and from validation/`Subject::create()`/`update()`; `$request->all()` replaced with an explicit `$request->only([...])` field list so no stray input can be written
+- [x] **Pre-existing bug found and fixed in the same pass:** `admin/subjects/edit.blade.php` had `<option value="1st semester">` (lowercase `s`) which didn't match the `required|in:1st Semester,2nd Semester,Summer` validation rule — re-saving an existing 1st-Semester subject without touching that dropdown would have failed validation. Corrected to `"1st Semester"`.
+- [x] Empty-state SVG icon sizing bug — icon rendered oversized (stretched to fill its flex container) because it relied only on Tailwind `w-10 h-10` classes with no explicit `width`/`height` attributes; if compiled CSS is stale the browser falls back to intrinsic sizing. Fixed by hardcoding `width="28" height="28"` directly on the `<svg>` element.
+
+**Cross-course "irregular" enrollment (Registrar):**
+- [x] Client requirement surfaced: irregular students sometimes need enrollment in a subject outside their own course — previously hard-blocked by `EnrollmentController::store()`'s course-match check (added earlier this same session as part of the original course-scoping fix).
+- [x] **Decision:** no schema change — no `is_irregular` column added. Cross-course enrollment is detected live via the existing `subject->course_id !== student->course_id` comparison, everywhere it's needed, rather than persisted.
+- [x] `registrar/enrollments/index.blade.php` — Subject dropdown (Tom Select) always shows all active subjects; ones outside the selected student's course are labeled "(Different Course)" via a `data-course` attribute + `studentCourseMap` comparison in JS.
+- [x] On form submit, a SweetAlert2 confirmation ("Enroll as Irregular?") fires only when the selected subject is outside the student's course; confirming sets a `dataset.confirmed` flag and calls `form.submit()` directly (bypassing the listener, so no re-trigger loop).
+- [x] `EnrollmentController::store()` — hard block removed; `$isCrossCourse` computed and used only to append an "(Irregular enrollment — subject is outside their course.)" note to the success flash message. No new validation rule, no new column.
+
+**Student Management — details modal:**
+- [x] New `StudentController::show(Student $student)` + route `registrar.students.show` (`GET /students/{student}/details`) — loads the student's enrollments with `subject.course`/`semester.schoolYear`, splits into current-semester vs. past (grouped by semester label via `Semester::getFullName()`), no schema change.
+- [x] New partial view `registrar/students/show.blade.php`, fetched via AJAX and injected into a modal on `registrar/students/index.blade.php` — two tabs, "Subjects" (current + previous enrollments, each cross-course row tagged with an amber "Irregular" badge reusing the same `subject->course_id !== student->course_id` check already driving the enrollment modal) and "Personal Info" (student bio fields + an Edit button linking to the existing `registrar.students.edit` route).
+- [x] Tabs implemented with plain `onclick`-driven JS functions rather than Alpine — the modal's HTML is injected via `innerHTML` after an AJAX fetch, and Alpine doesn't auto-bind to content added after its initial page scan without an explicit `Alpine.initTree()` call.
+- [x] Whole table row made clickable (not just the name) via `onclick` on the `<tr>`, with `event.stopPropagation()` on the Actions `<td>` so Edit/Delete clicks don't also bubble up and reopen the modal underneath.
+- [x] Modal upgraded from a bare popup to a proper dialog — backdrop blur, scale/opacity transition on open/close (`scale-95`/`opacity-0` → `scale-100`/`opacity-100`, `150ms` matched close delay), sticky header so it stays visible when the subject list scrolls, and a CSS spinner (`animate-spin` + `border-t-*`) replacing the plain "Loading..." text placeholder.
+
 **Phase 13 Deliverables So Far:**
 - ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
 - ✅ `faculty_id` schema made nullable via dependency-free raw migration
@@ -752,6 +799,8 @@ Flagged during the July 2 session, not yet built:
 - ✅ Backup & Restore "Backup Now" button — fixed (config notifiable/notification-channel bugs + `php artisan serve` Windows socket-inheritance limitation worked around via Apache-triggered execution); SweetAlert2 confirm + loading spinner added; additional per-machine root causes (hardcoded DB host flag, vhost default-handler conflict, NTFS folder permissions, `--only-db` flag) found and fixed on a second machine — see Phase 13.15
 - ✅ Masterlist Import — strict subject validation (no more phantom auto-created subjects), row-level year-level mismatch check, categorized SweetAlert2 import report (successes/warnings/errors), lookup-sheet false-error fix
 - ✅ Enrollment Management — fixed `firstOrCreate` tuple-destructuring bug causing false "already enrolled" errors on new enrollments, added named success messages, added student-dropdown persistence across submissions, added date-range + group-by filters
+- ✅ Admin Subject Management — restructured into per-course tabs grouped by year/semester, Faculty field removed from list + create/edit forms, empty-state Add Subject with course pre-fill, `1st semester` casing bug fixed on edit form
+- ✅ Cross-course "irregular" enrollment — Registrar can now enroll a student into a subject outside their course, detected live (no schema change) with UI labeling + confirmation modal; Student Management gained a details modal (Subjects/Personal Info tabs, irregular badge, current vs. past enrollment split)
 
 ---
 
@@ -943,6 +992,9 @@ e.g. "2nd Semester — SY 2025-2026"
 90. NTFS folder permissions can allow a process to serve a web request from a folder while still blocking that same process from recursively reading the folder's contents — a "the site loads fine" result doesn't rule out a permissions problem for background file-processing tasks run by the same server
 91. When a backup script accepts a flag like `--only-db`, a small output size is by design, not a bug — always check the actual command and flags being run before assuming a small output file indicates failure
 92. The same underlying fix (e.g. an Apache-triggered backup workaround) can require different follow-up fixes on different machines — a hardcoded DB host flag, vhost ordering, and folder permissions can each independently block the fix, and each fails with a different, seemingly unrelated symptom
+93. A `<tr>` wired with a row-level `onclick` needs `event.stopPropagation()` on any nested interactive element (buttons, forms) inside it — otherwise a click on that element bubbles up and also fires the row's own handler
+94. Content injected into the DOM via `innerHTML` after an AJAX fetch is not auto-bound by Alpine.js unless `Alpine.initTree()` is explicitly called on the new node — plain global functions referenced via inline `onclick` sidestep this synchronization step entirely for dynamically-loaded modal content
+95. An `<svg>` sized only via Tailwind `w-*`/`h-*` utility classes (no explicit `width`/`height` attributes) can render at an oversized native/unstyled size if the compiled CSS is stale — hardcoding `width`/`height` directly on the element makes icon sizing resilient regardless of CSS-build state
 
 ---
 
@@ -975,6 +1027,7 @@ Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR 
 
 ✅ Phase 13.13 — Masterlist Import Validation & Report UI — DONE (see above)
 ✅ Phase 13.14 — Enrollment Bug Fixes & Filters — DONE (see above)
+✅ Phase 13.18 — Admin Subject Management Overhaul & Cross-Course Irregular Enrollment — DONE (see above)
 
 ▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
 Use the Admin + Registrar manual test checklists (July 2 session) to run a full pass:
@@ -1015,6 +1068,6 @@ Revisit and correct provisional subject semester placeholders from Phase 13.9 ag
 
 ---
 
-**Last Updated:** July 22, 2026
-**Phase 13 Status:** 🔄 In Progress (~89%)
-**Current Focus:** Phase 13.16 Masterlist relocation + Encode Grades history UX (done) → Phase 11.4 Brand Identity/UI Rebrand (in progress) → Phase 13.8 Full Browser E2E Test → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum
+**Last Updated:** July 23, 2026
+**Phase 13 Status:** 🔄 In Progress (~90%)
+**Current Focus:** Phase 13.18 Admin Subject Management Overhaul & Cross-Course Irregular Enrollment (done) → Phase 13.17 Grade-writing transaction safety (done) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (php -l + live retest still pending) → birth_date validation range check (still deferred, trivial fix, not yet applied) → Phase 13.8 Full Browser E2E Test → Phase 11.4 Brand Identity/UI Rebrand → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum

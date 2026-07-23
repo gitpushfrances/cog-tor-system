@@ -34,6 +34,30 @@ class StudentController extends Controller
         return view('registrar.students.index', compact('students', 'courses'));
     }
 
+    public function show(Student $student)
+    {
+        $activeSemester = Semester::active()->first();
+
+        $student->load('course.department');
+
+        $enrollments = $student->enrollments()
+            ->with(['subject.course', 'semester.schoolYear'])
+            ->get();
+
+        $currentEnrollments = $enrollments->filter(
+            fn($e) => $activeSemester && $e->semester_id === $activeSemester->id
+        );
+
+        $pastEnrollments = $enrollments
+            ->reject(fn($e) => $activeSemester && $e->semester_id === $activeSemester->id)
+            ->sortByDesc(fn($e) => $e->semester->start_date)
+            ->groupBy(fn($e) => $e->semester->getFullName());
+
+        return view('registrar.students.show', compact(
+            'student', 'activeSemester', 'currentEnrollments', 'pastEnrollments'
+        ));
+    }
+
     public function create()
     {
         $courses = Course::active()->orderBy('name')->get();
