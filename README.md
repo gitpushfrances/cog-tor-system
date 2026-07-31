@@ -25,6 +25,9 @@ This system streamlines the academic grading workflow. As of **Phase 13**, the w
 - **🆕 Registrar Excel Import/Export** — Bulk student import/export, unscoped — absorbed from Head of Department (Phase 13)
 - **🆕 Masterlist Import Validation** — Strict subject/year-level checks on bulk grade import, with a categorized success/warning/error report shown after each import; Download/Import Masterlist now live on the Encode Grades tab, not Student Management, since the masterlist is grade data scoped by term, not student bio-data (Phase 13)
 - **🆕 Enrollment Filters** — Filter enrollment history by date (today/week/month/custom range) and group by subject, department, or year level (Phase 13)
+- **🆕 Bulk Enrollment** — Filter students by subject/course/year level, review a checkbox list (already-enrolled and cross-course students labeled, not hidden), confirm once, get a categorized enrolled/skipped report — no auto-enrollment, Registrar always confirms (Phase 13)
+- **🆕 Live Enrollment Status** — Old-term enrollments automatically flip to "Completed" whenever the active School Year/Semester changes; status badges are computed live rather than relying solely on a stored column, so they can't drift stale (Phase 13)
+- **🆕 Decimal Subject Units** — Units field supports real curriculum values like `1.4` (e.g. Capstone), not just whole numbers (Phase 13)
 - **Grade Submission Workflow (legacy, being phased out)** — Faculty submits → HoD bulk approves → Registrar bulk finalizes per subject
 - **Department-Scoped HoD (legacy)** — Each HoD manages their department only via `department_id` — student/enrollment/Excel management being absorbed by Registrar; grade review/faculty assignment slated for lockout
 - **Rejection & Resubmission Flow (legacy)** — HoD rejects with remarks → Faculty corrects → resubmits with remarks — slated for lockout
@@ -49,12 +52,12 @@ This system streamlines the academic grading workflow. As of **Phase 13**, the w
 | Phase 10 | Reporting & Analytics | 📅 Planned |
 | Phase 11 | UI/UX Polish & Testing | 🔄 40% Done (blocked pending Phase 13) |
 | Phase 12 | Backup & Restore | ✅ Complete |
-| **Phase 13** | **Registrar-Only Workflow Migration** | 🔄 **~70% In Progress** |
+| **Phase 13** | **Registrar-Only Workflow Migration** | 🔄 **~93% In Progress** |
 | Phase 14 | Curriculum Feature (renumbered from old Phase 13) | 📅 Planned |
 
-**Overall Progress: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
+**Overall Progress: ~98%**
 
-> **Resume point:** Phase 13.8 — Browser end-to-end test for Registrar's new Student/Enrollment/Excel/Encode-Grades flow. See CHANGELOG.md.
+> **Resume point:** Phase 13.8 — Browser end-to-end test (static checks clean, full checklist pass not yet explicitly confirmed). Also newly scoped: Import Grades/Manual Encode consistency, and Year Level architecture. See CHANGELOG.md.
 
 ---
 
@@ -424,6 +427,7 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | grade_submissions.hod_action | `approved_by_head_of_department`, `rejected` | `approved` |
 | Storage facade | `Storage::` (with import) | `\Storage::` |
 | grades.faculty_id | nullable as of Phase 13 (Registrar direct-entry) | never the Registrar's own `auth()->id()` |
+| subjects.units | `DECIMAL(4,1)` as of Phase 13.21 — supports values like `1.4` | previously `INT`, whole numbers only |
 
 ---
 
@@ -464,6 +468,10 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Backup Now button requires Apache running (Windows dev environments) | Documented workaround — see CHANGELOG.md Phase 13.12; expected to work without this workaround on real server deployments |
 | ~~Enrollment "already enrolled" error firing on brand-new enrollments~~ | ✅ Fixed — Phase 13.14, see CHANGELOG.md |
 | ~~Masterlist import silently auto-creating phantom subjects on typo'd/misplaced codes~~ | ✅ Fixed — Phase 13.13, see CHANGELOG.md |
+| ~~Old-semester enrollments staying labeled "Enrolled" forever after a semester transition~~ | ✅ Fixed — Phase 13.20, see CHANGELOG.md |
+| ~~Subject Units field rejecting decimal values (e.g. `1.4`)~~ | ✅ Fixed — Phase 13.21, see CHANGELOG.md |
+| Import Grades (Masterlist) requires enrollment to pre-exist, unlike Manual Encode which creates it implicitly | 🆕 Flagged, not yet fixed — needs `MasterlistImport.php` review |
+| `students.year_level` is a static field set once at creation, doesn't reflect real progression across school years | 🆕 Flagged, not yet fixed — larger architectural change, deliberately deferred; live "This Term" enrollment badge shipped as an interim step (13.20) |
 
 ---
 
@@ -483,8 +491,8 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 ## Project Stats
 
 - **Started:** February 15, 2026
-- **Last Updated:** July 2, 2026
-- **Version:** 1.0.0-alpha (Phase 13 in progress, Phase 11 in progress)
+- **Last Updated:** July 31, 2026
+- **Version:** 1.0.0-alpha (Phase 13 ~93% in progress, Phase 11 in progress)
 - **Database Tables:** 24
 - **Models:** 11 (+ User)
 - **Middleware:** 2 custom (CheckRole, CheckStatus)
@@ -513,6 +521,6 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 ---
 
-**Last Updated:** July 17, 2026
+**Last Updated:** July 31, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus

@@ -54,8 +54,9 @@
                             </td>
                             <td class="px-4 py-2">{{ $enrollment->subject->units }}</td>
                             <td class="px-4 py-2">
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $enrollment->status === 'enrolled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
-                                    {{ ucfirst($enrollment->status) }}
+                                @php $displayStatus = $enrollment->status === 'dropped' ? 'Dropped' : 'Enrolled'; @endphp
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $displayStatus === 'Enrolled' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600' }}">
+                                    {{ $displayStatus }}
                                 </span>
                             </td>
                         </tr>
@@ -85,7 +86,7 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-2">{{ $enrollment->subject->units }}</td>
-                                <td class="px-4 py-2 text-xs text-gray-500">{{ ucfirst($enrollment->status) }}</td>
+                                <td class="px-4 py-2 text-xs text-gray-500">{{ $enrollment->status === 'dropped' ? 'Dropped' : 'Completed' }}</td>
                             </tr>
                             @endforeach
                         </tbody>

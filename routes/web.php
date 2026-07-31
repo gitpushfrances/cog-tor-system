@@ -128,6 +128,8 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/enrollments', [App\Http\Controllers\Registrar\EnrollmentController::class, 'index'])->name('enrollments.index');
     Route::post('/enrollments', [App\Http\Controllers\Registrar\EnrollmentController::class, 'store'])->name('enrollments.store');
     Route::delete('/enrollments/{enrollment}', [App\Http\Controllers\Registrar\EnrollmentController::class, 'destroy'])->name('enrollments.destroy');
+    Route::get('/enrollments/bulk', [App\Http\Controllers\Registrar\EnrollmentController::class, 'bulkCreate'])->name('enrollments.bulk-create');
+    Route::post('/enrollments/bulk', [App\Http\Controllers\Registrar\EnrollmentController::class, 'bulkStore'])->name('enrollments.bulk-store');
 
     // Excel Import/Export
     Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');

@@ -148,6 +148,7 @@
                                 <th style="padding:10px 24px;text-align:left;font-weight:700;">Department</th>
                                 <th style="padding:10px 24px;text-align:left;font-weight:700;">Program</th>
                                 <th style="padding:10px 24px;text-align:center;font-weight:700;">Year</th>
+                                <th style="padding:10px 24px;text-align:center;font-weight:700;">This Term</th>
                                 <th style="padding:10px 24px;text-align:right;font-weight:700;">Action</th>
                             </tr>
                         </thead>
@@ -162,6 +163,17 @@
                                 <td style="padding:12px 24px;color:#4a4535;font-size:0.8rem;">{{ $s->course?->department?->name ?? '—' }}</td>
                                 <td style="padding:12px 24px;color:#4a4535;font-size:0.8rem;">{{ $s->course?->code ?? '—' }}</td>
                                 <td style="padding:12px 24px;text-align:center;color:#4a4535;font-size:0.8rem;">{{ $s->year_level ?? '—' }}</td>
+                                <td style="padding:12px 24px;text-align:center;">
+                                    @if(in_array($s->id, $enrolledThisTermIds))
+                                        <span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap;">
+                                            Enrolled
+                                        </span>
+                                    @else
+                                        <span style="background:#f3f4f6;color:#6b7280;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;white-space:nowrap;">
+                                            Not Enrolled
+                                        </span>
+                                    @endif
+                                </td>
                                 <td style="padding:12px 24px;text-align:right;white-space:nowrap;">
                                     <button type="button" onclick="event.stopPropagation(); viewHistory({{ $s->id }}, false)"
                                         title="View grades"

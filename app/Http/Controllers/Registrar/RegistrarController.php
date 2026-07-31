@@ -172,6 +172,15 @@ class RegistrarController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $activeSemesterGlobal = Semester::where('status', 'active')->first();
+        $enrolledThisTermIds = $activeSemesterGlobal
+            ? Enrollment::where('semester_id', $activeSemesterGlobal->id)
+                ->whereIn('student_id', $students->pluck('id'))
+                ->pluck('student_id')
+                ->unique()
+                ->toArray()
+            : [];
+
         if ($selectedStudent) {
             $selectedStudentModel = Student::find($selectedStudent);
         }
@@ -189,7 +198,8 @@ class RegistrarController extends Controller
             'subjects', 'yearLevels', 'students', 'existingGrades',
             'selectedSchoolYear', 'selectedSemester', 'selectedDepartment',
             'selectedCourse', 'selectedStudent', 'selectedStudentModel',
-            'selectedSemesterModel', 'search', 'targetSemesterHint', 'selectedYearLevel'
+            'selectedSemesterModel', 'search', 'targetSemesterHint', 'selectedYearLevel',
+            'activeSemesterGlobal', 'enrolledThisTermIds'
         ));
     }
 

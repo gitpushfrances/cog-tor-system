@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Semester;
 use App\Models\SchoolYear;
+use App\Models\Enrollment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SemesterController extends Controller
 {
@@ -39,7 +41,11 @@ class SemesterController extends Controller
         }
 
         if ($request->status === 'active') {
-            Semester::where('status', 'active')->update(['status' => 'completed']);
+            DB::transaction(function () {
+                $previousActiveIds = Semester::where('status', 'active')->pluck('id');
+                Semester::where('status', 'active')->update(['status' => 'completed']);
+                $this->completeEnrollmentsForSemesters($previousActiveIds);
+            });
         }
 
         Semester::create([
@@ -72,9 +78,15 @@ class SemesterController extends Controller
         $names = ['1' => '1st Semester', '2' => '2nd Semester', '3' => 'Summer'];
 
         if ($request->status === 'active') {
-            Semester::where('status', 'active')
-                ->where('id', '!=', $semester->id)
-                ->update(['status' => 'completed']);
+            DB::transaction(function () use ($semester) {
+                $previousActiveIds = Semester::where('status', 'active')
+                    ->where('id', '!=', $semester->id)
+                    ->pluck('id');
+                Semester::where('status', 'active')
+                    ->where('id', '!=', $semester->id)
+                    ->update(['status' => 'completed']);
+                $this->completeEnrollmentsForSemesters($previousActiveIds);
+            });
         }
 
         $semester->update([
@@ -105,10 +117,29 @@ class SemesterController extends Controller
 
     public function setActive(Semester $semester)
     {
-        Semester::where('status', 'active')->update(['status' => 'completed']);
-        $semester->update(['status' => 'active']);
+        DB::transaction(function () use ($semester) {
+            $previousActiveIds = Semester::where('status', 'active')
+                ->where('id', '!=', $semester->id)
+                ->pluck('id');
+
+            Semester::where('status', 'active')->update(['status' => 'completed']);
+            $semester->update(['status' => 'active']);
+
+            $this->completeEnrollmentsForSemesters($previousActiveIds);
+        });
 
         return redirect()->route('admin.semesters.index')
             ->with('success', 'Semester set as active.');
+    }
+
+    private function completeEnrollmentsForSemesters($semesterIds)
+    {
+        if (empty($semesterIds)) {
+            return;
+        }
+
+        Enrollment::whereIn('semester_id', $semesterIds)
+            ->where('status', 'enrolled')
+            ->update(['status' => 'completed']);
     }
 }

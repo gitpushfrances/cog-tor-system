@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('code', 20)->unique()->comment('e.g., IT 101');
             $table->string('name', 100)->comment('e.g., Introduction to Programming');
             $table->text('description')->nullable();
-            $table->integer('units')->default(3);
+            $table->decimal('units', 4, 1)->default(3.0);
             $table->integer('year_level')->comment('1, 2, 3, 4');
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();

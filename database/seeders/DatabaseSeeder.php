@@ -23,13 +23,12 @@ class DatabaseSeeder extends Seeder
         $this->command->info('');
         $this->command->info('TEST ACCOUNTS:');
         $this->command->info('Admin:     admin@cogtor.test / password');
-        $this->command->info('HOD:       hod@cogtor.test / password');
-        $this->command->info('Faculty:   faculty@cogtor.test / password');
         $this->command->info('Registrar: registrar@cogtor.test / password');
+        $this->command->info('Pending:   pending@cogtor.test / password (cannot login)');
         $this->command->info('');
         $this->command->info('DATA CREATED:');
         $this->command->info('- 4 Roles with permissions');
-        $this->command->info('- 5 User accounts');
+        $this->command->info('- 3 User accounts');
         $this->command->info('- 2 School years');
         $this->command->info('- 3 Semesters');
         $this->command->info('- 3 Departments');

@@ -32,7 +32,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Units</label>
-                        <input type="number" name="units" value="{{ old('units') }}" min="1" max="10" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
+                        <input type="number" name="units" value="{{ old('units') }}" min="1" max="10" step="0.1" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm">
                         @error('units')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>

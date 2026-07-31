@@ -12,7 +12,7 @@
 ## ⚡ RESUME POINT — READ THIS FIRST
 
 **Current Phase:** Phase 13 — Registrar-Only Workflow Migration
-**Status:** 🔄 In Progress (~85%) — Controllers, routes, and views built and statically verified. Subject `semester` data bug found and fixed (root cause + patch + seeder). Faculty/HoD roles locked out at route level (Phase 13.6 done), test accounts removed. Browser end-to-end test NOT yet fully run.
+**Status:** 🔄 In Progress (~93%) — Bulk Enrollment shipped (13.19), semester-transition enrollment status cascade + live-computed display shipped (13.20), Subject Units decimal support shipped (13.21), DatabaseSeeder summary cleanup shipped (13.22). Browser end-to-end test (13.8) still NOT fully confirmed — static verification and spot-testing done this session, but a full checklist pass has not been explicitly signed off.
 
 ### 🔔 Open Enhancement Request (not yet scheduled)
 > **Add a dedicated COG/TOR Records tab/section** so generated documents are tracked and retrievable as a proper history/log, rather than only accessible at the moment of generation. See "COG/TOR Records Tracking" note under Phase 13.10 below and in Next Steps.
@@ -783,6 +783,50 @@ Flagged during the July 2 session, not yet built:
 - [x] Whole table row made clickable (not just the name) via `onclick` on the `<tr>`, with `event.stopPropagation()` on the Actions `<td>` so Edit/Delete clicks don't also bubble up and reopen the modal underneath.
 - [x] Modal upgraded from a bare popup to a proper dialog — backdrop blur, scale/opacity transition on open/close (`scale-95`/`opacity-0` → `scale-100`/`opacity-100`, `150ms` matched close delay), sticky header so it stays visible when the subject list scrolls, and a CSS spinner (`animate-spin` + `border-t-*`) replacing the plain "Loading..." text placeholder.
 
+### 13.19 Bulk Enrollment ✅ DONE (July 30 session)
+**Trigger:** Client concern — enrolling students one-by-one doesn't scale to 100+ students per term, but auto-enrollment on semester rollover was explicitly rejected as unsafe (dropped/non-continuing students would get swept in). Agreed approach: filter → review → confirm, never auto-commit.
+
+- [x] `Registrar/EnrollmentController.php` — new `bulkCreate()` (Step 1: subject picker; Step 2: Course/Year Level/Search filters, soft-capped at 200 results — "Too many students found, narrow your filters" instead of pagination or "select all across pages" logic) and `bulkStore()` (explicit `->exists()` check per student before `create()`, matching the Lesson #83 pattern — not `firstOrCreate()`), both wrapped in `DB::transaction()`.
+- [x] New routes: `registrar.enrollments.bulk-create` (GET `/registrar/enrollments/bulk`), `registrar.enrollments.bulk-store` (POST, same path).
+- [x] New view `resources/views/registrar/enrollments/bulk.blade.php` — checkbox list pre-checked by default, live "Found / Selected / Already Enrolled" summary, Select All/Clear All, already-enrolled students shown disabled+labeled (not hidden), cross-course students labeled "(Different Course)" reusing the existing `subject->course_id !== student->course_id` check from 13.18 (no per-student confirm gate — labeled only, confirmed once for the whole batch), SweetAlert2 confirmation before submit, categorized enrolled/skipped result modal reusing the Masterlist Import report pattern (13.13).
+- [x] `enrollments/index.blade.php` — added a tab bar ("Enroll Individually" / "Bulk Enroll") linking the two modes.
+- [x] **Bug found and fixed same session:** a leftover `<input type="hidden" name="subject_id">` inside the Search filter block duplicated the `<select name="subject_id">` field already in the same form — browsers submit both, PHP takes the last value, so the dropdown appeared to silently reset to the first-ever selected subject on every filter change. Fixed by removing the redundant hidden input; the `<select>` alone is sufficient since it's already inside the same `<form>`.
+- [x] `php -l`, `route:list --path=registrar/enrollments -v` (5 routes confirmed), `view:cache` all clean.
+
+### 13.20 Semester Transition — Enrollment Status Cascade & Live-Computed Display ✅ DONE (July 30–31 session)
+**Trigger:** Client concern — after switching the active School Year/Semester, old enrollments stayed permanently marked `status = 'enrolled'` in the database and in the UI, even though the term had ended. Confirmed this does **not** cause auto-enrollment into the new term (semester activation and enrollment creation are fully decoupled, unchanged) — purely a stale-label issue.
+
+**Backend cascade — `Admin/SemesterController.php`:**
+- [x] Added `use App\Models\Enrollment;` and `use Illuminate\Support\Facades\DB;`.
+- [x] All three places a semester can become `active` — `store()`, `update()`, and the dedicated `setActive()` — now capture the previously-active semester ID(s) *before* flipping them to `completed`, then cascade `Enrollment::whereIn('semester_id', $previousActiveIds)->where('status', 'enrolled')->update(['status' => 'completed'])`, via a new private helper `completeEnrollmentsForSemesters()`. Each call site wrapped in `DB::transaction()` — semester flip and enrollment cleanup succeed or fail together.
+- [x] **One-time backfill run** for enrollment rows that went stale *before* this patch existed (a prior semester transition happened before the fix was live): `DB::table('enrollments')->where('status','enrolled')->where('semester_id','!=', <active semester id>)->update(['status'=>'completed'])` via `tinker --execute`. Confirmed fixed via the Student Details modal.
+
+**Display robustness — made resilient to any future missed cascade, not just this one:**
+- [x] `registrar/students/show.blade.php` — the enrollment status badge no longer reads the stored `status` column directly. Since `currentEnrollments` and `pastEnrollments` are already split live by the controller (comparing `semester_id` to the active semester), the badge now derives its label from *which section the row is already in* — "Enrolled" for anything in Currently Enrolled, "Completed" for anything in Previously Enrolled, "Dropped" preserved as an explicit override in both. Self-healing: correct even if a future code path forgets to cascade-update `status`.
+- [x] `Registrar/RegistrarController.php::encodeGradesForm()` — added `$activeSemesterGlobal` + `$enrolledThisTermIds` (a simple `whereIn`/`pluck` against the currently-listed students only, not the whole `enrollments` table), passed to the view.
+- [x] `registrar/encode-grades.blade.php` — new **"This Term"** column next to Year in the student list, live green "Enrolled" / grey "Not Enrolled" badge based on real enrollment in the currently-active semester. **Deliberately does not touch `students.year_level`** — that field stays a manually-managed, Registrar-set attribute; this column is additive display only, no auto-promotion logic.
+- [x] `php -l` on `RegistrarController.php` clean; `view:cache` clean on both touched Blade files.
+
+### 13.21 Subject Units — Decimal Support ✅ DONE (July 31 session)
+**Trigger:** Client feedback (relayed via Waray-language voice note, translated and confirmed) — a 4th-year Capstone subject is genuinely `1.4` units per the curriculum, but the Units field silently refused decimal input.
+
+**Root cause (two layers, found together):**
+1. Validation (`'units' => 'required|numeric|min:1|max:10'`) already accepted decimals fine — not the blocker.
+2. `<input type="number">` on both Admin Subject forms had no `step` attribute, so the browser's default `step="1"` silently blocked non-whole-number submission at the HTML5 validation layer, before Laravel ever saw the request. Even if that weren't blocking it, the underlying column was `integer`, which would have truncated `1.4` → `1` on insert regardless.
+
+**Fix applied (client confirmed OK with a `migrate:fresh --seed`, so the original migration was edited in place rather than layering a new alter-column migration on top):**
+- [x] `database/migrations/2026_02_15_143959_create_subjects_table.php` — `$table->integer('units')->default(3);` → `$table->decimal('units', 4, 1)->default(3.0);`
+- [x] `resources/views/admin/subjects/create.blade.php` and `edit.blade.php` — added `step="0.1"` to the Units `<input>` on both.
+- [x] `php artisan migrate:fresh --seed` run — confirmed via `SHOW COLUMNS FROM subjects WHERE Field = "units"` → `Type: decimal(4,1)`.
+- [x] No changes needed to `index.blade.php`'s subject table — it already displays `{{ $subject->units }}` directly, correctly rendering the decimal.
+- [x] **Known cosmetic side effect, not a bug:** existing whole-number subjects now display as `3.0` instead of `3` (MySQL pads to the column's declared decimal precision). GWA math (`grade × units`) is unaffected. Flagged for an optional `rtrim` display tweak later if the client minds the trailing zero — not scheduled.
+
+### 13.22 DatabaseSeeder Summary Cleanup ✅ DONE (July 31 session)
+**Trigger:** Post-`migrate:fresh --seed` review (part of 13.21 verification) surfaced that `DatabaseSeeder.php`'s final printed summary still hardcoded `HOD:` and `Faculty:` test-account lines — leftover from before Phase 13.6 removed those accounts from `UserSeeder` entirely. Misleading, since those credentials no longer exist and the accounts can't log in.
+
+- [x] `database/seeders/DatabaseSeeder.php` — summary block corrected to list only the 3 accounts that actually exist (Admin, Registrar, Pending), verified against a live `User::count()` → `3`. `- 5 User accounts` corrected to `- 3 User accounts`.
+- [x] `php -l` clean, re-ran `migrate:fresh --seed` to confirm the corrected summary prints accurately.
+
 **Phase 13 Deliverables So Far:**
 - ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
 - ✅ `faculty_id` schema made nullable via dependency-free raw migration
@@ -801,6 +845,12 @@ Flagged during the July 2 session, not yet built:
 - ✅ Enrollment Management — fixed `firstOrCreate` tuple-destructuring bug causing false "already enrolled" errors on new enrollments, added named success messages, added student-dropdown persistence across submissions, added date-range + group-by filters
 - ✅ Admin Subject Management — restructured into per-course tabs grouped by year/semester, Faculty field removed from list + create/edit forms, empty-state Add Subject with course pre-fill, `1st semester` casing bug fixed on edit form
 - ✅ Cross-course "irregular" enrollment — Registrar can now enroll a student into a subject outside their course, detected live (no schema change) with UI labeling + confirmation modal; Student Management gained a details modal (Subjects/Personal Info tabs, irregular badge, current vs. past enrollment split)
+- ✅ Bulk Enrollment — filter (subject → course/year/search) → review checkbox list → confirm → categorized result, soft-capped at 200 results instead of pagination, cross-course students labeled not blocked; fixed a duplicate-`subject_id`-field bug that caused the subject dropdown to silently reset
+- ✅ Semester transition enrollment cleanup — old-term enrollments now correctly flip to `completed` on every semester activation path (`store`/`update`/`setActive`), backfilled for pre-existing stale data, and the Student Details + Encode Grades displays now derive their status badges live rather than trusting the stored column, making them self-healing against future missed cascades
+- ✅ Subject Units — decimal support (`DECIMAL(4,1)`), unblocking real curriculum values like `1.4` units (Capstone)
+- ✅ DatabaseSeeder summary output corrected to match actual seeded accounts (3, not 5) post-Phase 13.6 lockout
+- ⏳ **New, not yet started** — Import Grades (`MasterlistImport.php`) does not follow the same implicit-enrollment behavior as Manual Encode Grades; client wants them consistent. Needs `MasterlistImport.php` review before scoping a fix.
+- ⏳ **New, not yet started** — Year Level architecture: client wants `year_level` to reflect real progression rather than being a static field set once at student creation. The "This Term" badge (13.20) is a safe interim step; full "derive year level from enrollment" is a larger, separately-scoped change — deliberately not attempted this session given the risk of touching a field read by COG/TOR generation and Encode Grades' subject filter.
 
 ---
 
@@ -996,6 +1046,13 @@ e.g. "2nd Semester — SY 2025-2026"
 94. Content injected into the DOM via `innerHTML` after an AJAX fetch is not auto-bound by Alpine.js unless `Alpine.initTree()` is explicitly called on the new node — plain global functions referenced via inline `onclick` sidestep this synchronization step entirely for dynamically-loaded modal content
 95. An `<svg>` sized only via Tailwind `w-*`/`h-*` utility classes (no explicit `width`/`height` attributes) can render at an oversized native/unstyled size if the compiled CSS is stale — hardcoding `width`/`height` directly on the element makes icon sizing resilient regardless of CSS-build state
 
+### Phase 13 (continued):
+96. A duplicate form field name within the same `<form>` (e.g. a leftover hidden `<input>` sharing a name with a `<select>`) lets the browser submit both — PHP takes the *last* DOM occurrence, so an earlier hidden field silently overrides a user's actual dropdown selection with no error of any kind.
+97. Deriving a status badge from which query bucket a row already fell into (e.g. comparing `semester_id` to the currently-active semester at render time) is more robust than trusting a stored `status` column — a live comparison is self-healing even if a future code path forgets to cascade-update the stored value, whereas a stored-column approach silently drifts stale the moment one write path is missed.
+98. When a client explicitly confirms they're OK with data loss, editing a column definition directly inside the original `create_*_table` migration and running `migrate:fresh` is simpler than layering a new alter-column migration on top — but this is a pre-production-only shortcut; once real data exists, a proper additive migration is mandatory instead.
+99. Laravel's `numeric` validation rule already accepts decimals — when a numeric field still "won't accept" a decimal value, check the HTML `<input type="number">`'s `step` attribute first. The browser's default `step="1"` blocks non-whole-number submission at the HTML5 layer before the request (and Laravel's validation) ever fires.
+100. A seeder orchestrator's hardcoded final summary output (e.g. `DatabaseSeeder`'s printed "TEST ACCOUNTS" block) can silently drift out of sync with what individual seeders actually create — especially after an account-lockout/removal change to one sub-seeder. Cross-check hardcoded summary strings whenever a sub-seeder's actual output changes, rather than assuming the top-level summary is still accurate.
+
 ---
 
 ## PROGRESS SUMMARY
@@ -1014,60 +1071,48 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
 | Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
-| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~88%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done. Masterlist import validation + report UI done. Enrollment bug fixes + filters done. Browser E2E pending.** |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~93%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done. Masterlist import validation + report UI done. Enrollment bug fixes + filters done. Bulk Enrollment shipped. Semester-transition status cascade + live display shipped. Units decimal support shipped. Browser E2E still pending sign-off.** |
 | Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13; will also correct provisional semester placeholders from 13.9 |
 
-**Overall Project Completion: ~97%** *(dipped slightly from 99% due to Phase 13 scope insertion — reflects real remaining work, not regression)*
+**Overall Project Completion: ~98%**
 
 ---
 
 ## NEXT STEPS — RESUME HERE
 ▶️ Priority 0: Phase 13.11 — Finish COG/TOR Duplicate-Record Fix Verification
-Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR generation for Sofia (semester with the pre-existing duplicate) — confirm both log lines appear and `/registrar/documents` shows one "Current" per type. Only after that: write the cleanup script for Sofia's existing duplicate COG rows, then apply the DB-level uniqueness constraint migration.
+Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR generation for Sofia (semester with the pre-existing duplicate) — confirm both log lines appear and `/registrar/documents` shows one "Current" per type. Only after that: write the cleanup script for Sofia's existing duplicate COG rows, then apply the DB-level uniqueness constraint migration. **Still unstarted — carried over from last session.**
 
-✅ Phase 13.13 — Masterlist Import Validation & Report UI — DONE (see above)
-✅ Phase 13.14 — Enrollment Bug Fixes & Filters — DONE (see above)
-✅ Phase 13.18 — Admin Subject Management Overhaul & Cross-Course Irregular Enrollment — DONE (see above)
+✅ Phase 13.13 — Masterlist Import Validation & Report UI — DONE
+✅ Phase 13.14 — Enrollment Bug Fixes & Filters — DONE
+✅ Phase 13.18 — Admin Subject Management Overhaul & Cross-Course Irregular Enrollment — DONE
+✅ Phase 13.19 — Bulk Enrollment — DONE (see above)
+✅ Phase 13.20 — Semester Transition Enrollment Cascade + Live Display — DONE (see above)
+✅ Phase 13.21 — Subject Units Decimal Support — DONE (see above)
+✅ Phase 13.22 — DatabaseSeeder Summary Cleanup — DONE (see above)
 
 ▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
-Use the Admin + Registrar manual test checklists (July 2 session) to run a full pass:
+Static verification (`php -l`, `route:list`, `view:cache`) is clean across every file touched this session. Spot-testing was done during the Bulk Enrollment and semester-cascade work, but a full deliberate pass through the Admin + Registrar checklists has still not been explicitly confirmed end-to-end in one sitting. Re-run the full checklist, including:
+- The BSIT + 1st Semester regression test (confirms Phase 13.9 fix still holds after `migrate:fresh --seed` in 13.21)
+- Bulk Enroll: subject switching, live counter, confirm modal, result report
+- Semester Set Active → old enrollments show Completed, new semester starts empty
+- Encode Grades "This Term" badge accuracy
+- Subject Units accepting `1.4` on both create and edit
 
-Admin: Subjects CRUD, School Years/Semesters, Departments/Courses, Users, Backup & Restore
-Registrar: Students CRUD, Enrollment, Excel template/export, Encode Grades wizard
-— including the BSIT + 1st Semester regression test (confirms Phase 13.9 fix holds)
-Note exact step + error message for anything that fails
+▶️ Priority 2: New from Waray client feedback (this session) — two items, not yet started
+1. **Import Grades / Manual Encode consistency** — Manual encode implicitly creates the enrollment via `updateOrCreate`; Masterlist Import currently requires the enrollment to pre-exist. Needs `app/Imports/MasterlistImport.php` review before scoping the fix.
+2. **Year Level architecture** — client wants year level to reflect real progression across school years rather than being fixed at student creation with no way to correct it later (blocked by unique student ID/email on re-add). The "This Term" enrollment badge (13.20) is a safe interim step already shipped; deriving `year_level` display itself from enrollment is a larger, deliberately-deferred change — touches COG/TOR generation and Encode Grades' subject filter, needs its own scoping session.
 
-✅ Phase 13.6 — Faculty/HoD Route Lockout — DONE (July 10 session, see above)
-
-▶️ Priority 3: 🔔 COG/TOR Records Tracking Tab (Phase 13.10 — new, flagged this session)
-
-Scope a new Registrar (and possibly Admin) tab listing all generated cog_records/tor_records
-Define columns/filters needed (student, date, semester, school year, re-download link)
-Not yet built — discuss scope before implementation
+▶️ Priority 3: 🔔 COG/TOR Records Tracking Tab (Phase 13.10)
+Scope a new Registrar (and possibly Admin) tab listing all generated `cog_records`/`tor_records`. Define columns/filters needed (student, date, semester, school year, re-download link). Not yet built — discuss scope before implementation.
 
 ▶️ Priority 4: Phase 11 remaining (post-13)
-
-New E2E test plan reflecting single-actor flow (replaces old 12-step multi-role test)
-Mobile responsiveness
-Empty states, 404, form error UX
-Loading states for PDF generation
-UI consistency pass
-Remove leftover student nav links from Admin dashboard
-Remove/hide Faculty + HoD sidebar sections once 13.6 lockout applied
+New E2E test plan reflecting single-actor flow, mobile responsiveness, empty states/404/form error UX, loading states for PDF generation, UI consistency pass, remove leftover student nav links from Admin dashboard, remove/hide Faculty + HoD sidebar sections.
 
 ▶️ Priority 5: Phase 10 — Reporting & Analytics (unchanged, still planned)
-▶️ Priority 6: Phase 14 — Curriculum Feature (renumbered, still planned)
-
-Curricula table + curriculum_subjects table
-Admin UI to build/manage curriculum per course per year
-Link enrollments/grades to curriculum subjects
-Update COG generation to pull from curriculum
-Follow CHED/SUC standard (same pattern as SAIS, AISIS)
-Revisit and correct provisional subject semester placeholders from Phase 13.9 against real curriculum
-
+▶️ Priority 6: Phase 14 — Curriculum Feature (renumbered, still planned) — will also correct provisional subject semester placeholders from 13.9 against real curriculum once available.
 
 ---
 
-**Last Updated:** July 23, 2026
-**Phase 13 Status:** 🔄 In Progress (~90%)
-**Current Focus:** Phase 13.18 Admin Subject Management Overhaul & Cross-Course Irregular Enrollment (done) → Phase 13.17 Grade-writing transaction safety (done) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (php -l + live retest still pending) → birth_date validation range check (still deferred, trivial fix, not yet applied) → Phase 13.8 Full Browser E2E Test → Phase 11.4 Brand Identity/UI Rebrand → 13.10 COG/TOR Records Tab → Phase 10 Reporting → Phase 14 Curriculum
+**Last Updated:** July 31, 2026
+**Phase 13 Status:** 🔄 In Progress (~93%)
+**Current Focus:** Phase 13.19 Bulk Enrollment (done) → Phase 13.20 Semester Transition Cascade + Live Display (done) → Phase 13.21 Subject Units Decimal (done) → Phase 13.22 Seeder Summary Cleanup (done) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum
