@@ -35,7 +35,7 @@
 
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Course <span class="text-red-500">*</span></label>
-                            <select name="course_id"
+                            <select name="course_id" id="course_id" onchange="filterMajors()"
                                     class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('course_id') border-red-400 @else border-gray-300 @enderror">
                                 <option value="">Select Course</option>
                                 @foreach($courses as $course)
@@ -48,6 +48,17 @@
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
+                    </div>
+
+                    <div id="major_wrapper" class="hidden">
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Major</label>
+                        <select name="major_id" id="major_id"
+                                class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('major_id') border-red-400 @else border-gray-300 @enderror">
+                            <option value="">Select Major</option>
+                        </select>
+                        @error('major_id')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Name Fields --}}
@@ -190,4 +201,29 @@
 
         </div>
     </div>
+
+    <script>
+        const allMajors = @json($majors->map(fn($m) => ['id' => $m->id, 'course_id' => $m->course_id, 'label' => $m->code . ' — ' . $m->name]));
+        const oldMajorId = "{{ old('major_id', $student->major_id) }}";
+
+        function filterMajors() {
+            const courseId = document.getElementById('course_id').value;
+            const wrapper = document.getElementById('major_wrapper');
+            const select = document.getElementById('major_id');
+            const matches = allMajors.filter(m => String(m.course_id) === String(courseId));
+
+            select.innerHTML = '<option value="">Select Major</option>';
+            matches.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.label;
+                if (String(m.id) === oldMajorId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            wrapper.classList.toggle('hidden', matches.length === 0);
+        }
+
+        document.addEventListener('DOMContentLoaded', filterMajors);
+    </script>
 </x-app-layout>

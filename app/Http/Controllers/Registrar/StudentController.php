@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Registrar;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Course;
+use App\Models\Major;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 
@@ -61,7 +62,8 @@ class StudentController extends Controller
     public function create()
     {
         $courses = Course::active()->orderBy('name')->get();
-        return view('registrar.students.create', compact('courses'));
+        $majors = Major::active()->orderBy('name')->get();
+        return view('registrar.students.create', compact('courses', 'majors'));
     }
 
     public function store(Request $request)
@@ -69,6 +71,7 @@ class StudentController extends Controller
         $validated = $request->validate([
             'student_number' => 'required|string|max:20|unique:students,student_number',
             'course_id'      => 'required|exists:courses,id',
+            'major_id'       => 'nullable|exists:majors,id',
             'first_name'     => 'required|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
@@ -92,7 +95,8 @@ class StudentController extends Controller
     public function edit(Student $student)
     {
         $courses = Course::active()->orderBy('name')->get();
-        return view('registrar.students.edit', compact('student', 'courses'));
+        $majors = Major::active()->orderBy('name')->get();
+        return view('registrar.students.edit', compact('student', 'courses', 'majors'));
     }
 
     public function update(Request $request, Student $student)
@@ -100,6 +104,7 @@ class StudentController extends Controller
         $validated = $request->validate([
             'student_number' => 'required|string|max:20|unique:students,student_number,' . $student->id,
             'course_id'      => 'required|exists:courses,id',
+            'major_id'       => 'nullable|exists:majors,id',
             'first_name'     => 'required|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',

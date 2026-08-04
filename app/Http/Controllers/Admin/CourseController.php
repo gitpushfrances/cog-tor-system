@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CourseController extends Controller
 {
@@ -29,7 +30,10 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'code' => 'required|string|max:20|unique:courses,code',
+            'code' => [
+                'required', 'string', 'max:20',
+                Rule::unique('courses')->where(fn ($q) => $q->where('department_id', $request->department_id)),
+            ],
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'years' => 'required|integer|min:1|max:10',
@@ -52,7 +56,10 @@ class CourseController extends Controller
     {
         $validated = $request->validate([
             'department_id' => 'required|exists:departments,id',
-            'code' => 'required|string|max:20|unique:courses,code,' . $course->id,
+            'code' => [
+                'required', 'string', 'max:20',
+                Rule::unique('courses')->where(fn ($q) => $q->where('department_id', $request->department_id))->ignore($course->id),
+            ],
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'years' => 'required|integer|min:1|max:10',

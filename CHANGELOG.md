@@ -12,7 +12,9 @@
 ## ⚡ RESUME POINT — READ THIS FIRST
 
 **Current Phase:** Phase 13 — Registrar-Only Workflow Migration
-**Status:** 🔄 In Progress (~93%) — Bulk Enrollment shipped (13.19), semester-transition enrollment status cascade + live-computed display shipped (13.20), Subject Units decimal support shipped (13.21), DatabaseSeeder summary cleanup shipped (13.22). Browser end-to-end test (13.8) still NOT fully confirmed — static verification and spot-testing done this session, but a full checklist pass has not been explicitly signed off.
+**Status:** 🔄 In Progress (~95%) — Bulk Enrollment shipped (13.19), semester-transition enrollment status cascade + live-computed display shipped (13.20), Subject Units decimal support shipped (13.21), DatabaseSeeder summary cleanup shipped (13.22), Semester/School Year soft-delete duplicate-entry bug fixed + confirmation modal UI shipped (13.23), Course Code uniqueness rescoped to department shipped (13.24), Majors feature shipped (13.25). Browser end-to-end test (13.8) still NOT fully confirmed — static verification and spot-testing done this session, but a full checklist pass has not been explicitly signed off.
+
+> ⚠️ **Migration note (13.23–13.25):** all three of this session's fixes edited **existing** migration files in place rather than adding new ones (client confirmed OK with test data loss). Anyone pulling this update — including the client — must run `php artisan migrate:fresh --seed`, not `php artisan migrate`. See the "Pulling This Update" section in README.md.
 
 ### 🔔 Open Enhancement Request (not yet scheduled)
 > **Add a dedicated COG/TOR Records tab/section** so generated documents are tracked and retrievable as a proper history/log, rather than only accessible at the moment of generation. See "COG/TOR Records Tracking" note under Phase 13.10 below and in Next Steps.
@@ -712,7 +714,52 @@ Manual test checklists (Admin + Registrar) now written and ready to run — see 
 - [x] Added an "Enrolled On" column to the enrollments table, showing `enrollment_date` regardless of filter state.
 - [x] Group section headers styled as a distinct amber banner (`#fef3e2` background, `#c9a84c` accent matching the existing Enroll button color) with an icon and pill count badge — first version blended into the table background and was hard to spot while scrolling; fixed after visual feedback.
 
-### 13.10 🔔 Open Enhancement Request — COG/TOR Records Tracking Tab ⏳ NOT SCHEDULED
+### 13.23 Semester & School Year Deletion — Soft-Delete Duplicate-Entry Bug + Confirmation Modal UI ✅ DONE (August 4 session)
+**Trigger:** Client bug report (Waray-language, translated) — creating a semester, deleting it, then recreating the exact same School Year + Semester Order combination threw `SQLSTATE[23000]: Duplicate entry` even though the app's own duplicate check reported no match. Same root cause independently affected School Years.
+
+**Root cause:** Both `semesters` and `school_years` use `SoftDeletes` (`deleted_at`), but their unique constraints (`semesters_school_year_id_semester_order_unique`, `school_years_year_code_unique`) were defined at the plain-column level, with no awareness of `deleted_at`. The app's `exists()` duplicate check correctly excludes soft-deleted rows and returns `false`, but the soft-deleted row is still physically present with the same key values — so the raw `INSERT` collides with it at the database level regardless of what the app-level check found.
+
+**Fix — `SemesterController::destroy()` / `SchoolYearController::destroy()`:** switched from `->delete()` (soft) to `->forceDelete()` (permanent). If the record being deleted is `active`, the next `upcoming` record (same school year, next `semester_order` for semesters; earliest `start_date` for school years) is automatically promoted to `active` inside a `DB::transaction()` before the force-delete runs; if no upcoming record exists to promote, the delete is blocked with an error instead of leaving nothing active.
+- [x] One-time cleanup for pre-existing soft-deleted rows from before this fix: `\App\Models\Semester::onlyTrashed()->forceDelete();` and `\App\Models\SchoolYear::onlyTrashed()->forceDelete();` run via `tinker`.
+
+**New confirmation modal UI — replaces browser `confirm()` on both delete flows:**
+- [x] New reusable Blade component `resources/views/components/confirm-modal.blade.php` — backdrop blur, Escape-to-close, dynamic title/message/icon (red trash icon for a plain delete, amber warning icon when deleting the active record), single "Delete" action button that submits the originating form.
+- [x] `resources/views/admin/semesters/index.blade.php` and `resources/views/admin/school-years/index.blade.php` — delete forms now call `openConfirmModal()` instead of native `confirm()`; the active-record case shows the auto-promotion warning inline instead of a second stacked native `confirm()`.
+
+### 13.24 Course Code Uniqueness Rescoped to Department ✅ DONE (August 4 session)
+**Trigger:** Client feedback (Waray-language, translated) — adding a new department (COT) with a course code `BSIT` failed with "The code has already been taken," even though it's a different program under a different department than the existing `BSIT` (under CCS/Information Technology).
+
+**Root cause:** `courses.code` had a plain system-wide unique constraint (`courses_code_unique`) and `CourseController`'s validation used a matching plain `unique:courses,code` rule — so the same course abbreviation could never be reused under any other department, even though two departments legitimately offering a same-named program (e.g. both offering `BSIT`) are not duplicates.
+
+**Fix:**
+- [x] `database/migrations/2026_02_15_143954_create_courses_table.php` — dropped the plain `unique()` on `code`, added a composite `$table->unique(['department_id', 'code'])` instead (edited in place — see migration note above).
+- [x] `app/Http/Controllers/Admin/CourseController.php` — `store()`/`update()` validation switched from `unique:courses,code` to `Rule::unique('courses')->where(fn ($q) => $q->where('department_id', $request->department_id))`, with `->ignore($course->id)` on update.
+- [x] Verified: `BSIT` under COT and `BSIT` under CCS now coexist; `BSIT` twice under the same department is still correctly blocked; editing a course without changing its code no longer falsely flags itself as a duplicate.
+
+### 13.25 Majors Feature — Per-Course Specializations ✅ DONE (August 4 session)
+**Trigger:** Client feedback (Waray-language, translated) — no way to assign a major/specialization per course (e.g. BSEd needs majors like English, Math, Filipino; COT-style BSIT needs specialization tracks like Automotive, Electronics), even though the institution's curriculum requires it.
+
+**Scope decision:** Admin manages majors; Registrar assigns a major to a student. Head of Department / Faculty explicitly excluded — those roles are locked out per Phase 13.6 and have no live views to extend.
+
+**Schema:**
+- [x] New `majors` table added inside `database/migrations/2026_02_15_143954_create_courses_table.php` (edited in place, alongside the Course fix above) — `course_id` (FK, cascade delete), `code`, `name`, `status`, soft deletes, composite unique on `(course_id, code)` (same department-scoping pattern as 13.24 — a major code can repeat across different courses, not within the same one).
+- [x] `students.major_id` (nullable, FK to `majors`, `nullOnDelete()`) added inside `database/migrations/2026_02_15_144003_create_students_table.php` (edited in place).
+
+**New — Admin side:**
+- [x] `app/Models/Major.php` — `course()`/`students()` relationships, `active()` scope.
+- [x] `Course::majors()` relationship added.
+- [x] `Student::major_id` added to `$fillable`, `Student::major()` relationship added.
+- [x] `app/Http/Controllers/Admin/MajorController.php` — full CRUD, code uniqueness scoped per-course (same `Rule::unique()->where()` pattern as 13.24), delete blocked if the major has students assigned.
+- [x] `resources/views/admin/majors/index.blade.php`, `create.blade.php`, `edit.blade.php`.
+- [x] Route: `Route::resource('majors', App\Http\Controllers\Admin\MajorController::class)` added to the `admin` group.
+- [x] Sidebar (`layouts/partials/sidebar.blade.php`) — Majors added to the Academic Setup group between Courses and Subjects.
+- [x] Admin Dashboard (`admin/dashboard.blade.php`) — Majors card added to the Academic Setup section.
+
+**New — Registrar side:**
+- [x] `Registrar\StudentController` — `$majors` passed to `create()`/`edit()`, `major_id` added as `nullable|exists:majors,id` to both `store()`/`update()` validation.
+- [x] `registrar/students/create.blade.php` / `edit.blade.php` — Major dropdown, hidden by default, shown and live-filtered via JS to only the majors belonging to the currently-selected Course; on edit, the student's existing major is pre-selected once the course-filtered list populates.
+
+**Testing note:** built and statically reasoned through, following the same pattern as Course code scoping (13.24) which was live-tested and confirmed working — Majors
 Flagged during the July 2 session, not yet built:
 - [ ] No dedicated tab/section currently exists to view a **history/log of all previously generated COG and TOR documents**. Right now, COG/TOR generation is a one-off action reachable only from a student's Academic Profile page (`registrar.students.cog` / `.tor`) — there's no way to browse "all COGs generated this semester" or "all TORs generated for BSIT students" as a list.
 - [ ] Proposed: a new Registrar-side tab (e.g. `registrar.documents.index` or similar) listing all `cog_records` / `tor_records` rows — student name, document number, date generated, semester/school year, with a re-download link — so generated documents are tracked as a proper record, not just a transient PDF download.
@@ -850,7 +897,10 @@ Flagged during the July 2 session, not yet built:
 - ✅ Subject Units — decimal support (`DECIMAL(4,1)`), unblocking real curriculum values like `1.4` units (Capstone)
 - ✅ DatabaseSeeder summary output corrected to match actual seeded accounts (3, not 5) post-Phase 13.6 lockout
 - ⏳ **New, not yet started** — Import Grades (`MasterlistImport.php`) does not follow the same implicit-enrollment behavior as Manual Encode Grades; client wants them consistent. Needs `MasterlistImport.php` review before scoping a fix.
-- ⏳ **New, not yet started** — Year Level architecture: client wants `year_level` to reflect real progression rather than being a static field set once at student creation. The "This Term" badge (13.20) is a safe interim step; full "derive year level from enrollment" is a larger, separately-scoped change — deliberately not attempted this session given the risk of touching a field read by COG/TOR generation and Encode Grades' subject filter.
+- ⏳ **New, not yet started** — Year Level architecture: client wants `year_level` to reflect real progression rather than being a static field set once at student creation. The "This Term" badge (13.20) is a safe interim step, but full "derive year level from enrollment" is a larger, separately-scoped change — deliberately not attempted this session given the risk of touching a field read by COG/TOR generation and Encode Grades' subject filter.
+- ✅ Semester & School Year deletion — soft-delete duplicate-entry bug fixed (force-delete + auto-promote-next-upcoming pattern), browser `confirm()` replaced with a proper confirmation modal component on both pages (13.23)
+- ✅ Course Code uniqueness rescoped from system-wide to per-department, matching real curriculum structure where multiple departments can offer a same-named program (13.24)
+- ✅ Majors feature shipped — Admin manages majors per course, Registrar assigns a major to a student via a course-filtered dropdown; not yet browser end-to-end tested (13.25)
 
 ---
 

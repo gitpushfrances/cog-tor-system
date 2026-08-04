@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('student_number', 20)->unique()->comment('e.g., 2024-00001');
             $table->foreignId('course_id')->constrained('courses')->onDelete('restrict');
+            $table->foreignId('major_id')->nullable()->constrained('majors')->nullOnDelete();
             $table->string('first_name', 50);
             $table->string('middle_name', 50)->nullable();
             $table->string('last_name', 50);

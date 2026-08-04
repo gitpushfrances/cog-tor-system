@@ -11,6 +11,7 @@ class Student extends Model
     protected $fillable = [
         'student_number',
         'course_id',
+        'major_id',
         'first_name',
         'middle_name',
         'last_name',
@@ -33,6 +34,11 @@ class Student extends Model
     public function course()
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function major()
+    {
+        return $this->belongsTo(Major::class);
     }
 
     public function enrollments()

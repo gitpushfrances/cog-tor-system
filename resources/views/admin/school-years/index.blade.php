@@ -41,7 +41,7 @@
                                 </form>
                             @endif
                             <a href="{{ route('admin.school-years.edit', $sy) }}" class="text-blue-600 hover:underline">Edit</a>
-                            <form action="{{ route('admin.school-years.destroy', $sy) }}" method="POST" onsubmit="return confirm('Delete this school year?')">
+                            <form action="{{ route('admin.school-years.destroy', $sy) }}" method="POST" onsubmit="return confirmDeleteSchoolYear(this, {{ $sy->status === 'active' ? 'true' : 'false' }}, '{{ addslashes($sy->year_code) }}')">
                                 @csrf @method('DELETE')
                                 <button class="text-red-600 hover:underline">Delete</button>
                             </form>
@@ -55,4 +55,27 @@
             <div class="px-6 py-4">{{ $schoolYears->links() }}</div>
         </div>
     </div>
+
+    <x-confirm-modal />
+
+    <script>
+        function confirmDeleteSchoolYear(form, isActive, name) {
+            if (isActive) {
+                openConfirmModal({
+                    title: 'Delete active school year?',
+                    message: `"${name}" is the active school year. Deleting it will automatically set the next upcoming school year as active. This cannot be undone.`,
+                    form: form,
+                    icon: 'warning',
+                });
+            } else {
+                openConfirmModal({
+                    title: 'Delete school year?',
+                    message: `Delete "${name}"? This cannot be undone.`,
+                    form: form,
+                    icon: 'trash',
+                });
+            }
+            return false;
+        }
+    </script>
 </x-app-layout>

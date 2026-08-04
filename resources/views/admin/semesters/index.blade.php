@@ -83,7 +83,7 @@
                                     Edit
                                 </a>
                                 <form action="{{ route('admin.semesters.destroy', $semester) }}" method="POST"
-                                    onsubmit="return confirm('Delete this semester?')">
+                                    onsubmit="return confirmDeleteSemester(this, {{ $semester->status === 'active' ? 'true' : 'false' }}, '{{ addslashes($semester->semester_name . ' - ' . ($semester->schoolYear->year_code ?? '')) }}')">
                                     @csrf @method('DELETE')
                                     <button type="submit"
                                         style="font-size:0.78rem;color:#dc2626;font-weight:600;background:none;border:none;cursor:pointer;padding:0;"
@@ -108,4 +108,27 @@
         </div>
 
     </div>
+
+    <x-confirm-modal />
+
+    <script>
+        function confirmDeleteSemester(form, isActive, name) {
+            if (isActive) {
+                openConfirmModal({
+                    title: 'Delete active semester?',
+                    message: `"${name}" is the active semester. Deleting it will automatically set the next upcoming semester as active. This cannot be undone.`,
+                    form: form,
+                    icon: 'warning',
+                });
+            } else {
+                openConfirmModal({
+                    title: 'Delete semester?',
+                    message: `Delete "${name}"? This cannot be undone.`,
+                    form: form,
+                    icon: 'trash',
+                });
+            }
+            return false;
+        }
+    </script>
 </x-app-layout>

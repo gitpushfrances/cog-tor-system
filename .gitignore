@@ -19,3 +19,4 @@ yarn-error.log
 /.vscode
 storage/backup-project-path.txt
 *.bak*
+_ide_helper_models.php

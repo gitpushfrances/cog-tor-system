@@ -50,6 +50,9 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
     // Course Management
     Route::resource('courses', App\Http\Controllers\Admin\CourseController::class);
 
+    // Major Management
+    Route::resource('majors', App\Http\Controllers\Admin\MajorController::class);
+
     // Subject Management
     Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class);
 

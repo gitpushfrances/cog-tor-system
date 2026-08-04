@@ -28,6 +28,9 @@ This system streamlines the academic grading workflow. As of **Phase 13**, the w
 - **🆕 Bulk Enrollment** — Filter students by subject/course/year level, review a checkbox list (already-enrolled and cross-course students labeled, not hidden), confirm once, get a categorized enrolled/skipped report — no auto-enrollment, Registrar always confirms (Phase 13)
 - **🆕 Live Enrollment Status** — Old-term enrollments automatically flip to "Completed" whenever the active School Year/Semester changes; status badges are computed live rather than relying solely on a stored column, so they can't drift stale (Phase 13)
 - **🆕 Decimal Subject Units** — Units field supports real curriculum values like `1.4` (e.g. Capstone), not just whole numbers (Phase 13)
+- **🆕 Majors** — Admin can define majors/specializations per course (e.g. BSEd → English, Math; COT → Automotive, Electronics); Registrar assigns a major to a student via a dropdown that filters live to the student's selected course (Phase 13)
+- **🆕 Department-Scoped Course Codes** — the same course code (e.g. `BSIT`) can now exist under multiple departments, matching real curriculum structure, instead of being blocked system-wide (Phase 13)
+- **🆕 Safe Semester/School Year Deletion** — deleting an active semester or school year now shows a confirmation modal and automatically promotes the next upcoming one; a soft-delete bug that caused "duplicate entry" errors when recreating a deleted semester/school year has been fixed (Phase 13)
 - **Grade Submission Workflow (legacy, being phased out)** — Faculty submits → HoD bulk approves → Registrar bulk finalizes per subject
 - **Department-Scoped HoD (legacy)** — Each HoD manages their department only via `department_id` — student/enrollment/Excel management being absorbed by Registrar; grade review/faculty assignment slated for lockout
 - **Rejection & Resubmission Flow (legacy)** — HoD rejects with remarks → Faculty corrects → resubmits with remarks — slated for lockout
@@ -191,6 +194,22 @@ Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF downlo
 > **Note (Phase 13):** `doctrine/dbal` is intentionally **not** installed — Laravel 10.x still requires it for `Schema::table()->change()`, but a raw `DB::statement('ALTER TABLE ...')` migration was used instead for the one nullable-column change needed, to avoid adding the dependency.
 
 ---
+
+## ⚠️ Pulling This Update (for existing installs)
+
+This update (August 4, 2026) edited **existing** migration files in place instead of adding new ones — fixes to `create_courses_table.php` (Course Code uniqueness + new `majors` table) and `create_students_table.php` (`major_id` column). A plain `git pull` + `php artisan migrate` will **not** apply these changes, since Laravel only runs migrations it hasn't already recorded as run.
+
+**After pulling, run:**
+```bash
+git pull origin main
+php artisan migrate:fresh --seed
+```
+
+**This wipes and reseeds the entire local database.** If there is real data in this install that hasn't been backed up yet, back it up first:
+```bash
+php artisan backup:run
+```
+(or use the Backup Now button under Admin → Backup & Restore — see the Backup & Restore section below). This project is still pre-production/test-data phase per the client's own confirmation, so a full reseed was the agreed approach rather than layering additive migrations — this note exists so a future production rollout doesn't repeat the same shortcut once real data exists.
 
 ## Installation
 

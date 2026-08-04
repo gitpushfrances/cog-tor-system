@@ -90,6 +90,15 @@
                             </div>
                         </div>
                     </a>
+                    <a href="{{ route('admin.majors.index') }}" class="p-5 transition bg-white border-l-4 border-pink-500 rounded-lg shadow hover:shadow-md">
+                        <div class="flex items-center gap-3">
+                            <i class="fas fa-graduation-cap text-2xl"></i>
+                            <div>
+                                <div class="font-semibold text-gray-800">Majors</div>
+                                <div class="text-xs text-gray-500">Manage majors under each course</div>
+                            </div>
+                        </div>
+                    </a>
                     <a href="{{ route('admin.subjects.index') }}" class="p-5 transition bg-white border-l-4 rounded-lg shadow hover:shadow-md border-cyan-500">
                         <div class="flex items-center gap-3">
                             <i class="fas fa-book text-2xl"></i>

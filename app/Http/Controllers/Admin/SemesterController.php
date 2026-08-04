@@ -109,7 +109,25 @@ class SemesterController extends Controller
                 ->with('error', 'Cannot delete semester with existing enrollments.');
         }
 
-        $semester->delete();
+        if ($semester->status === 'active') {
+            $nextUpcoming = Semester::where('school_year_id', $semester->school_year_id)
+                ->where('status', 'upcoming')
+                ->where('semester_order', '>', $semester->semester_order)
+                ->orderBy('semester_order')
+                ->first();
+
+            if (!$nextUpcoming) {
+                return redirect()->route('admin.semesters.index')
+                    ->with('error', 'Cannot delete the active semester: no upcoming semester found to take its place.');
+            }
+
+            DB::transaction(function () use ($semester, $nextUpcoming) {
+                $nextUpcoming->update(['status' => 'active']);
+                $semester->forceDelete();
+            });
+        } else {
+            $semester->forceDelete();
+        }
 
         return redirect()->route('admin.semesters.index')
             ->with('success', 'Semester deleted successfully.');

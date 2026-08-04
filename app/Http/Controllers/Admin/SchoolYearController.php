@@ -79,7 +79,23 @@ class SchoolYearController extends Controller
                 ->with('error', 'Cannot delete school year with existing semesters.');
         }
 
-        $schoolYear->delete();
+        if ($schoolYear->status === 'active') {
+            $nextUpcoming = SchoolYear::where('status', 'upcoming')
+                ->orderBy('start_date')
+                ->first();
+
+            if (!$nextUpcoming) {
+                return redirect()->route('admin.school-years.index')
+                    ->with('error', 'Cannot delete the active school year: no upcoming school year found to take its place.');
+            }
+
+            DB::transaction(function () use ($schoolYear, $nextUpcoming) {
+                $nextUpcoming->update(['status' => 'active']);
+                $schoolYear->forceDelete();
+            });
+        } else {
+            $schoolYear->forceDelete();
+        }
 
         return redirect()->route('admin.school-years.index')
             ->with('success', 'School year deleted successfully.');

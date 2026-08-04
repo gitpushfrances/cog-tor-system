@@ -6,27 +6,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class Course extends Model
+class Major extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'department_id',
+        'course_id',
         'code',
         'name',
-        'years',
         'status',
     ];
 
-    // Relationships
-    public function department()
+    public function course()
     {
-        return $this->belongsTo(Department::class);
-    }
-
-    public function subjects()
-    {
-        return $this->hasMany(Subject::class);
+        return $this->belongsTo(Course::class);
     }
 
     public function students()
@@ -34,23 +27,11 @@ class Course extends Model
         return $this->hasMany(Student::class);
     }
 
-    public function majors()
-    {
-        return $this->hasMany(Major::class);
-    }
-
-    // Helper Methods
     public function isActive()
     {
         return $this->status === 'active';
     }
 
-    public function getFullName()
-    {
-        return $this->code . ' - ' . $this->name;
-    }
-
-    // Scopes
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
