@@ -400,11 +400,11 @@ Download from **Registrar → Students → Download Template** (institution-wide
 
 ## Database Structure
 
-**Tables: 24 total**
+**Tables: 25 total** (added `majors` — Phase 13.25)
 
 | Group | Tables |
 |-------|--------|
-| Academic Structure | school_years, semesters, departments, courses, subjects |
+| Academic Structure | school_years, semesters, departments, courses, subjects, majors |
 | Users | users (includes `department_id` for Faculty and HoD) |
 | Students | students, enrollments |
 | Grades | grades (5-value ENUM, `faculty_id` nullable as of Phase 13), grade_submissions (faculty_remarks, resubmission_count) |
@@ -447,6 +447,9 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Storage facade | `Storage::` (with import) | `\Storage::` |
 | grades.faculty_id | nullable as of Phase 13 (Registrar direct-entry) | never the Registrar's own `auth()->id()` |
 | subjects.units | `DECIMAL(4,1)` as of Phase 13.21 — supports values like `1.4` | previously `INT`, whole numbers only |
+| courses.code | unique per `department_id` as of Phase 13.24 | previously unique system-wide |
+| majors.code | unique per `course_id` as of Phase 13.25 (new table) | — |
+| students.major_id | nullable FK to `majors`, as of Phase 13.25 | — |
 
 ---
 
@@ -491,6 +494,9 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | ~~Subject Units field rejecting decimal values (e.g. `1.4`)~~ | ✅ Fixed — Phase 13.21, see CHANGELOG.md |
 | Import Grades (Masterlist) requires enrollment to pre-exist, unlike Manual Encode which creates it implicitly | 🆕 Flagged, not yet fixed — needs `MasterlistImport.php` review |
 | `students.year_level` is a static field set once at creation, doesn't reflect real progression across school years | 🆕 Flagged, not yet fixed — larger architectural change, deliberately deferred; live "This Term" enrollment badge shipped as an interim step (13.20) |
+| ~~Deleting and recreating a semester/school year with the same values threw a duplicate-entry error~~ | ✅ Fixed — Phase 13.23, see CHANGELOG.md |
+| ~~Course code (e.g. `BSIT`) couldn't be reused under a second department~~ | ✅ Fixed — Phase 13.24, see CHANGELOG.md |
+| ~~No way to assign a major/specialization to a course or student~~ | ✅ Fixed — Phase 13.25, see CHANGELOG.md (not yet browser end-to-end tested) |
 
 ---
 
@@ -540,6 +546,6 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 ---
 
-**Last Updated:** July 31, 2026
+**Last Updated:** August 4, 2026
 **Maintained By:** Frances Igop
 **Institution:** Eastern Samar State University — Guiuan Campus

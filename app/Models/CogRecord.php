@@ -20,6 +20,12 @@ class CogRecord extends Model
         'pdf_path',
         'generated_at',
         'is_current',
+        'purpose',
+        'or_number',
+        'issued_date',
+        'signatory_name',
+        'signatory_credentials',
+        'signatory_title',
     ];
 
     protected $casts = [
@@ -27,6 +33,7 @@ class CogRecord extends Model
         'grade_data' => 'array',
         'generated_at' => 'datetime',
         'is_current' => 'boolean',
+        'issued_date' => 'date',
     ];
 
     public function student()
@@ -47,6 +54,13 @@ class CogRecord extends Model
     public function getDocumentTitle()
     {
         return 'Certificate of Grades - ' . $this->semester->getFullName();
+    }
+
+    public function getIssuedDateFormatted()
+    {
+        return $this->issued_date
+            ? $this->issued_date->format('jS \d\a\y \o\f F Y')
+            : '';
     }
 
     public function hasFile()

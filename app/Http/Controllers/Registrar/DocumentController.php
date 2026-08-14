@@ -8,6 +8,7 @@ use App\Models\Semester;
 use App\Models\SchoolYear;
 use App\Models\Department;
 use App\Models\CogRecord;
+use App\Models\DocumentSetting;
 use App\Models\TorRecord;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
@@ -68,7 +69,9 @@ class DocumentController extends Controller
             ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
             : null;
 
-        return view('registrar.student-profile', compact('student', 'grouped', 'torRecord', 'cumulativeGwa'));
+        $documentSettings = DocumentSetting::current();
+
+        return view('registrar.student-profile', compact('student', 'grouped', 'torRecord', 'cumulativeGwa', 'documentSettings'));
     }
 
     public function cogForm(Student $student)
@@ -81,9 +84,22 @@ class DocumentController extends Controller
         return view('registrar.cog', compact('student', 'semesters'));
     }
 
-    public function generateCog(Request $request, Student $student)
+    /**
+     * Renders the exact COG document (same Blade view DomPDF uses)
+     * as HTML, without saving anything — powers the Step 2 preview
+     * in the generate modal.
+     */
+    public function cogPreview(Request $request, Student $student)
     {
-        $request->validate(['semester_id' => 'required|exists:semesters,id']);
+        $request->validate([
+            'semester_id'           => 'required|exists:semesters,id',
+            'purpose'               => 'required|string|max:255',
+            'or_number'             => 'required|string|max:50',
+            'issued_date'           => 'required|date',
+            'signatory_name'        => 'required|string|max:255',
+            'signatory_credentials' => 'nullable|string|max:255',
+            'signatory_title'       => 'required|string|max:255',
+        ]);
 
         $semester = Semester::findOrFail($request->semester_id);
 
@@ -105,7 +121,55 @@ class DocumentController extends Controller
             ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
             : null;
 
-        $cog = \DB::transaction(function () use ($student, $semester, $gradeData, $semesterGwa) {
+        $cog = new CogRecord([
+            'document_number'       => 'PREVIEW',
+            'purpose'               => $request->purpose,
+            'or_number'             => $request->or_number,
+            'issued_date'           => $request->issued_date,
+            'signatory_name'        => $request->signatory_name,
+            'signatory_credentials' => $request->signatory_credentials,
+            'signatory_title'       => $request->signatory_title,
+        ]);
+
+        $forPdf = false;
+        $html = view('registrar.pdf.cog', compact('student', 'semester', 'gradeData', 'semesterGwa', 'cog', 'forPdf'))->render();
+
+        return response()->json(['html' => $html]);
+    }
+
+    public function generateCog(Request $request, Student $student)
+    {
+        $request->validate([
+            'semester_id'           => 'required|exists:semesters,id',
+            'purpose'               => 'required|string|max:255',
+            'or_number'             => 'required|string|max:50',
+            'issued_date'           => 'required|date',
+            'signatory_name'        => 'required|string|max:255',
+            'signatory_credentials' => 'nullable|string|max:255',
+            'signatory_title'       => 'required|string|max:255',
+        ]);
+
+        $semester = Semester::findOrFail($request->semester_id);
+
+        $enrollments = Enrollment::with(['subject', 'grade'])
+            ->where('student_id', $student->id)
+            ->where('semester_id', $semester->id)
+            ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
+            ->get();
+
+        $gradeData = $enrollments->map(fn($e) => [
+            'subject_code' => $e->subject->code,
+            'subject_name' => $e->subject->name,
+            'units'        => $e->subject->units,
+            'grade'        => $e->grade->grade,
+        ])->toArray();
+
+        $totalUnits = $enrollments->sum(fn($e) => $e->subject->units);
+        $semesterGwa = $totalUnits > 0
+            ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
+            : null;
+
+        $cog = \DB::transaction(function () use ($request, $student, $semester, $gradeData, $semesterGwa) {
             $superseded = CogRecord::where('student_id', $student->id)
                 ->where('semester_id', $semester->id)
                 ->where('is_current', true)
@@ -120,20 +184,27 @@ class DocumentController extends Controller
             $documentNumber = 'COG-' . strtoupper(uniqid());
 
             return CogRecord::create([
-                'student_id'      => $student->id,
-                'semester_id'     => $semester->id,
-                'generated_by'    => auth()->id(),
-                'document_number' => $documentNumber,
-                'semester_gwa'    => $semesterGwa,
-                'grade_data'      => $gradeData,
-                'generated_at'    => now(),
-                'is_current'      => true,
+                'student_id'             => $student->id,
+                'semester_id'            => $semester->id,
+                'generated_by'           => auth()->id(),
+                'document_number'        => $documentNumber,
+                'semester_gwa'           => $semesterGwa,
+                'grade_data'             => $gradeData,
+                'generated_at'           => now(),
+                'is_current'             => true,
+                'purpose'                => $request->purpose,
+                'or_number'              => $request->or_number,
+                'issued_date'            => $request->issued_date,
+                'signatory_name'         => $request->signatory_name,
+                'signatory_credentials'  => $request->signatory_credentials,
+                'signatory_title'        => $request->signatory_title,
             ]);
         });
 
         $documentNumber = $cog->document_number;
 
-        $pdf = Pdf::loadView('registrar.pdf.cog', compact('student', 'semester', 'gradeData', 'semesterGwa', 'cog'));
+        $forPdf = true;
+        $pdf = Pdf::loadView('registrar.pdf.cog', compact('student', 'semester', 'gradeData', 'semesterGwa', 'cog', 'forPdf'));
         $path = 'cog/' . $documentNumber . '.pdf';
         $pdfOutput = $pdf->output();
         Storage::put($path, $pdfOutput);

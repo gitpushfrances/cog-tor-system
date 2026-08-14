@@ -874,7 +874,85 @@ Flagged during the July 2 session, not yet built:
 - [x] `database/seeders/DatabaseSeeder.php` — summary block corrected to list only the 3 accounts that actually exist (Admin, Registrar, Pending), verified against a live `User::count()` → `3`. `- 5 User accounts` corrected to `- 3 User accounts`.
 - [x] `php -l` clean, re-ran `migrate:fresh --seed` to confirm the corrected summary prints accurately.
 
+<table class="grades">
+        <thead>
+            <tr>### 13.26 COG PDF Template — Full Replication Pass Against Official ESSU Form ✅ DONE (August 14 session)
+**Trigger:** Client feedback comparing generated COG PDFs directly against `ESSU_COG_TEMPLATE.doc` (official Registrar-provided Word template) — several structural and cosmetic mismatches identified and fixed in one pass.
+
+**Investigation approach:** Rather than iterating on screenshots alone, the official `.doc` was converted and unpacked (`soffice --headless --convert-to docx`, then unzipped) to read the real OOXML — exact page margins, paragraph indents, table cell vAlign, and the actual embedded header logo image — instead of guessing values from visual comparison.
+
+**Bagong Pilipinas logo — fixed:**
+- [x] `resources/views/registrar/pdf/cog.blade.php` had a `file_exists()` check pointed at `public/images/logo/ph-seal.png`, which was never the real filename — the actual asset is `public/images/logo/bagong-pilipinas-logo.png` (already present on disk, per Phase 11.4's logo asset list). Silent failure — no error, just an empty `@if` block. Path corrected.
+
+**Header logo — restructured to match the real embedded image:**
+- [x] Confirmed via the official `.doc`'s `word/media/image1.jpeg` that the university side of the header is **one combined graphic** (seal + "EASTERN SAMAR STATE UNIVERSITY" wordmark + tagline baked into a single image), not a separate seal image plus typed CSS text as the blade previously built it.
+- [x] Header table restructured from 3 columns (seal 15% / typed text 70% / Bagong Pilipinas 15%) to 2 columns (`essu-horizontal.png` ~78% / `bagong-pilipinas-logo.png` ~22%), matching the real image the Registrar's office provided (already sitting unused in `public/images/logo/` since Phase 11.4 — "reserved for future COG/TOR PDF header — not yet wired in").
+- [x] Unused `.uni-name`/`.uni-tagline` CSS rules left in place (dead but harmless) pending a cleanup pass.
+
+**Table structure — matched to the real 5-column layout:**
+- [x] Official table splits `Course No.` into two separate columns (`Course`, `No.` — e.g. "CS" / "101"), confirmed via the docx's `<w:gridCol>` widths. Blade's 4-column table split into 5; `$row['subject_code']` parsed via `explode(' ', ..., 2)` in the view to populate the two new cells — no backend/database change.
+- [x] GWA row rebuilt to match the official row's actual cell structure (confirmed via XML: `[blank][blank]["GWA" centered]["value"]["reserved empty cell"]`) — an earlier attempt in this same session first added GWA and Total Units as **two separate full-width rows**, which didn't match the source and was reverted; final version puts both values into the **same row** (GWA under the Grades-equivalent column, Total Units under the Units column), matching the template's real layout.
+- [x] Fixed a CSS specificity bug (`table.grades td { text-align: left }` was silently overriding `.gwa-row td { text-align: center }`) that had been preventing the GWA label from centering even after the class was correctly applied — confirmed against the doc's own `<w:jc w:val="center"/>` on that cell.
+- [x] Added `vertical-align: bottom` on data cells / `middle` on headers, matching the official doc's `vAlign="bottom"`/`"center"` settings (source previously had no explicit vertical-align at all).
+
+**Page margins and paragraph indents — matched via real `w:pgMar`/`w:ind` values:**
+- [x] Added an explicit `@page { margin: 1in 1in 1in 1.5in; }` rule — DomPDF was previously falling back to its own default margins; the official doc's asymmetric margins (`w:pgMar left=2160 right=1440 top=1440 bottom=1440` twips) were not replicated anywhere before this.
+- [x] Added `text-indent: 36pt` (0.5in) to the "THIS IS TO CERTIFY..." and "This certification is issued upon request..." paragraphs, matching the doc's `w:firstLine="720"` twips first-line indent (the certify paragraph) and its leading-space equivalent (the purpose paragraph).
+- [x] Added `margin-left: 36pt` to the "Issued this [date]..." line, matching the doc's `w:ind start="720"` whole-paragraph left indent.
+
+**Certification title spacing — fixed:**
+- [x] `.cert-title`'s `letter-spacing: 6px` was being applied on top of literal spaced-out characters already in the text (`C E R T I F I C A T I O N`), compounding into much wider spacing than the source. Reduced to `1px` (plus a font-size/margin trim) since the source text already carries its own spacing.
+
+**Page number footer — dynamic page count added, with a documented open item:**
+- [x] `config/dompdf.php` — `enable_php` flipped `false` → `true` (config had to be published first via `vendor:publish`, wasn't present in the repo before this session) to allow an embedded `<script type="text/php">` block.
+- [x] Static `Page 1` footer text replaced with DomPDF's `$pdf->page_text()` using `{PAGE_NUM}`/`{PAGE_COUNT}` placeholders, so a COG that spans more than one page (e.g. 12+ subjects) reports the correct total instead of a hardcoded "of 1."
+- [ ] **x/y positioning is a calculated estimate, not confirmed pixel-perfect** — corrected once already this session after the first attempt visibly misaligned (used a 36pt right-margin assumption before the real `@page` margin of 72pt existed; y-offset also needed a larger correction than first guessed, due to mixed px/pt math against the footer's `position: fixed; bottom: -30px` CSS). Confirm final alignment against a fresh render before considering this fully closed.
+
+**Not yet done — flagged for a follow-up session:**
+- [ ] Live confirmation that the corrected `page_text()` x/y values render flush against "ESSU-ACAD-210 | Version 5" — last visual check was before the most recent offset correction.
+- [ ] `essu-seal.png`/`essu-seal-full.png` are now unused by the COG header (superseded by `essu-horizontal.png`) — still referenced elsewhere (sidebar, login page per Phase 11.4) so not dead assets overall, just no longer used in this specific template.
+
+<!-- TODO — fill in from your own notes, not covered in this session's conversation:
+- [ ] app/Models/DocumentSetting.php + its migration (new files per `git status`)
+- [ ] database/migrations/..._create_document_settings_table.php
+- [ ] app/Models/CogRecord.php changes
+- [ ] app/Models/Student.php changes
+- [ ] database/migrations/..._create_cog_records_table.php changes
+- [ ] resources/views/registrar/student-profile.blade.php changes
+- [ ] routes/web.php changes
+- [ ] README.md changes
+-->
+
 **Phase 13 Deliverables So Far:**
+                <th style="width: 15%;">Course</th>
+                <th style="width: 11%;">No.</th>
+                <th style="width: 49%;">Descriptive Title</th>
+                <th style="width: 12%;">Grades</th>
+                <th style="width: 13%;">Units</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($gradeData as $row)
+            @php
+                $codeParts = explode(' ', $row['subject_code'], 2);
+                $courseCode = $codeParts[0] ?? $row['subject_code'];
+                $courseNo = $codeParts[1] ?? '';
+            @endphp
+            <tr>
+                <td class="center">{{ $courseCode }}</td>
+                <td class="center">{{ $courseNo }}</td>
+                <td>{{ $row['subject_name'] }}</td>
+                <td class="center">{{ number_format($row['grade'], 1) }}</td>
+                <td class="center">{{ $row['units'] }}</td>
+            </tr>
+            @endforeach
+            <tr class="gwa-row">
+                <td colspan="3">GWA</td>
+                <td>{{ $semesterGwa ? number_format($semesterGwa, 2) : 'N/A' }}</td>
+                <td>{{ number_format(collect($gradeData)->sum('units'), 1) }}</td>
+            </tr>
+        </tbody>
+    </table>
 - ✅ Registrar direct-encode bugs fixed (`faculty_id`, missing `GradeSubmission`, remarks wipe)
 - ✅ `faculty_id` schema made nullable via dependency-free raw migration
 - ✅ Full Registrar Student/Enrollment/Excel management built — controllers, views, routes, sidebar
@@ -1121,7 +1199,7 @@ e.g. "2nd Semester — SY 2025-2026"
 | Phase 10: Reporting & Analytics | 📅 Planned | 0% | After Phase 11 |
 | Phase 11: UI/UX & Testing | 🔄 In Progress | 40% | Blocked pending Phase 13 completion |
 | Phase 12: Backup & Restore | ✅ Complete | 100% | spatie/laravel-backup, Admin UI |
-| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~93%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done. Masterlist import validation + report UI done. Enrollment bug fixes + filters done. Bulk Enrollment shipped. Semester-transition status cascade + live display shipped. Units decimal support shipped. Browser E2E still pending sign-off.** |
+| **Phase 13: Registrar-Only Workflow Migration** | 🔄 **In Progress** | **~95%** | **Registrar module built + statically verified. Admin role scope confirmed. Subject semester bug fixed. Faculty/HoD lockout done. Masterlist import validation + report UI done. Enrollment bug fixes + filters done. Bulk Enrollment shipped. Semester-transition status cascade + live display shipped. Units decimal support shipped. Semester/School Year soft-delete bug + confirmation modal UI shipped. Course Code uniqueness rescoped to department. Majors feature shipped. Browser E2E still pending sign-off.** |
 | Phase 14: Curriculum Feature | 📅 Planned | 0% | Renumbered from old Phase 13; will also correct provisional semester placeholders from 13.9 |
 
 **Overall Project Completion: ~98%**
@@ -1139,6 +1217,9 @@ Paste back `php -l` result for the TOR patch, then live-retest both COG and TOR 
 ✅ Phase 13.20 — Semester Transition Enrollment Cascade + Live Display — DONE (see above)
 ✅ Phase 13.21 — Subject Units Decimal Support — DONE (see above)
 ✅ Phase 13.22 — DatabaseSeeder Summary Cleanup — DONE (see above)
+
+▶️ Priority 0.5: Browser-test 13.23–13.25 (this session's work, not yet in the checklist)
+Semester/School Year: delete non-active → modal appears, deletes clean, recreate same combo succeeds. Delete active → warning modal, next upcoming auto-promotes; with no upcoming available, blocked with an error. Courses: `BSIT` under two different departments both save; same code twice under one department still blocked. Majors: create under a course, dropdown appears/filters correctly on Registrar's Add/Edit Student, hidden for courses with no majors, delete blocked if a student is assigned.
 
 ▶️ Priority 1: Phase 13.8 — Complete Browser End-to-End Test
 Static verification (`php -l`, `route:list`, `view:cache`) is clean across every file touched this session. Spot-testing was done during the Bulk Enrollment and semester-cascade work, but a full deliberate pass through the Admin + Registrar checklists has still not been explicitly confirmed end-to-end in one sitting. Re-run the full checklist, including:
@@ -1163,6 +1244,6 @@ New E2E test plan reflecting single-actor flow, mobile responsiveness, empty sta
 
 ---
 
-**Last Updated:** July 31, 2026
-**Phase 13 Status:** 🔄 In Progress (~93%)
-**Current Focus:** Phase 13.19 Bulk Enrollment (done) → Phase 13.20 Semester Transition Cascade + Live Display (done) → Phase 13.21 Subject Units Decimal (done) → Phase 13.22 Seeder Summary Cleanup (done) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum
+**Last Updated:** August 4, 2026
+**Phase 13 Status:** 🔄 In Progress (~95%)
+**Current Focus:** Phase 13.23 Semester/School Year Soft-Delete Fix + Confirmation Modal (done) → Phase 13.24 Course Code Uniqueness Rescoped (done) → Phase 13.25 Majors Feature (done, not yet browser-tested) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 0.5: browser-test 13.23–13.25 → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum

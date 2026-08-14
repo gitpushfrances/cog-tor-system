@@ -79,6 +79,36 @@ class Student extends Model
         return $name;
     }
 
+    /**
+     * "LASTNAME, First M. Suffix" — matches the format on official
+     * ESSU documents (COG/TOR). Uppercase is applied via CSS in the
+     * PDF template, not here, so this stays reusable elsewhere.
+     */
+    public function getFormalName()
+    {
+        $name = $this->last_name . ', ' . $this->first_name;
+
+        if ($this->middle_name) {
+            $name .= ' ' . substr($this->middle_name, 0, 1) . '.';
+        }
+
+        if ($this->suffix) {
+            $name .= ' ' . $this->suffix;
+        }
+
+        return $name;
+    }
+
+    public function getYearLevelWord()
+    {
+        return [
+            1 => 'first',
+            2 => 'second',
+            3 => 'third',
+            4 => 'fourth',
+        ][$this->year_level] ?? $this->year_level . 'th';
+    }
+
     public function isActive()
     {
         return $this->status === 'active';

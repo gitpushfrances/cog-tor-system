@@ -109,6 +109,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/students/{student}/profile', [App\Http\Controllers\Registrar\DocumentController::class, 'studentProfile'])->name('students.profile');
     Route::get('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'cogForm'])->name('students.cog');
     Route::post('/students/{student}/cog', [App\Http\Controllers\Registrar\DocumentController::class, 'generateCog'])->name('students.cog.generate');
+    Route::post('/students/{student}/cog/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'cogPreview'])->name('students.cog.preview');
     Route::get('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'torForm'])->name('students.tor');
     Route::post('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'generateTor'])->name('students.tor.generate');
     Route::get('/cog/{cog}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadCog'])->name('cog.download');

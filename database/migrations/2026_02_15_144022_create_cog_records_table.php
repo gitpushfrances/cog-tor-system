@@ -19,6 +19,12 @@ return new class extends Migration
             $table->string('document_number', 50)->unique();
             $table->decimal('semester_gwa', 4, 2)->nullable()->comment('General Weighted Average');
             $table->json('grade_data')->comment('Snapshot of grades at generation time');
+            $table->text('purpose')->nullable();
+            $table->string('or_number', 50)->nullable();
+            $table->date('issued_date')->nullable();
+            $table->string('signatory_name')->nullable();
+            $table->string('signatory_credentials')->nullable();
+            $table->string('signatory_title')->nullable();
             $table->string('pdf_path')->nullable();
             $table->timestamp('generated_at');
             $table->timestamps();
