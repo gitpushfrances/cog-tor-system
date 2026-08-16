@@ -13,6 +13,10 @@ return new class extends Migration
             $table->string('registrar_name');
             $table->string('registrar_credentials')->nullable();
             $table->string('registrar_title');
+            $table->string('prepared_by_name')->nullable();
+            $table->string('prepared_by_title')->nullable();
+            $table->string('campus_admin_name')->nullable();
+            $table->string('campus_admin_title')->nullable();
             $table->timestamps();
         });
     }

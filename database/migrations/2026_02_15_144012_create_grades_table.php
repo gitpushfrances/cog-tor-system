@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('enrollment_id')->constrained('enrollments')->onDelete('cascade');
             $table->foreignId('faculty_id')->constrained('users')->comment('Faculty who encoded the grade');
             $table->decimal('grade', 4, 2)->comment('Final grade — flexible, e.g. 1.00, 1.52, 2.75');
+            $table->decimal('re_exam_grade', 4, 2)->nullable()->comment('Re-examination grade — optional, printed as a separate column on the TOR');
             $table->enum('status', ['saved', 'pending_head_of_department_review', 'approved_by_head_of_department', 'rejected', 'finalized'])->default('saved');
             $table->text('remarks')->nullable();
             $table->timestamps();

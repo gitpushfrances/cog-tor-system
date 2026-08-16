@@ -224,6 +224,9 @@
                     <label style="font-size:0.75rem;font-weight:600;color:#4a4535;display:block;margin-bottom:6px;">Grade (1.00–5.00)</label>
                     <input type="number" id="gradeEditInput" min="1.00" max="5.00" step="0.25" placeholder="e.g. 1.75"
                            style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:10px 12px;font-size:1rem;text-align:center;outline:none;">
+                    <label style="font-size:0.75rem;font-weight:600;color:#4a4535;display:block;margin:14px 0 6px;">Re-Exam Grade (optional)</label>
+                    <input type="number" id="reExamEditInput" min="1.00" max="5.00" step="0.25" placeholder="leave blank if none"
+                           style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:10px 12px;font-size:1rem;text-align:center;outline:none;">
                     <div id="gradeEditError" style="color:#dc2626;font-size:0.78rem;margin-top:8px;display:none;"></div>
                 </div>
                 <div style="padding:14px 24px;border-top:1px solid #f0ebe0;display:flex;justify-content:flex-end;gap:8px;">
@@ -266,6 +269,7 @@
                             <th style="padding:10px 16px;text-align:left;font-weight:700;">Subject Name</th>
                             <th style="padding:10px 16px;text-align:center;font-weight:700;">Units</th>
                             <th style="padding:10px 16px;text-align:center;font-weight:700;">Grade (1.00–5.00)</th>
+                            <th style="padding:10px 16px;text-align:center;font-weight:700;">Re-Exam</th>
                             <th style="padding:10px 16px;text-align:center;font-weight:700;">Status</th>
                         </tr>
                     </thead>
@@ -274,6 +278,7 @@
                         @php
                             $existing = $existingGrades->get($subject->id);
                             $existingGrade = $existing?->grade?->grade ?? '';
+                            $existingReExam = $existing?->grade?->re_exam_grade ?? '';
                             $isFinalized = $existing?->grade?->status === 'finalized';
                         @endphp
                         <tr style="border-top:1px solid #f0ebe0;" onmouseover="this.style.background='#faf8f4'" onmouseout="this.style.background='transparent'">
@@ -296,6 +301,16 @@
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
                                     onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'"
                                     required>
+                            </td>
+                            <td style="padding:12px 16px;text-align:center;">
+                                <input
+                                    type="number"
+                                    name="re_exam[{{ $subject->id }}]"
+                                    value="{{ $existingReExam }}"
+                                    min="1.00" max="5.00" step="0.25"
+                                    placeholder="optional"
+                                    style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
+                                    onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">
                             </td>
                             <td style="padding:12px 16px;text-align:center;">
                                 @if($isFinalized)
@@ -430,12 +445,13 @@ function viewHistory(id, editable = false) {
                         <table style="width:100%;table-layout:fixed;border-collapse:collapse;font-size:0.875rem;border:1px solid #f0ebe0;border-radius:8px;overflow:hidden;">
                             <thead>
                                 <tr style="background:#f5f0e8;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;">
-                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '10%' : '12%'};">Code</th>
-                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '22%' : '26%'};">Subject</th>
-                                    <th style="padding:8px 16px;text-align:center;width:${historyEditable ? '7%' : '8%'};">Units</th>
-                                    <th style="padding:8px 16px;text-align:center;width:${historyEditable ? '8%' : '10%'};">Grade</th>
-                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '20%' : '24%'};">Encoded By</th>
-                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '15%' : '20%'};">Timestamp</th>
+                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '9%' : '11%'};">Code</th>
+                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '19%' : '23%'};">Subject</th>
+                                    <th style="padding:8px 16px;text-align:center;width:${historyEditable ? '6%' : '7%'};">Units</th>
+                                    <th style="padding:8px 16px;text-align:center;width:${historyEditable ? '7%' : '9%'};">Grade</th>
+                                    <th style="padding:8px 16px;text-align:center;width:${historyEditable ? '7%' : '9%'};">Re-Ex</th>
+                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '18%' : '22%'};">Encoded By</th>
+                                    <th style="padding:8px 16px;text-align:left;width:${historyEditable ? '14%' : '19%'};">Timestamp</th>
                                     ${historyEditable ? '<th style="padding:8px 16px;text-align:right;width:18%;">Action</th>' : ''}
                                 </tr>
                             </thead>
@@ -454,16 +470,17 @@ function viewHistory(id, editable = false) {
 }
 
 function renderHistoryRow(r) {
+    const reExamAttr = r.re_exam ?? '';
     const actionCell = historyEditable ? `
             <td style="padding:10px 16px;text-align:right;" id="hist-action-${r.subject_id}">
                 ${r.encoded
                     ? `<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-right:6px;">${r.status}</span>
-                       <button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', '${r.grade}')"
+                       <button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', '${r.grade}', '${reExamAttr}')"
                            style="background:#f5f0e8;border:1px solid #e2d9c8;color:#4a4535;padding:4px 12px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:background 0.15s;"
                            onmouseover="this.style.background='#e2d9c8'" onmouseout="this.style.background='#f5f0e8'">
                            Edit
                        </button>`
-                    : `<button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', null)"
+                    : `<button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', null, null)"
                            style="background:#c9a84c;color:#fff;padding:4px 14px;border-radius:6px;font-size:0.75rem;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;"
                            onmouseover="this.style.background='#b8963e'" onmouseout="this.style.background='#c9a84c'">
                            Encode
@@ -478,6 +495,9 @@ function renderHistoryRow(r) {
             <td style="padding:10px 16px;text-align:center;color:#4a4535;">${r.units}</td>
             <td style="padding:10px 16px;text-align:center;" id="hist-grade-${r.subject_id}">
                 ${r.encoded ? `<span style="font-weight:700;">${r.grade}</span>` : '—'}
+            </td>
+            <td style="padding:10px 16px;text-align:center;" id="hist-reexam-${r.subject_id}">
+                ${r.re_exam ? `<span style="font-weight:700;">${r.re_exam}</span>` : '—'}
             </td>
             <td style="padding:10px 16px;font-size:0.8rem;color:#1a1a2e;" id="hist-name-${r.subject_id}">
                 ${r.encoded
@@ -494,12 +514,13 @@ function renderHistoryRow(r) {
 
 let editingSubjectId = null;
 
-function openGradeEditModal(subjectId, code, subjectName, currentValue) {
+function openGradeEditModal(subjectId, code, subjectName, currentValue, currentReExam) {
     editingSubjectId = subjectId;
     document.getElementById('historyModal').style.display = 'none';
     document.getElementById('gradeEditTitle').textContent = currentValue ? 'Edit Grade' : 'Encode Grade';
     document.getElementById('gradeEditSubtitle').textContent = `${code} — ${subjectName}`;
     document.getElementById('gradeEditInput').value = currentValue ?? '';
+    document.getElementById('reExamEditInput').value = currentReExam ?? '';
     document.getElementById('gradeEditError').style.display = 'none';
     document.getElementById('gradeEditModal').style.display = 'flex';
     document.getElementById('gradeEditInput').focus();
@@ -513,12 +534,19 @@ function closeGradeEditModal() {
 
 function submitGradeEditModal() {
     const input = document.getElementById('gradeEditInput');
+    const reExamInput = document.getElementById('reExamEditInput');
     const errorBox = document.getElementById('gradeEditError');
     const value = input.value;
+    const reExamValue = reExamInput.value;
     const isEdit = document.getElementById('gradeEditTitle').textContent === 'Edit Grade';
 
     if (!value || value < 1 || value > 5) {
         errorBox.textContent = 'Enter a grade between 1.00 and 5.00.';
+        errorBox.style.display = 'block';
+        return;
+    }
+    if (reExamValue && (reExamValue < 1 || reExamValue > 5)) {
+        errorBox.textContent = 'Re-Exam grade must be between 1.00 and 5.00, or left blank.';
         errorBox.style.display = 'block';
         return;
     }
@@ -530,7 +558,7 @@ function submitGradeEditModal() {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
         },
-        body: JSON.stringify({ subject_id: editingSubjectId, grade: value }),
+        body: JSON.stringify({ subject_id: editingSubjectId, grade: value, re_exam_grade: reExamValue || null }),
     })
     .then(res => res.json().then(data => ({ ok: res.ok, data })))
     .then(({ ok, data }) => {
@@ -547,11 +575,12 @@ function submitGradeEditModal() {
 
         const subjectId = editingSubjectId;
         document.getElementById(`hist-grade-${subjectId}`).innerHTML = `<span style="font-weight:700;">${data.grade}</span>`;
+        document.getElementById(`hist-reexam-${subjectId}`).innerHTML = data.re_exam_grade ? `<span style="font-weight:700;">${data.re_exam_grade}</span>` : '—';
         document.getElementById(`hist-name-${subjectId}`).innerHTML = `${data.encoded_by}<br><span style="font-size:0.7rem;color:#8a7a60;">${data.encoded_email ?? ''}</span>`;
         document.getElementById(`hist-time-${subjectId}`).innerHTML = data.encoded_at;
         document.getElementById(`hist-action-${subjectId}`).innerHTML = `
             <span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-right:6px;">${data.status}</span>
-            <button type="button" onclick="openGradeEditModal(${subjectId}, '', '', '${data.grade}')"
+            <button type="button" onclick="openGradeEditModal(${subjectId}, '', '', '${data.grade}', '${data.re_exam_grade ?? ''}')"
                 style="background:#f5f0e8;border:1px solid #e2d9c8;color:#4a4535;padding:4px 12px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:background 0.15s;"
                 onmouseover="this.style.background='#e2d9c8'" onmouseout="this.style.background='#f5f0e8'">
                 Edit

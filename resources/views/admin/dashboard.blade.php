@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <p class="text-xs font-medium text-blue-700 uppercase tracking-widest mb-1">Eastern Samar State University - Guiuan Campus</p>
+        <p class="mb-1 text-xs font-medium tracking-widest text-blue-700 uppercase">Eastern Samar State University - Guiuan Campus</p>
         <h2 class="text-xl font-semibold leading-tight text-gray-800">Admin Dashboard</h2>
         <p class="mt-1 text-sm text-gray-500">
             {{ $stats['current_school_year'] ? 'Active: ' . $stats['current_school_year']->year : 'No active school year set' }}
@@ -58,7 +58,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <a href="{{ route('admin.users.index') }}" class="p-5 transition bg-white border-l-4 border-blue-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-users text-2xl"></i>
+                            <i class="text-2xl fas fa-users"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Users</div>
                                 <div class="text-xs text-gray-500">Manage faculty, heads of department, registrar accounts</div>
@@ -74,7 +74,7 @@
                 <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <a href="{{ route('admin.departments.index') }}" class="p-5 transition bg-white border-l-4 border-purple-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-building text-2xl"></i>
+                            <i class="text-2xl fas fa-building"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Departments</div>
                                 <div class="text-xs text-gray-500">Manage academic departments</div>
@@ -83,7 +83,7 @@
                     </a>
                     <a href="{{ route('admin.courses.index') }}" class="p-5 transition bg-white border-l-4 border-indigo-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-book-open text-2xl"></i>
+                            <i class="text-2xl fas fa-book-open"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Courses</div>
                                 <div class="text-xs text-gray-500">Manage degree programs</div>
@@ -92,7 +92,7 @@
                     </a>
                     <a href="{{ route('admin.majors.index') }}" class="p-5 transition bg-white border-l-4 border-pink-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-graduation-cap text-2xl"></i>
+                            <i class="text-2xl fas fa-graduation-cap"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Majors</div>
                                 <div class="text-xs text-gray-500">Manage majors under each course</div>
@@ -101,16 +101,25 @@
                     </a>
                     <a href="{{ route('admin.subjects.index') }}" class="p-5 transition bg-white border-l-4 rounded-lg shadow hover:shadow-md border-cyan-500">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-book text-2xl"></i>
+                            <i class="text-2xl fas fa-book"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Subjects</div>
                                 <div class="text-xs text-gray-500">Manage subjects and assign faculty</div>
                             </div>
                         </div>
                     </a>
+                    <a href="{{ route('admin.document-settings.edit') }}" class="p-5 transition bg-white border-l-4 border-gray-400 rounded-lg shadow hover:shadow-md">
+                        <div class="flex items-center gap-3">
+                            <i class="text-2xl fas fa-signature"></i>
+                            <div>
+                                <div class="font-semibold text-gray-800">Document Settings</div>
+                                <div class="text-xs text-gray-500">Signatory names for COG/TOR</div>
+                            </div>
+                        </div>
+                    </a>
                     <a href="{{ route('admin.school-years.index') }}" class="p-5 transition bg-white border-l-4 border-green-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-calendar-alt text-2xl"></i>
+                            <i class="text-2xl fas fa-calendar-alt"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">School Years</div>
                                 <div class="text-xs text-gray-500">Set active school year</div>
@@ -119,7 +128,7 @@
                     </a>
                     <a href="{{ route('admin.semesters.index') }}" class="p-5 transition bg-white border-l-4 border-teal-500 rounded-lg shadow hover:shadow-md">
                         <div class="flex items-center gap-3">
-                            <i class="fas fa-calendar text-2xl"></i>
+                            <i class="text-2xl fas fa-calendar"></i>
                             <div>
                                 <div class="font-semibold text-gray-800">Semesters</div>
                                 <div class="text-xs text-gray-500">Set active semester</div>

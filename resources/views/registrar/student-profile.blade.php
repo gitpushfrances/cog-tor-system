@@ -17,13 +17,10 @@
 
             {{-- TOR Button --}}
             <div>
-                <form method="POST" action="{{ route('registrar.students.tor.generate', $student) }}" id="torForm">
-                    @csrf
-                    <button type="button" onclick="confirmTor()"
-                            class="inline-flex items-center gap-2 px-5 py-2 mt-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">
-                        <i class="mr-1 fa-regular fa-file-lines"></i> Generate TOR
-                    </button>
-                </form>
+                <button type="button" onclick="openTorModal()"
+                        class="inline-flex items-center gap-2 px-5 py-2 mt-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">
+                    <i class="mr-1 fa-regular fa-file-lines"></i> Generate TOR
+                </button>
             </div>
         </div>
     </x-slot>
@@ -141,6 +138,26 @@
             </div>
             <div id="cogModalBody" class="min-h-0 px-6 py-5 overflow-y-auto"></div>
             <div id="cogModalFooter" class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl"></div>
+        </div>
+    </div>
+
+    {{-- Generate TOR Modal --}}
+    <div id="torModal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-gray-900/60 backdrop-blur-sm">
+        <div id="torModalPanel" class="flex flex-col w-full max-w-lg max-h-[85vh] bg-white rounded-xl shadow-2xl transition-all duration-200 ease-out">
+            <div class="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+                <div>
+                    <p class="text-xs font-semibold tracking-wider text-green-600 uppercase">Transcript of Records</p>
+                    <h3 class="mt-1 text-lg font-semibold text-gray-900">{{ $student->getFullName() }}</h3>
+                    <p class="mt-0.5 text-sm text-gray-500">Complete record — all finalized semesters</p>
+                </div>
+                <button type="button" onclick="closeTorModal()" class="p-1.5 text-gray-400 rounded-lg hover:bg-gray-100 hover:text-gray-600 transition">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="torModalBody" class="min-h-0 px-6 py-5 overflow-y-auto"></div>
+            <div id="torModalFooter" class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl"></div>
         </div>
     </div>
 
@@ -333,13 +350,51 @@
                     </svg>
                     Review carefully — this becomes the official record once confirmed.
                 </div>
-                <div class="flex justify-center p-4 overflow-y-auto bg-gray-100 border border-gray-200 rounded-lg" style="max-height: 62vh;">
+                <div id="cogPreviewScroll" class="flex justify-center p-4 overflow-y-auto bg-gray-100 border border-gray-200 rounded-lg" style="max-height: 62vh;">
                     <iframe id="cogPreviewFrame"
                             class="bg-white border border-gray-200 rounded shadow-sm shrink-0"
-                            style="width: 100%; max-width: 620px; aspect-ratio: 8.5 / 11;"></iframe>
+                            style="width: 100%; max-width: 620px; height: 400px; border: none;"
+                            scrolling="no"></iframe>
                 </div>
             `;
-            document.getElementById('cogPreviewFrame').srcdoc = html;
+
+            const cogFrame = document.getElementById('cogPreviewFrame');
+            const cogScrollWrap = document.getElementById('cogPreviewScroll');
+
+            cogFrame.onload = function () {
+                const resize = () => {
+                    try {
+                        const doc = cogFrame.contentWindow.document;
+                        const height = doc.documentElement.scrollHeight || doc.body.scrollHeight;
+                        cogFrame.style.height = height + 'px';
+                    } catch (e) {
+                        cogFrame.style.height = '803px';
+                    }
+                };
+
+                resize();
+                cogScrollWrap.scrollTop = 0;
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        cogScrollWrap.scrollTop = 0;
+                    });
+                });
+
+                try {
+                    const imgs = cogFrame.contentWindow.document.images;
+                    for (const img of imgs) {
+                        img.addEventListener('load', () => {
+                            resize();
+                            cogScrollWrap.scrollTop = 0;
+                        });
+                    }
+                } catch (e) {}
+
+                setTimeout(() => { cogScrollWrap.scrollTop = 0; }, 150);
+            };
+
+            cogFrame.srcdoc = html;
 
             document.getElementById('cogModalFooter').innerHTML = `
                 <button type="button" onclick="renderCogFormStep()"
@@ -377,21 +432,374 @@
             form.submit();
         }
 
-        function confirmTor() {
-            Swal.fire({
-                title: 'Generate TOR?',
-                text: 'Generate complete TOR for {{ $student->getFullName() }}? This includes all finalized semesters.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#16a34a',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Yes, Generate TOR',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    document.getElementById('torForm').submit();
+        const torRoutes = {
+            preview: '{{ route('registrar.students.tor.preview', $student) }}',
+            generate: '{{ route('registrar.students.tor.generate', $student) }}',
+        };
+        const torDefaults = {
+            checked_by_name: @js($documentSettings->registrar_name),
+            checked_by_credentials: @js($documentSettings->registrar_credentials),
+            checked_by_title: @js($documentSettings->registrar_title),
+            prepared_by_name: @js($documentSettings->prepared_by_name),
+            prepared_by_title: @js($documentSettings->prepared_by_title),
+            campus_admin_name: @js($documentSettings->campus_admin_name),
+            campus_admin_title: @js($documentSettings->campus_admin_title),
+        };
+        const studentIsGraduated = @js($student->status === 'graduated');
+        let torState = { dirty: false, form: {} };
+
+        function setTorModalSize(mode) {
+            const panel = document.getElementById('torModalPanel');
+            if (mode === 'preview') {
+                panel.classList.remove('max-w-lg', 'max-h-[85vh]');
+                panel.classList.add('max-w-3xl', 'max-h-[92vh]');
+            } else {
+                panel.classList.remove('max-w-3xl', 'max-h-[92vh]');
+                panel.classList.add('max-w-lg', 'max-h-[85vh]');
+            }
+        }
+
+        function openTorModal() {
+            torState = {
+                dirty: false,
+                form: {
+                    remarks: '',
+                    prepared_by_name: torDefaults.prepared_by_name,
+                    prepared_by_title: torDefaults.prepared_by_title,
+                    checked_by_name: torDefaults.checked_by_name,
+                    checked_by_credentials: torDefaults.checked_by_credentials,
+                    checked_by_title: torDefaults.checked_by_title,
+                    campus_admin_name: torDefaults.campus_admin_name,
+                    campus_admin_title: torDefaults.campus_admin_title,
+                    place_of_birth: '',
+                    elementary_school: '',
+                    elementary_graduation_year: '',
+                    high_school: '',
+                    high_school_graduation_year: '',
+                    degree_awarded: '',
+                    major_at_graduation: '',
+                    graduation_date: '',
+                    board_resolution_no: '',
+                    board_regents_approval_date: '',
+                    nstp_serial_number: '',
                 }
+            };
+            document.getElementById('torModal').classList.remove('hidden');
+            document.getElementById('torModal').classList.add('flex');
+            setTorModalSize('form');
+            renderTorFormStep();
+        }
+
+        function closeTorModal(force = false) {
+            if (!force && torState.dirty) {
+                Swal.fire({
+                    title: 'Discard this TOR?',
+                    text: "Your entries won't be saved.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    cancelButtonColor: '#6b7280',
+                    confirmButtonText: 'Discard',
+                    cancelButtonText: 'Keep Editing',
+                }).then((result) => {
+                    if (result.isConfirmed) closeTorModal(true);
+                });
+                return;
+            }
+            document.getElementById('torModal').classList.add('hidden');
+            document.getElementById('torModal').classList.remove('flex');
+        }
+
+        function markTorDirty(field, value) {
+            torState.form[field] = value;
+            torState.dirty = true;
+        }
+
+        function renderTorFormStep() {
+            setTorModalSize('form');
+            const f = torState.form;
+            const gradSection = studentIsGraduated ? `
+                <div class="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Graduation Details</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Degree Awarded</label>
+                            <input type="text" value="${f.degree_awarded}" oninput="markTorDirty('degree_awarded', this.value)"
+                                   placeholder="e.g. Bachelor of Science in Computer Science" class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Major</label>
+                            <input type="text" value="${f.major_at_graduation}" oninput="markTorDirty('major_at_graduation', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Graduation Date</label>
+                            <input type="date" value="${f.graduation_date}" oninput="markTorDirty('graduation_date', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Board Resolution No.</label>
+                            <input type="text" value="${f.board_resolution_no}" oninput="markTorDirty('board_resolution_no', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Board of Regents Approval Date</label>
+                            <input type="date" value="${f.board_regents_approval_date}" oninput="markTorDirty('board_regents_approval_date', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">NSTP Serial Number</label>
+                            <input type="text" value="${f.nstp_serial_number}" oninput="markTorDirty('nstp_serial_number', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                    </div>
+                </div>
+            ` : '';
+
+            document.getElementById('torModalBody').innerHTML = `
+                <div class="mb-6">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Student Record Details</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Place of Birth</label>
+                            <input type="text" value="${f.place_of_birth}" oninput="markTorDirty('place_of_birth', this.value)"
+                                   class="${cogInputClass}">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Elementary School</label>
+                            <input type="text" value="${f.elementary_school}" oninput="markTorDirty('elementary_school', this.value)"
+                                   class="${cogInputClass}">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Elementary Year of Graduation</label>
+                            <input type="text" value="${f.elementary_graduation_year}" oninput="markTorDirty('elementary_graduation_year', this.value)"
+                                   placeholder="e.g. 2015" class="${cogInputClass}">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">High School</label>
+                            <input type="text" value="${f.high_school}" oninput="markTorDirty('high_school', this.value)"
+                                   class="${cogInputClass}">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">High School Year of Graduation</label>
+                            <input type="text" value="${f.high_school_graduation_year}" oninput="markTorDirty('high_school_graduation_year', this.value)"
+                                   placeholder="e.g. 2021" class="${cogInputClass}">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Remarks</label>
+                            <input type="text" value="${f.remarks}" oninput="markTorDirty('remarks', this.value)"
+                                   placeholder="optional" class="${cogInputClass}">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Prepared By</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Name <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.prepared_by_name}" oninput="markTorDirty('prepared_by_name', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Title <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.prepared_by_title}" oninput="markTorDirty('prepared_by_title', this.value)"
+                                   placeholder="e.g. Administrative Aide VI" class="${cogInputClass} bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Checked By</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Name <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.checked_by_name}" oninput="markTorDirty('checked_by_name', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Credentials</label>
+                            <input type="text" value="${f.checked_by_credentials}" oninput="markTorDirty('checked_by_credentials', this.value)"
+                                   placeholder="e.g. CPA, DBA" class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Title <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.checked_by_title}" oninput="markTorDirty('checked_by_title', this.value)"
+                                   placeholder="e.g. Registrar III" class="${cogInputClass} bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 mt-4 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Campus Administrator</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Name <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.campus_admin_name}" oninput="markTorDirty('campus_admin_name', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Title <span class="text-red-500">*</span></label>
+                            <input type="text" value="${f.campus_admin_title}" oninput="markTorDirty('campus_admin_title', this.value)"
+                                   class="${cogInputClass} bg-white">
+                        </div>
+                    </div>
+                </div>
+
+                ${gradSection}
+            `;
+
+            document.getElementById('torModalFooter').innerHTML = `
+                <button type="button" onclick="closeTorModal()"
+                        class="px-4 py-2 text-sm font-semibold text-gray-600 transition rounded-lg hover:bg-gray-100">Cancel</button>
+                <button type="button" onclick="goToTorPreview()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                    Preview
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+            `;
+        }
+
+        function goToTorPreview() {
+            const required = ['prepared_by_name', 'prepared_by_title', 'checked_by_name', 'checked_by_title', 'campus_admin_name', 'campus_admin_title'];
+            for (const field of required) {
+                if (!torState.form[field] || !torState.form[field].trim()) {
+                    Swal.fire('Missing field', 'Please fill in all required fields before previewing.', 'warning');
+                    return;
+                }
+            }
+
+            document.getElementById('torModalFooter').innerHTML = '';
+            document.getElementById('torModalBody').innerHTML = `
+                <div class="flex flex-col items-center justify-center py-16 text-gray-400">
+                    <svg class="w-6 h-6 mb-3 text-indigo-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <p class="text-sm">Rendering preview…</p>
+                </div>
+            `;
+
+            fetch(torRoutes.preview, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(torState.form),
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.html) {
+                    renderTorPreviewStep(data.html);
+                } else {
+                    Swal.fire('Error', 'Could not generate preview.', 'error');
+                    renderTorFormStep();
+                }
+            })
+            .catch(() => {
+                Swal.fire('Network Error', 'Could not reach the server.', 'error');
+                renderTorFormStep();
             });
+        }
+
+        function renderTorPreviewStep(html) {
+            setTorModalSize('preview');
+            document.getElementById('torModalBody').innerHTML = `
+                <div class="flex items-start gap-2 px-3 py-2 mb-4 text-xs border rounded-lg text-amber-800 border-amber-200 bg-amber-50">
+                    <svg width="16" height="16" class="mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                    Review carefully — this becomes the official record once confirmed.
+                </div>
+                <div id="torPreviewScroll" class="flex justify-center p-4 overflow-y-auto bg-gray-100 border border-gray-200 rounded-lg" style="max-height: 62vh;">
+                    <iframe id="torPreviewFrame"
+                            class="bg-white border border-gray-200 rounded shadow-sm shrink-0"
+                            style="width: 100%; max-width: 620px; height: 400px; border: none;"
+                            scrolling="no"></iframe>
+                </div>
+            `;
+
+            const torFrame = document.getElementById('torPreviewFrame');
+            const torScrollWrap = document.getElementById('torPreviewScroll');
+
+            torFrame.onload = function () {
+                const resize = () => {
+                    try {
+                        const doc = torFrame.contentWindow.document;
+                        const height = doc.documentElement.scrollHeight || doc.body.scrollHeight;
+                        torFrame.style.height = height + 'px';
+                    } catch (e) {
+                        torFrame.style.height = '803px';
+                    }
+                };
+
+                resize();
+                torScrollWrap.scrollTop = 0;
+
+                // Browsers can auto-scroll the ancestor container right after
+                // an iframe finishes navigating — force it back to top once
+                // that settles.
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        torScrollWrap.scrollTop = 0;
+                    });
+                });
+
+                // Logo image inside the iframe loads after the doc itself,
+                // which can reflow height and re-trigger the scroll jump.
+                try {
+                    const imgs = torFrame.contentWindow.document.images;
+                    for (const img of imgs) {
+                        img.addEventListener('load', () => {
+                            resize();
+                            torScrollWrap.scrollTop = 0;
+                        });
+                    }
+                } catch (e) {}
+
+                setTimeout(() => { torScrollWrap.scrollTop = 0; }, 150);
+            };
+
+            torFrame.srcdoc = html;
+
+            document.getElementById('torModalFooter').innerHTML = `
+                <button type="button" onclick="renderTorFormStep()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Edit
+                </button>
+                <button type="button" onclick="submitTorGenerate()"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 transition">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                    </svg>
+                    Confirm & Generate
+                </button>
+            `;
+        }
+
+        function submitTorGenerate() {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = torRoutes.generate;
+
+            const fields = { _token: '{{ csrf_token() }}', ...torState.form };
+            for (const [key, value] of Object.entries(fields)) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            }
+            document.body.appendChild(form);
+            torState.dirty = false;
+            form.submit();
         }
 
         function confirmUnfinalize(btn) {

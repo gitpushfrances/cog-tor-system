@@ -227,6 +227,12 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
                 </div>
             </div>
 
+            <a href="{{ route('admin.document-settings.edit') }}" title="Document Settings"
+               class="sdb-link {{ request()->routeIs('admin.document-settings.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-signature sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Document Settings</span>
+            </a>
+
         @endif
 
 

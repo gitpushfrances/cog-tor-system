@@ -244,6 +244,7 @@ class RegistrarController extends Controller
                 'subject'       => $subject->name,
                 'units'         => $subject->units,
                 'grade'         => $grade?->grade !== null ? number_format($grade->grade, 2) : null,
+                're_exam'       => $grade?->re_exam_grade !== null ? number_format($grade->re_exam_grade, 2) : null,
                 'status'        => $grade?->status,
                 'encoded'       => (bool) $grade,
                 'encoded_by'    => $encoder?->name,
@@ -265,8 +266,9 @@ class RegistrarController extends Controller
     public function quickEncodeGrade(Request $request, Student $student)
     {
         $request->validate([
-            'subject_id' => 'required|exists:subjects,id',
-            'grade'      => 'required|numeric|min:1.00|max:5.00',
+            'subject_id'    => 'required|exists:subjects,id',
+            'grade'         => 'required|numeric|min:1.00|max:5.00',
+            're_exam_grade' => 'nullable|numeric|min:1.00|max:5.00',
         ]);
 
         $subject = Subject::findOrFail($request->input('subject_id'));
@@ -306,9 +308,10 @@ class RegistrarController extends Controller
                 $grade = Grade::updateOrCreate(
                     ['enrollment_id' => $enrollment->id],
                     [
-                        'faculty_id' => null,
-                        'grade'      => $request->input('grade'),
-                        'status'     => 'finalized',
+                        'faculty_id'    => null,
+                        'grade'         => $request->input('grade'),
+                        're_exam_grade' => $request->input('re_exam_grade'),
+                        'status'        => 'finalized',
                     ]
                 );
 
@@ -343,6 +346,7 @@ class RegistrarController extends Controller
         return response()->json([
             'success'       => true,
             'grade'         => number_format($grade->grade, 2),
+            're_exam_grade' => $grade->re_exam_grade !== null ? number_format($grade->re_exam_grade, 2) : null,
             'status'        => $grade->status,
             'encoded_by'    => auth()->user()->name,
             'encoded_email' => auth()->user()->email,
@@ -357,15 +361,18 @@ class RegistrarController extends Controller
             'semester_id' => 'required|exists:semesters,id',
             'grades'      => 'required|array|min:1',
             'grades.*'    => 'required|numeric|min:1.00|max:5.00',
+            're_exam'     => 'nullable|array',
+            're_exam.*'   => 'nullable|numeric|min:1.00|max:5.00',
         ]);
 
         $studentId   = $request->input('student_id');
         $semesterId  = $request->input('semester_id');
         $gradesInput = $request->input('grades'); // [ subject_id => grade_value ]
+        $reExamInput = $request->input('re_exam', []); // [ subject_id => re_exam_value|null ]
         $registrarId = auth()->id();
 
         try {
-            DB::transaction(function () use ($gradesInput, $studentId, $semesterId, $registrarId) {
+            DB::transaction(function () use ($gradesInput, $reExamInput, $studentId, $semesterId, $registrarId) {
                 foreach ($gradesInput as $subjectId => $gradeValue) {
                     $subject = Subject::find($subjectId);
                     if (!$subject) {
@@ -394,9 +401,10 @@ class RegistrarController extends Controller
                     $grade = Grade::updateOrCreate(
                         ['enrollment_id' => $enrollment->id],
                         [
-                            'faculty_id' => null,
-                            'grade'      => $gradeValue,
-                            'status'     => 'finalized',
+                            'faculty_id'    => null,
+                            'grade'         => $gradeValue,
+                            're_exam_grade' => $reExamInput[$subjectId] ?? null,
+                            'status'        => 'finalized',
                             // remarks intentionally preserved — do not null out
                         ]
                     );

@@ -20,6 +20,25 @@ class TorRecord extends Model
         'generated_at',
         'tor_type',
         'is_current',
+        'remarks',
+        'prepared_by_name',
+        'prepared_by_title',
+        'checked_by_name',
+        'checked_by_credentials',
+        'checked_by_title',
+        'campus_admin_name',
+        'campus_admin_title',
+        'degree_awarded',
+        'major_at_graduation',
+        'graduation_date',
+        'board_resolution_no',
+        'board_regents_approval_date',
+        'nstp_serial_number',
+        'place_of_birth',
+        'elementary_school',
+        'elementary_graduation_year',
+        'high_school',
+        'high_school_graduation_year',
     ];
 
     protected $casts = [
@@ -27,6 +46,8 @@ class TorRecord extends Model
         'all_grades_data' => 'array',
         'generated_at' => 'datetime',
         'is_current' => 'boolean',
+        'graduation_date' => 'date',
+        'board_regents_approval_date' => 'date',
     ];
 
     public function student()

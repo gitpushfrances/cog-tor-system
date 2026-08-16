@@ -10,6 +10,10 @@ class DocumentSetting extends Model
         'registrar_name',
         'registrar_credentials',
         'registrar_title',
+        'prepared_by_name',
+        'prepared_by_title',
+        'campus_admin_name',
+        'campus_admin_title',
     ];
 
     public static function current(): self
@@ -18,6 +22,10 @@ class DocumentSetting extends Model
             'registrar_name' => '',
             'registrar_credentials' => '',
             'registrar_title' => '',
+            'prepared_by_name' => '',
+            'prepared_by_title' => '',
+            'campus_admin_name' => '',
+            'campus_admin_title' => '',
         ]);
     }
 }

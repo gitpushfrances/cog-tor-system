@@ -17,6 +17,143 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
+    /**
+     * Approximate rows (year/semester labels + subject rows) that fit on
+     * one printed TOR page before a header/signature repeat is needed.
+     * Tune this after checking a real multi-page render.
+     */
+    private const TOR_ROWS_PER_PAGE = 25;
+
+    private function torValidationRules(): array
+    {
+        return [
+            'remarks'                      => 'nullable|string|max:1000',
+            'prepared_by_name'              => 'required|string|max:255',
+            'prepared_by_title'             => 'required|string|max:255',
+            'checked_by_name'               => 'required|string|max:255',
+            'checked_by_credentials'        => 'nullable|string|max:255',
+            'checked_by_title'              => 'required|string|max:255',
+            'campus_admin_name'             => 'required|string|max:255',
+            'campus_admin_title'            => 'required|string|max:255',
+            'place_of_birth'                => 'nullable|string|max:255',
+            'elementary_school'             => 'nullable|string|max:255',
+            'elementary_graduation_year'    => 'nullable|string|max:20',
+            'high_school'                   => 'nullable|string|max:255',
+            'high_school_graduation_year'   => 'nullable|string|max:20',
+            'degree_awarded'                => 'nullable|string|max:255',
+            'major_at_graduation'           => 'nullable|string|max:255',
+            'graduation_date'               => 'nullable|date',
+            'board_resolution_no'           => 'nullable|string|max:255',
+            'board_regents_approval_date'   => 'nullable|date',
+            'nstp_serial_number'            => 'nullable|string|max:255',
+        ];
+    }
+
+    private function yearlevellabel($level): string
+    {
+        $words = [1 => 'first', 2 => 'second', 3 => 'third', 4 => 'fourth', 5 => 'fifth', 6 => 'sixth'];
+        return ($words[$level] ?? $level . 'th') . ' year';
+    }
+
+    /**
+     * groups a student's finalized enrollments into the flat,
+     * storage-shape structure: year_level -> semesters -> subjects.
+     * this is what gets saved in tor_records.all_grades_data.
+     */
+    private function buildtorgradegroups($enrollments): array
+    {
+        return $enrollments
+            ->groupby(fn($e) => $e->subject->year_level)
+            ->sortkeys()
+            ->map(function ($byyear, $yearlevel) {
+                $semesters = $byyear
+                    ->groupby('semester_id')
+                    ->sortby(fn($group) => $group->first()->semester->schoolyear->year_code . '-' . $group->first()->semester->semester_order)
+                    ->map(function ($bysem) {
+                        $semester = $bysem->first()->semester;
+                        $label = ($semester->semester_name ?? 'n/a') . ', ' . ($semester->schoolyear->year_code ?? 'n/a');
+
+                        return [
+                            'semester_label' => $label,
+                            'subjects' => $bysem->map(fn($e) => [
+                                'course_code'  => $e->subject->code,
+                                'subject_name' => $e->subject->name,
+                                'units'        => $e->subject->units,
+                                'grade'        => $e->grade->grade,
+                                're_exam'      => $e->grade->re_exam_grade,
+                            ])->values()->toarray(),
+                        ];
+                    })
+                    ->values()
+                    ->toarray();
+
+                return [
+                    'year_level' => $yearlevel,
+                    'year_label' => $this->yearlevellabel($yearlevel),
+                    'semesters'  => $semesters,
+                ];
+            })
+            ->values()
+            ->toarray();
+    }
+
+    /**
+     * flattens the year/semester/subject structure into a single ordered
+     * list of "entries" (year label, semester label, subject rows), then
+     * chunks that list into pages of roughly tor_rows_per_page rows each.
+     * a group label is never left as the very last row on a page.
+     */
+    private function paginatetorentries(array $yeargroups): array
+    {
+        $flat = [];
+        foreach ($yeargroups as $year) {
+            $flat[] = ['type' => 'year', 'label' => $year['year_label']];
+            foreach ($year['semesters'] as $sem) {
+                $flat[] = ['type' => 'semester', 'label' => $sem['semester_label']];
+                foreach ($sem['subjects'] as $subject) {
+                    $flat[] = array_merge(['type' => 'subject'], $subject);
+                }
+            }
+        }
+
+        if (empty($flat)) {
+            return [['entries' => [], 'isLast' => true]];
+        }
+
+        $pages = [];
+        $current = [];
+        $count = count($flat);
+
+        for ($i = 0; $i < $count; $i++) {
+            $entry = $flat[$i];
+            $wouldbelastonpage = (count($current) + 1) >= self::TOR_ROWS_PER_PAGE;
+            $islabel = in_array($entry['type'], ['year', 'semester']);
+            $hasmoreafter = $i < $count - 1;
+
+            // don't leave a group label as the final row on a page — push it to the next page instead.
+            if ($wouldbelastonpage && $islabel && $hasmoreafter) {
+                $pages[] = ['entries' => $current, 'isLast' => false];
+                $current = [];
+            }
+
+            $current[] = $entry;
+
+            if (count($current) >= self::TOR_ROWS_PER_PAGE && $i < $count - 1) {
+                $pages[] = ['entries' => $current, 'isLast' => false];
+                $current = [];
+            }
+        }
+
+        if (!empty($current)) {
+            $pages[] = ['entries' => $current, 'isLast' => true];
+        }
+
+        if (!empty($pages)) {
+            $pages[count($pages) - 1]['isLast'] = true;
+        }
+
+        return $pages;
+    }
     public function students()
     {
         $students = Student::with('course')->active()->paginate(15);
@@ -225,35 +362,58 @@ class DocumentController extends Controller
         return view('registrar.tor', compact('student', 'hasFinalized'));
     }
 
-    public function generateTor(Request $request, Student $student)
+    /**
+     * Renders the exact TOR document (same Blade view DomPDF uses)
+     * as HTML, without saving anything — powers the preview step
+     * in the generate modal.
+     */
+    public function torPreview(Request $request, Student $student)
     {
+        $request->validate($this->torValidationRules());
+
         $enrollments = Enrollment::with(['subject', 'grade', 'semester.schoolYear'])
             ->where('student_id', $student->id)
             ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
             ->get();
 
-        $allGradesData = $enrollments->groupBy('semester_id')->map(function ($group) {
-            $first = $group->first();
-            $semester = $first->semester;
-            $schoolYear = $semester->schoolYear->year_code ?? 'N/A';
-            $semLabel = ($semester->semester_name ?? 'N/A') . ' — SY ' . $schoolYear;
-            return [
-                'semester'  => $semLabel,
-                'subjects'  => $group->map(fn($e) => [
-                    'subject_code' => $e->subject->code,
-                    'subject_name' => $e->subject->name,
-                    'units'        => $e->subject->units,
-                    'grade'        => $e->grade->grade,
-                ])->toArray(),
-            ];
-        })->values()->toArray();
+        $yearGroups = $this->buildTorGradeGroups($enrollments);
+        $pages = $this->paginateTorEntries($yearGroups);
 
         $totalUnits = $enrollments->sum(fn($e) => $e->subject->units);
         $cumulativeGwa = $totalUnits > 0
             ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
             : null;
 
-        $tor = \DB::transaction(function () use ($student, $allGradesData, $cumulativeGwa) {
+        $tor = new TorRecord(array_merge(
+            ['document_number' => 'PREVIEW', 'cumulative_gwa' => $cumulativeGwa],
+            $request->only(array_keys($this->torValidationRules()))
+        ));
+
+        $forPdf = false;
+        $html = view('registrar.pdf.tor', compact('student', 'pages', 'tor', 'forPdf'))->render();
+
+        return response()->json(['html' => $html]);
+    }
+
+    public function generateTor(Request $request, Student $student)
+    {
+        $request->validate($this->torValidationRules());
+
+        $enrollments = Enrollment::with(['subject', 'grade', 'semester.schoolYear'])
+            ->where('student_id', $student->id)
+            ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
+            ->get();
+
+        $yearGroups = $this->buildTorGradeGroups($enrollments);
+
+        $totalUnits = $enrollments->sum(fn($e) => $e->subject->units);
+        $cumulativeGwa = $totalUnits > 0
+            ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
+            : null;
+
+        $validated = $request->only(array_keys($this->torValidationRules()));
+
+        $tor = \DB::transaction(function () use ($student, $yearGroups, $cumulativeGwa, $validated) {
             $superseded = TorRecord::where('student_id', $student->id)
                 ->where('is_current', true)
                 ->update(['is_current' => false]);
@@ -265,21 +425,23 @@ class DocumentController extends Controller
 
             $documentNumber = 'TOR-' . strtoupper(uniqid());
 
-            return TorRecord::create([
+            return TorRecord::create(array_merge($validated, [
                 'student_id'      => $student->id,
                 'generated_by'    => auth()->id(),
                 'document_number' => $documentNumber,
                 'cumulative_gwa'  => $cumulativeGwa,
-                'all_grades_data' => $allGradesData,
+                'all_grades_data' => $yearGroups,
                 'tor_type'        => 'complete',
                 'generated_at'    => now(),
                 'is_current'      => true,
-            ]);
+            ]));
         });
 
         $documentNumber = $tor->document_number;
+        $pages = $this->paginateTorEntries($yearGroups);
 
-        $pdf = Pdf::loadView('registrar.pdf.tor', compact('student', 'allGradesData', 'cumulativeGwa', 'tor'));
+        $forPdf = true;
+        $pdf = Pdf::loadView('registrar.pdf.tor', compact('student', 'pages', 'tor', 'forPdf'));
         $path = 'tor/' . $documentNumber . '.pdf';
         $pdfOutput = $pdf->output();
         Storage::put($path, $pdfOutput);

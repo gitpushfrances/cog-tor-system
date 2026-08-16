@@ -12,12 +12,14 @@ class Grade extends Model
     'enrollment_id',
     'faculty_id',
     'grade',
+    're_exam_grade',
     'status',
     'remarks',
 ];
 
 protected $casts = [
     'grade' => 'decimal:2',
+    're_exam_grade' => 'decimal:2',
 ];
 
     // Relationships

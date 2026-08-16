@@ -63,6 +63,9 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
     // Semester Management
     Route::resource('semesters', App\Http\Controllers\Admin\SemesterController::class);
     Route::post('/semesters/{semester}/set-active', [App\Http\Controllers\Admin\SemesterController::class, 'setActive'])->name('semesters.set-active');
+
+    Route::get('/document-settings', [App\Http\Controllers\Admin\DocumentSettingController::class, 'edit'])->name('document-settings.edit');
+    Route::put('/document-settings', [App\Http\Controllers\Admin\DocumentSettingController::class, 'update'])->name('document-settings.update');
 });
 
 // Head of Department Routes
@@ -112,6 +115,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::post('/students/{student}/cog/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'cogPreview'])->name('students.cog.preview');
     Route::get('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'torForm'])->name('students.tor');
     Route::post('/students/{student}/tor', [App\Http\Controllers\Registrar\DocumentController::class, 'generateTor'])->name('students.tor.generate');
+    Route::post('/students/{student}/tor/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'torPreview'])->name('students.tor.preview');
     Route::get('/cog/{cog}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadCog'])->name('cog.download');
     Route::get('/tor/{tor}/download', [App\Http\Controllers\Registrar\DocumentController::class, 'downloadTor'])->name('tor.download');
     Route::get('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGradesForm'])->name('encode-grades');
