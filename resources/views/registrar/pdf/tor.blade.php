@@ -31,9 +31,15 @@
             table.record .col-final { width: 10.5%; text-align: center; border-right: 1.5pt solid #000; }
             table.record .col-reexam { width: 11%; text-align: center; border-right: 1.5pt solid #000; }
             table.record .col-credit { width: 13%; text-align: center; border-right: 1.5pt solid #000; }
+            table.record .col-grades-group { text-align: center; border-right: 1.5pt solid #000; }
 
-            .year-label { font-weight: bold; padding: 3pt 3.75pt 1.5pt; text-transform: uppercase; text-decoration: underline; border-left: 1.5pt solid #000; border-right: 1.5pt solid #000; }
-            .sem-label { font-weight: bold; padding: 1.5pt 3.75pt 3pt; text-decoration: underline; border-left: 1.5pt solid #000; border-right: 1.5pt solid #000; }
+            .year-label { font-weight: bold; padding: 3pt 3.75pt 1.5pt; text-transform: uppercase; text-decoration: underline; border-left: 1.5pt solid #000; }
+            .sem-label { font-weight: bold; padding: 1.5pt 3.75pt 3pt; text-decoration: underline; border-left: 1.5pt solid #000; }
+
+            table.record .year-row td,
+            table.record .semester-row td {
+                border-right: 1.5pt solid #000;
+            }
 
             .subject-row td { padding: 1.5pt 3.75pt; }
             .continuation-row td { border-top: 1.5pt solid #000; border-bottom: 1.5pt solid #000; border-left: 1.5pt solid #000; border-right: 1.5pt solid #000; padding: 3pt 3.75pt; }
@@ -41,11 +47,15 @@
 
             .legend-row { width: 100%; border-collapse: collapse; margin-top: 0; }
             .legend-row td { border-top: 2px solid #000; padding: 5px; font-size: 9px; vertical-align: top; }
+            .legend-row td:first-child { border-left: 1.5pt solid #000; }
+            .legend-row td:last-child { border-right: 1.5pt solid #000; }
             .legend-row .legend-label { font-weight: bold; font-size: 10px; width: 90px; white-space: nowrap; }
             .legend-row .legend-text { }
 
-            .remarks-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+            .remarks-table { width: 100%; border-collapse: collapse; margin-top: 0; }
             .remarks-table td { border-top: 2px solid #000; border-bottom: 2px solid #000; padding: 6px 5px; }
+            .remarks-table td:first-child { border-left: 1.5pt solid #000; }
+            .remarks-table td:last-child { border-right: 1.5pt solid #000; }
             .remarks-label { font-weight: bold; font-style: italic; font-size: 10px; width: 90px; vertical-align: top; }
             .remarks-text { font-size: 10px; }
 
@@ -53,15 +63,19 @@
 
             .signature-row { width: 100%; margin-top: 6px; }
             .signature-row td { width: 50%; vertical-align: bottom; padding: 0 5px; }
-            .sig-label { font-size: 9px; }
-            .sig-name-prepared { font-weight: bold; font-size: 10px; text-align: left; padding-top: 2px; }
-            .sig-title-prepared { font-size: 9px; font-style: italic; text-align: left; }
-            .sig-label-checked { font-size: 9px; text-align: right; }
-            .sig-name-checked { font-weight: bold; font-size: 10px; text-align: center; padding-top: 2px; }
-            .sig-title-checked { font-size: 9px; font-style: italic; text-align: center; }
+            .sig-block-prepared { text-align: left; }
+            .sig-block-checked { text-align: center; }
+            .sig-inner { border-collapse: collapse; }
+            .sig-inner td { padding: 0; }
+            .sig-label { font-size: 9px; white-space: nowrap; padding-right: 6px; }
+            .sig-name-prepared { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; }
+            .sig-title-prepared { font-size: 9px; font-style: italic; padding-top: 2px; }
+            .sig-label-checked { font-size: 9px; white-space: nowrap; padding-right: 6px; }
+            .sig-name-checked { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; }
+            .sig-title-checked { font-size: 9px; font-style: italic; padding-top: 2px; }
 
             .campus-admin { text-align: center; margin-top: 18px; }
-            .campus-admin-name { font-weight: bold; font-size: 10px; }
+            .campus-admin-name { font-weight: bold; font-size: 10px; text-decoration: underline; }
             .campus-admin-title { font-size: 9px; font-style: italic; }
 
             .grad-statement { margin-top: 24px; font-size: 10px; text-align: justify; }
@@ -130,7 +144,7 @@
                 <tr class="top">
                     <th class="col-course" rowspan="2">Course Number</th>
                     <th class="col-title" rowspan="2">Descriptive Title</th>
-                    <th colspan="2">Grades</th>
+                    <th colspan="2" class="col-grades-group">Grades</th>
                     <th class="col-credit" rowspan="2">Credit</th>
                 </tr>
                 <tr class="sub">
@@ -141,9 +155,21 @@
             <tbody>
                 @foreach($page['entries'] as $entry)
                     @if($entry['type'] === 'year')
-                        <tr><td class="year-label" colspan="5">{{ $entry['label'] }}</td></tr>
+                        <tr class="year-row">
+                            <td class="year-label">{{ $entry['label'] }}</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
                     @elseif($entry['type'] === 'semester')
-                        <tr><td class="sem-label" colspan="5">{{ $entry['label'] }}</td></tr>
+                        <tr class="semester-row">
+                            <td class="sem-label">{{ $entry['label'] }}</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                            <td>&nbsp;</td>
+                        </tr>
                     @elseif($entry['type'] === 'subject')
                         <tr class="subject-row">
                             <td class="col-course">{{ $entry['course_code'] }}</td>
@@ -159,8 +185,6 @@
                     <tr class="continuation-row">
                         <td colspan="5" class="over-text">Over</td>
                     </tr>
-                @else
-                    <tr class="continuation-row"><td colspan="5"></td></tr>
                 @endif
             </tbody>
         </table>
@@ -189,15 +213,29 @@
 
         <table class="signature-row">
             <tr>
-                <td>
-                    <div class="sig-label">Prepared by:</div>
-                    <div class="sig-name-prepared">{{ strtoupper($tor->prepared_by_name ?? '') }}</div>
-                    <div class="sig-title-prepared">{{ $tor->prepared_by_title ?? '' }}</div>
+                <td class="sig-block-prepared">
+                    <table class="sig-inner">
+                        <tr>
+                            <td class="sig-label">Prepared by:</td>
+                            <td class="sig-name-prepared">{{ strtoupper($tor->prepared_by_name ?? '') }}</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td class="sig-title-prepared">{{ $tor->prepared_by_title ?? '' }}</td>
+                        </tr>
+                    </table>
                 </td>
-                <td>
-                    <div class="sig-label-checked">Checked by:</div>
-                    <div class="sig-name-checked">{{ strtoupper($tor->checked_by_name ?? '') }}@if($tor->checked_by_credentials), {{ $tor->checked_by_credentials }}@endif</div>
-                    <div class="sig-title-checked">{{ $tor->checked_by_title ?? '' }}</div>
+                <td class="sig-block-checked">
+                    <table class="sig-inner">
+                        <tr>
+                            <td class="sig-label-checked">Checked by:</td>
+                            <td class="sig-name-checked">{{ strtoupper($tor->checked_by_name ?? '') }}@if($tor->checked_by_credentials), {{ $tor->checked_by_credentials }}@endif</td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td class="sig-title-checked">{{ $tor->checked_by_title ?? '' }}</td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
         </table>

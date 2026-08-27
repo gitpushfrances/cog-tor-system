@@ -912,7 +912,46 @@ Flagged during the July 2 session, not yet built:
 - [ ] Live confirmation that the corrected `page_text()` x/y values render flush against "ESSU-ACAD-210 | Version 5" — last visual check was before the most recent offset correction.
 - [ ] `essu-seal.png`/`essu-seal-full.png` are now unused by the COG header (superseded by `essu-horizontal.png`) — still referenced elsewhere (sidebar, login page per Phase 11.4) so not dead assets overall, just no longer used in this specific template.
 
-<!-- TODO — fill in from your own notes, not covered in this session's conversation:
+### 13.27 TOR PDF Template — Border/Grid Continuity & Signature Block Fixes ✅ DONE (August 28 session)
+**Trigger:** Client feedback comparing generated TOR PDFs against the official Excel-based TOR format — grid discontinuities and signature-block misalignment identified across several rounds of screenshot comparison.
+
+**Header grid — Grades/Credit column boundary:**
+- [x] `resources/views/registrar/pdf/tor.blade.php` — `<th colspan="2">Grades</th>` had no class, so it inherited no `border-right`, leaving a visible gap at the Grades→Credit header boundary while every other column boundary was intact. Added `.col-grades-group` class carrying the missing border.
+
+**Year/Semester rows — grid discontinuity through group-label rows:**
+- [x] Year (`FIRST YEAR`) and Semester (`1st Semester, 2024-2025`) rows were single `colspan="5"` cells, so the Course No./Descriptive Title/Grades/Credit vertical lines did not pass through those rows at all, unlike the official Excel format where gridlines run through every row regardless of content.
+- [x] Split each into 5 separate `<td>`s (label cell + 4 empty cells) with a `.year-row`/`.semester-row` CSS rule applying `border-right` uniformly.
+- [x] **Root cause of a follow-up symptom (empty cells still not bordering):** DomPDF does not reliably paint borders on completely empty `<td>` elements. Fixed by populating the blank cells with `&nbsp;` rather than leaving them truly empty — no CSS change needed, confirms as a DomPDF rendering quirk rather than a border-declaration gap.
+
+**"Course Number" → "Course No." label change:**
+- [x] Single-string header text change, no markup/CSS impact — confirmed no other template references the old string.
+
+**Grading System / Credits / Remarks boxes — missing side borders:**
+- [x] `.legend-row` (Grading System/Credits) and `.remarks-table` (Remarks) both had only `border-top`/`border-bottom` — no left/right borders enclosing the box, unlike the official format. Added `:first-child`/`:last-child` border-left/border-right rules to both.
+- [x] Found and removed a stray fully-empty `.continuation-row` rendered on the **last page only** (an `@else` branch producing a bordered-but-content-free row) that was creating a visible dead gap between the subject table and the Grading System box — removed the `@else` branch entirely so the row only renders on non-last pages (its original "Over" purpose).
+
+**Signature block — restructured from stacked `<div>`s to nested tables:**
+- [x] Prepared by/Checked by name and title lines could not be reliably column-aligned using `<div>` + `text-align`, since there's no CSS relationship between where a label's inline text ends and where a title line below it starts. Restructured both blocks into small 2-column `.sig-inner` tables (label | name, blank | title) so the title cell shares the same table column as the name cell above it, guaranteeing alignment regardless of label/name length.
+- [x] Added `text-decoration: underline` to signer names and Campus Administrator name, matching the official format (previously bold-only).
+- [x] Fixed inconsistent alignment where `.sig-label-checked` was `text-align: right` but `.sig-name-checked`/`.sig-title-checked` were `text-align: center` on the same signature block — three lines of one block were using two different alignment rules. Resolved via the table restructure above (alignment now inherent to column position, not a per-line CSS declaration).
+- [x] `.sig-inner td` default cell padding (browser/DomPDF user-agent default, not an explicit rule in the stylesheet) was creating a wider label-to-name gap than intended. Fixed with an explicit `.sig-inner td { padding: 0; }` reset plus a deliberate `padding-right: 6px` on the label cells only.
+
+**Not yet verified — flag before closing:**
+- [ ] Regenerated PDF not yet re-confirmed against the official Excel format side-by-side after the final signature-block/padding patch — last confirmed screenshot predates this round of fixes.
+- [ ] Multi-page TOR (pagination/`page-break` interaction with the new year/semester row structure) not yet tested — all fixes verified against single-page renders only.
+
+### 13.28 Documents Tab — Fatal Error on Orphaned Student Reference ✅ DIAGNOSED, PATCH APPLIED — ROOT CAUSE NOT YET CONFIRMED
+**Trigger:** Client reported the Documents tab (`registrar.documents.index`) errors immediately on open, with no reproduction steps and no error message captured. Initial photo evidence submitted was actually an unrelated `SemesterController` duplicate-entry error from a different page (`/admin/semesters`), not this bug — ruled out as the actual cause of the reported issue.
+
+**Working theory (patched defensively, not yet confirmed against production data):** `resources/views/registrar/documents.blade.php` calls `$doc->student->getFullName()` and `$doc->student->student_number` in both the flat-list and grouped views with no null check — inconsistent with the `$doc->generatedBy->name ?? '—'` pattern already used elsewhere in the same file. Since Registrar's Student Management (`Route::resource('students', ...)`) supports hard delete, a `CogRecord`/`TorRecord` whose `student_id` points at a since-deleted student would make `$doc->student` resolve to `null`, causing a fatal `Call to a member function getFullName() on null` on page load — matching the "errors when they just open it" symptom exactly, since `documentsIndex()` has no default filters and loads every record unconditionally.
+
+- [x] `resources/views/registrar/documents.blade.php` — both the flat-list student cell and the grouped-view student header wrapped in `@if($doc->student)` / `@if($studentModel)`, falling back to a "Deleted Student" label with the raw `student_id` when null, instead of crashing.
+- [ ] **Root cause not yet confirmed** — pending a direct query (`cog_records`/`tor_records` rows with `student_id` not present in `students`) against the actual production database to verify this is really what's happening, rather than assuming the patch fixed the reported issue.
+- [ ] **Product decision still open, not made unilaterally:** whether orphaned document rows should display as "Deleted Student" (current patch — preserves audit history) or be filtered out of the query entirely (`->whereHas('student')`) — needs client/dev decision, not yet chosen.
+
+**Related, not yet acted on — flagged during the same investigation:**
+- [ ] `documentsIndex()` runs `->get()` on both `CogRecord` and `TorRecord` with no pagination or row cap — a real scale risk as document volume grows (500+ combined rows), separate from the null-student bug above. Two candidate fixes identified (SQL `UNION` with DB-level sort+limit, or a `->take(500)` stopgap with a "narrow your filters" prompt) — neither implemented yet, needs a decision on which approach before writing it.
+
 - [ ] app/Models/DocumentSetting.php + its migration (new files per `git status`)
 - [ ] database/migrations/..._create_document_settings_table.php
 - [ ] app/Models/CogRecord.php changes
@@ -1244,6 +1283,6 @@ New E2E test plan reflecting single-actor flow, mobile responsiveness, empty sta
 
 ---
 
-**Last Updated:** August 4, 2026
+**Last Updated:** August 28, 2026
 **Phase 13 Status:** 🔄 In Progress (~95%)
-**Current Focus:** Phase 13.23 Semester/School Year Soft-Delete Fix + Confirmation Modal (done) → Phase 13.24 Course Code Uniqueness Rescoped (done) → Phase 13.25 Majors Feature (done, not yet browser-tested) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 0.5: browser-test 13.23–13.25 → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum
+**Current Focus:** Phase 13.27 TOR PDF border/grid/signature fixes (done, pending fresh-render re-verification and multi-page test) → Phase 13.28 Documents tab null-student crash (defensive patch applied, root cause not yet confirmed against production data — run the orphan-record query before closing) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 0.5: browser-test 13.23–13.25 → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum

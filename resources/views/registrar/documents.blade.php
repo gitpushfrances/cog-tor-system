@@ -125,8 +125,13 @@
                     @php $studentModel = $docs->first()->student; @endphp
                     <div style="border-bottom:1px solid #f0ebe0;">
                         <div style="padding:14px 20px;background:#faf8f4;font-weight:700;color:#1a1a2e;font-size:0.9rem;">
-                            {{ $studentModel->getFullName() }}
-                            <span style="font-weight:400;color:#8a7a60;font-size:0.8rem;">— {{ $studentModel->student_number }}</span>
+                            @if($studentModel)
+                                {{ $studentModel->getFullName() }}
+                                <span style="font-weight:400;color:#8a7a60;font-size:0.8rem;">— {{ $studentModel->student_number }}</span>
+                            @else
+                                <span style="color:#b91c1c;">deleted student</span>
+                                <span style="font-weight:400;color:#8a7a60;font-size:0.8rem;">— student id {{ $studentid }}</span>
+                            @endif
                         </div>
                         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
                             <thead>
@@ -217,8 +222,13 @@
                                 </td>
                                 <td style="padding:12px 16px;font-family:monospace;font-size:0.8rem;color:#6b5f4a;">{{ $doc->document_number }}</td>
                                 <td style="padding:12px 16px;">
-                                    <div style="font-weight:600;color:#1a1a2e;">{{ $doc->student->getFullName() }}</div>
-                                    <div style="font-size:0.75rem;color:#8a7a60;">{{ $doc->student->student_number }}</div>
+                                    @if($doc->student)
+                                        <div style="font-weight:600;color:#1a1a2e;">{{ $doc->student->getFullName() }}</div>
+                                        <div style="font-size:0.75rem;color:#8a7a60;">{{ $doc->student->student_number }}</div>
+                                    @else
+                                        <div style="font-weight:600;color:#b91c1c;">Deleted Student</div>
+                                        <div style="font-size:0.75rem;color:#8a7a60;">Record #{{ $doc->student_id }}</div>
+                                    @endif
                                 </td>
                                 <td style="padding:12px 16px;color:#4a4535;">
                                     {{ $doc->doc_type === 'COG' ? ($doc->semester->semester_name ?? 'N/A') : 'Complete Record' }}
