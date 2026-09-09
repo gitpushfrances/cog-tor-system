@@ -306,16 +306,21 @@ class DocumentController extends Controller
             ? $enrollments->sum(fn($e) => $e->grade->grade * $e->subject->units) / $totalUnits
             : null;
 
-        $cog = \DB::transaction(function () use ($request, $student, $semester, $gradeData, $semesterGwa) {
-            $superseded = CogRecord::where('student_id', $student->id)
+        $supersededIds = [];
+
+        $cog = \DB::transaction(function () use ($request, $student, $semester, $gradeData, $semesterGwa, &$supersededIds) {
+            $supersededIds = CogRecord::where('student_id', $student->id)
                 ->where('semester_id', $semester->id)
                 ->where('is_current', true)
-                ->update(['is_current' => false]);
+                ->pluck('id')
+                ->toArray();
+
+            CogRecord::whereIn('id', $supersededIds)->update(['is_current' => false]);
 
             \Log::info('COG supersede check', [
                 'student_id'       => $student->id,
                 'semester_id'      => $semester->id,
-                'rows_superseded'  => $superseded,
+                'rows_superseded'  => count($supersededIds),
             ]);
 
             $documentNumber = 'COG-' . strtoupper(uniqid());
@@ -340,12 +345,29 @@ class DocumentController extends Controller
 
         $documentNumber = $cog->document_number;
 
-        $forPdf = true;
-        $pdf = Pdf::loadView('registrar.pdf.cog', compact('student', 'semester', 'gradeData', 'semesterGwa', 'cog', 'forPdf'));
-        $path = 'cog/' . $documentNumber . '.pdf';
-        $pdfOutput = $pdf->output();
-        Storage::put($path, $pdfOutput);
-        $cog->update(['pdf_path' => $path]);
+        try {
+            $forPdf = true;
+            $pdf = Pdf::loadView('registrar.pdf.cog', compact('student', 'semester', 'gradeData', 'semesterGwa', 'cog', 'forPdf'));
+            $path = 'cog/' . $documentNumber . '.pdf';
+            $pdfOutput = $pdf->output();
+            Storage::put($path, $pdfOutput);
+            $cog->update(['pdf_path' => $path]);
+        } catch (\Throwable $e) {
+            \DB::transaction(function () use ($cog, $supersededIds) {
+                $cog->delete();
+                if (!empty($supersededIds)) {
+                    CogRecord::whereIn('id', $supersededIds)->update(['is_current' => true]);
+                }
+            });
+
+            \Log::error('COG PDF generation/storage failed, record rolled back', [
+                'student_id'  => $student->id,
+                'semester_id' => $semester->id,
+                'error'       => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Something went wrong while generating the COG document. No record was saved.');
+        }
 
         return response($pdfOutput, 200, [
             'Content-Type' => 'application/pdf',
@@ -413,14 +435,19 @@ class DocumentController extends Controller
 
         $validated = $request->only(array_keys($this->torValidationRules()));
 
-        $tor = \DB::transaction(function () use ($student, $yearGroups, $cumulativeGwa, $validated) {
-            $superseded = TorRecord::where('student_id', $student->id)
+        $supersededIds = [];
+
+        $tor = \DB::transaction(function () use ($student, $yearGroups, $cumulativeGwa, $validated, &$supersededIds) {
+            $supersededIds = TorRecord::where('student_id', $student->id)
                 ->where('is_current', true)
-                ->update(['is_current' => false]);
+                ->pluck('id')
+                ->toArray();
+
+            TorRecord::whereIn('id', $supersededIds)->update(['is_current' => false]);
 
             \Log::info('TOR supersede check', [
                 'student_id'      => $student->id,
-                'rows_superseded' => $superseded,
+                'rows_superseded' => count($supersededIds),
             ]);
 
             $documentNumber = 'TOR-' . strtoupper(uniqid());
@@ -440,12 +467,28 @@ class DocumentController extends Controller
         $documentNumber = $tor->document_number;
         $pages = $this->paginateTorEntries($yearGroups);
 
-        $forPdf = true;
-        $pdf = Pdf::loadView('registrar.pdf.tor', compact('student', 'pages', 'tor', 'forPdf'));
-        $path = 'tor/' . $documentNumber . '.pdf';
-        $pdfOutput = $pdf->output();
-        Storage::put($path, $pdfOutput);
-        $tor->update(['pdf_path' => $path]);
+        try {
+            $forPdf = true;
+            $pdf = Pdf::loadView('registrar.pdf.tor', compact('student', 'pages', 'tor', 'forPdf'));
+            $path = 'tor/' . $documentNumber . '.pdf';
+            $pdfOutput = $pdf->output();
+            Storage::put($path, $pdfOutput);
+            $tor->update(['pdf_path' => $path]);
+        } catch (\Throwable $e) {
+            \DB::transaction(function () use ($tor, $supersededIds) {
+                $tor->delete();
+                if (!empty($supersededIds)) {
+                    TorRecord::whereIn('id', $supersededIds)->update(['is_current' => true]);
+                }
+            });
+
+            \Log::error('TOR PDF generation/storage failed, record rolled back', [
+                'student_id' => $student->id,
+                'error'      => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->with('error', 'Something went wrong while generating the TOR document. No record was saved.');
+        }
 
         return response($pdfOutput, 200, [
             'Content-Type' => 'application/pdf',
