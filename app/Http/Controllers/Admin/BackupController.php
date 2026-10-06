@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use ZipArchive;
 
 class BackupController extends Controller
 {
@@ -71,14 +73,53 @@ class BackupController extends Controller
     public function restore(Request $request)
     {
         $request->validate([
-            'sql_file' => 'required|file|mimes:sql,txt',
+            'sql_file' => 'required|file|mimes:sql,txt,zip|max:102400',
         ]);
+
+        $file = $request->file('sql_file');
+
         try {
-            $sql = file_get_contents($request->file('sql_file')->getRealPath());
+            $sql = strtolower($file->getClientOriginalExtension()) === 'zip'
+                ? $this->extractSqlFromZip($file->getRealPath())
+                : file_get_contents($file->getRealPath());
+
+            if (! is_string($sql) || stripos($sql, 'CREATE TABLE') === false) {
+                return back()->with('error', 'Restore failed: no valid database dump was found in the uploaded file.');
+            }
+
             DB::unprepared($sql);
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+
+            Log::info('Database restored', [
+                'user_id' => auth()->id(),
+                'file'    => $file->getClientOriginalName(),
+            ]);
+
             return back()->with('success', 'Database restored successfully.');
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            Log::error('Database restore failed', ['error' => $e->getMessage()]);
             return back()->with('error', 'Restore failed: ' . $e->getMessage());
         }
+    }
+
+    private function extractSqlFromZip(string $path): ?string
+    {
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            return null;
+        }
+
+        $sql = null;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $name = str_replace('\\', '/', $zip->getNameIndex($i));
+            if (str_contains($name, 'db-dumps/') && str_ends_with(strtolower($name), '.sql')) {
+                $content = $zip->getFromIndex($i);
+                $sql = $content === false ? null : $content;
+                break;
+            }
+        }
+
+        $zip->close();
+        return $sql;
     }
 }

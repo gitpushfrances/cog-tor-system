@@ -214,7 +214,7 @@
         </div>
 
         {{-- Grade Edit/Encode Modal (stacks above History Modal) --}}
-        <div id="gradeEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1100;align-items:center;justify-content:center;">
+        <div id="gradeEditModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:10000;align-items:center;justify-content:center;">
             <div style="background:#fff;border-radius:12px;width:420px;max-width:92vw;overflow:hidden;">
                 <div style="padding:18px 24px;border-bottom:1px solid #e2d9c8;background:#faf8f4;">
                     <div id="gradeEditTitle" style="font-weight:700;color:#1a1a2e;font-size:0.95rem;"></div>

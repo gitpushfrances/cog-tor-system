@@ -64,17 +64,17 @@
             .signature-row { width: 100%; margin-top: 6px; }
             .signature-row td { width: 50%; vertical-align: bottom; padding: 0 5px; }
             .sig-block-prepared { text-align: left; }
-            .sig-block-checked { text-align: center; }
+            .sig-block-checked { text-align: right; }
             .sig-inner { border-collapse: collapse; }
             .sig-inner td { padding: 0; }
-            .sig-label { font-size: 9px; white-space: nowrap; padding-right: 6px; }
-            .sig-name-prepared { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; }
-            .sig-title-prepared { font-size: 9px; font-style: italic; padding-top: 2px; }
-            .sig-label-checked { font-size: 9px; white-space: nowrap; padding-right: 6px; }
-            .sig-name-checked { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; }
-            .sig-title-checked { font-size: 9px; font-style: italic; padding-top: 2px; }
+            .sig-inner td.sig-label { font-size: 9px; white-space: nowrap; padding-right: 10px; }
+            .sig-inner td.sig-name-prepared { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; text-align: center; }
+            .sig-inner td.sig-title-prepared { font-size: 9px; font-style: italic; text-align: center; padding-top: 3px; }
+            .sig-inner td.sig-label-checked { font-size: 9px; white-space: nowrap; padding-right: 10px; }
+            .sig-inner td.sig-name-checked { font-weight: bold; font-size: 10px; text-decoration: underline; white-space: nowrap; text-align: center; }
+            .sig-inner td.sig-title-checked { font-size: 9px; font-style: italic; text-align: center; padding-top: 3px; }
 
-            .campus-admin { text-align: center; margin-top: 18px; }
+            .campus-admin { text-align: center; margin-top: 26px; }
             .campus-admin-name { font-weight: bold; font-size: 10px; text-decoration: underline; }
             .campus-admin-title { font-size: 9px; font-style: italic; }
 
@@ -226,7 +226,7 @@
                     </table>
                 </td>
                 <td class="sig-block-checked">
-                    <table class="sig-inner">
+                    <table class="sig-inner" align="right">
                         <tr>
                             <td class="sig-label-checked">Checked by:</td>
                             <td class="sig-name-checked">{{ strtoupper($tor->checked_by_name ?? '') }}@if($tor->checked_by_credentials), {{ $tor->checked_by_credentials }}@endif</td>

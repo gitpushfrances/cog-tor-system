@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('document_settings', function (Blueprint $table) {
+        if (! Schema::hasTable('document_settings')) Schema::create('document_settings', function (Blueprint $table) {
             $table->id();
             $table->string('registrar_name');
             $table->string('registrar_credentials')->nullable();

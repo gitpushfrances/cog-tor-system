@@ -3,7 +3,7 @@
         <h2 class="text-xl font-semibold text-gray-800">Backup &amp; Restore</h2>
     </x-slot>
 
-    <div class="py6 mx-auto max-w-5xl px-4 space-y-6">
+    <div class="py-6 mx-auto max-w-5xl px-4 space-y-6">
 
         @if(session('success'))
             <div class="bg-green-100 border border-green-400 text-green-800 px-4 py-3 rounded">{{ session('success') }}</div>
@@ -63,16 +63,15 @@
 
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-lg font-semibold text-gray-700 mb-2">Restore Database</h3>
-            <p class="text-sm text-red-500 mb-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will overwrite the current database. Upload a valid .sql file exported from this system only.</p>
-            <form method="POST" action="{{ route('admin.backup.restore') }}" enctype="multipart/form-data" class="space-y-3">
+            <p class="text-sm text-red-500 mb-4"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Warning: This will overwrite the current database. Upload a backup .zip (from Backup History) or a .sql file exported from this system only.</p>
+            <form method="POST" action="{{ route('admin.backup.restore') }}" id="restore-form" enctype="multipart/form-data" class="space-y-3">
                 @csrf
-                <input type="file" name="sql_file" accept=".sql,.txt"
+                <input type="file" name="sql_file" accept=".zip,.sql,.txt"
                     class="block text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 w-full max-w-md">
                 @error('sql_file')
                     <p class="text-xs text-red-500">{{ $message }}</p>
                 @enderror
-                <button type="submit"
-                    onclick="return confirm('Are you sure? This will overwrite the current database.')"
+                <button type="button" id="restore-now-btn"
                     class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-5 py-2 rounded">
                     Restore Now
                 </button>
@@ -103,6 +102,33 @@
                         }
                     });
                     document.getElementById('backup-form').submit();
+                }
+            });
+        });
+
+        document.getElementById('restore-now-btn').addEventListener('click', function () {
+            const form = document.getElementById('restore-form');
+            if (!form.querySelector('input[type=file]').files.length) {
+                Swal.fire({ icon: 'warning', title: 'No file selected', text: 'Choose a backup .zip or .sql file first.' });
+                return;
+            }
+            Swal.fire({
+                title: 'Restore database?',
+                text: 'This will overwrite ALL current data with the contents of the selected backup.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, restore',
+                confirmButtonColor: '#dc2626',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Restoring...',
+                        text: 'Do not close this page.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => Swal.showLoading(),
+                    });
+                    form.submit();
                 }
             });
         });
