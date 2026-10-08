@@ -6,6 +6,7 @@ use App\Models\Subject;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SubjectController extends Controller
 {
@@ -32,7 +33,10 @@ class SubjectController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code'       => 'required|string|max:20|unique:subjects,code',
+            'code'       => [
+                'required', 'string', 'max:20',
+                Rule::unique('subjects')->where(fn ($q) => $q->where('course_id', $request->course_id)),
+            ],
             'name'       => 'required|string|max:255',
             'course_id'  => 'required|exists:courses,id',
             'units'      => 'required|numeric|min:1|max:10',
@@ -56,7 +60,10 @@ class SubjectController extends Controller
     public function update(Request $request, Subject $subject)
     {
         $request->validate([
-            'code'       => 'required|string|max:20|unique:subjects,code,' . $subject->id,
+            'code'       => [
+                'required', 'string', 'max:20',
+                Rule::unique('subjects')->where(fn ($q) => $q->where('course_id', $request->course_id))->ignore($subject->id),
+            ],
             'name'       => 'required|string|max:255',
             'course_id'  => 'required|exists:courses,id',
             'units'      => 'required|numeric|min:1|max:10',
@@ -78,7 +85,7 @@ class SubjectController extends Controller
                 ->with('error', 'Cannot delete subject with existing enrollments.');
         }
 
-        $subject->delete();
+        $subject->forceDelete();
 
         return redirect()->route('admin.subjects.index')
             ->with('success', 'Subject deleted successfully.');

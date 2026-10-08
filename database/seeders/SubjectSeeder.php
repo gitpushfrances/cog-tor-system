@@ -18,9 +18,8 @@ class SubjectSeeder extends Seeder
 
         // BSIT Subjects
         Subject::updateOrCreate(
-            ['code' => 'IT 101'],
+            ['course_id' => $bsit->id, 'code' => 'IT 101'],
             [
-                'course_id' => $bsit->id,
                 'name' => 'Introduction to Computing',
                 'description' => 'Fundamentals of computing and information technology',
                 'units' => 3,
@@ -31,9 +30,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'IT 102'],
+            ['course_id' => $bsit->id, 'code' => 'IT 102'],
             [
-                'course_id' => $bsit->id,
                 'name' => 'Computer Programming 1',
                 'description' => 'Introduction to programming using Python',
                 'units' => 3,
@@ -44,9 +42,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'IT 201'],
+            ['course_id' => $bsit->id, 'code' => 'IT 201'],
             [
-                'course_id' => $bsit->id,
                 'name' => 'Data Structures and Algorithms',
                 'description' => 'Fundamental data structures and algorithm analysis',
                 'units' => 3,
@@ -57,9 +54,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'IT 202'],
+            ['course_id' => $bsit->id, 'code' => 'IT 202'],
             [
-                'course_id' => $bsit->id,
                 'name' => 'Database Management Systems',
                 'description' => 'Relational database design and SQL',
                 'units' => 3,
@@ -70,9 +66,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'IT 301'],
+            ['course_id' => $bsit->id, 'code' => 'IT 301'],
             [
-                'course_id' => $bsit->id,
                 'name' => 'Web Development',
                 'description' => 'Modern web development technologies',
                 'units' => 3,
@@ -84,9 +79,8 @@ class SubjectSeeder extends Seeder
 
         // BSCS Subjects
         Subject::updateOrCreate(
-            ['code' => 'CS 101'],
+            ['course_id' => $bscs->id, 'code' => 'CS 101'],
             [
-                'course_id' => $bscs->id,
                 'name' => 'Introduction to Computer Science',
                 'description' => 'Foundations of computer science',
                 'units' => 3,
@@ -97,9 +91,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'CS 102'],
+            ['course_id' => $bscs->id, 'code' => 'CS 102'],
             [
-                'course_id' => $bscs->id,
                 'name' => 'Discrete Mathematics',
                 'description' => 'Mathematical structures for computer science',
                 'units' => 3,
@@ -110,9 +103,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'CS 201'],
+            ['course_id' => $bscs->id, 'code' => 'CS 201'],
             [
-                'course_id' => $bscs->id,
                 'name' => 'Object-Oriented Programming',
                 'description' => 'OOP principles using Java',
                 'units' => 3,
@@ -123,9 +115,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'CS 301'],
+            ['course_id' => $bscs->id, 'code' => 'CS 301'],
             [
-                'course_id' => $bscs->id,
                 'name' => 'Software Engineering',
                 'description' => 'Software development methodologies',
                 'units' => 3,
@@ -136,9 +127,8 @@ class SubjectSeeder extends Seeder
         );
 
         Subject::updateOrCreate(
-            ['code' => 'CS 401'],
+            ['course_id' => $bscs->id, 'code' => 'CS 401'],
             [
-                'course_id' => $bscs->id,
                 'name' => 'Artificial Intelligence',
                 'description' => 'Introduction to AI and machine learning',
                 'units' => 3,

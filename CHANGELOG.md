@@ -1021,6 +1021,25 @@ Flagged during the July 2 session, not yet built:
 
 ---
 
+### 13.29 Subject Code Uniqueness Rescoped to Course (October 8 session)
+**Trigger:** Client input of an existing subject code (e.g. `Math 111`) under a different program was rejected with "The code has already been taken."
+
+**Root cause:** `subjects.code` had a system-wide unique index (`subjects_code_unique`) and `SubjectController` `store()`/`update()` validated with `unique:subjects,code`, so one code could not exist under two courses.
+
+**Fix:**
+- [x] New additive migration `2026_10_08_000000_scope_subject_code_unique_to_course` - drops `subjects_code_unique`, adds composite unique `(course_id, code)`. Run `php artisan migrate` (no `migrate:fresh` needed).
+- [x] `app/Http/Controllers/Admin/SubjectController.php` - `store()`/`update()` validation switched to `Rule::unique('subjects')->where(course_id)` (with `->ignore($subject->id)` on update).
+- [x] `SubjectController::destroy()` - `delete()` changed to `forceDelete()` so a soft-deleted row cannot collide with the composite index (same cause as 13.23). Existing guard blocking deletion of subjects with enrollments is unchanged.
+- [x] `database/seeders/SubjectSeeder.php` - `course_id` moved into the `updateOrCreate` lookup key on all 10 subjects.
+- [x] Verified: `SHOW INDEX FROM subjects` shows `subjects_course_id_code_unique`, `subjects_code_unique` removed.
+
+**Decision:** subjects stay separate rows per course. Enrollments, grades and COG/TOR link by `subject_id`, so same-code subjects do not conflict. Edits to a shared subject (e.g. Math 111) must be made per course until the Phase 14 Curriculum redesign.
+
+- [ ] Client confirmation pending: whether shared subjects have identical title and units across programs.
+- [ ] Browser test pending: same code under two courses saves; same code twice under one course is rejected.
+
+---
+
 ## PHASE 14: CURRICULUM FEATURE 📅 PLANNED
 **Date:** TBD
 **Status:** 📅 Not Started (0%)
@@ -1283,6 +1302,6 @@ New E2E test plan reflecting single-actor flow, mobile responsiveness, empty sta
 
 ---
 
-**Last Updated:** August 28, 2026
+**Last Updated:** October 8, 2026
 **Phase 13 Status:** 🔄 In Progress (~95%)
 **Current Focus:** Phase 13.27 TOR PDF border/grid/signature fixes (done, pending fresh-render re-verification and multi-page test) → Phase 13.28 Documents tab null-student crash (defensive patch applied, root cause not yet confirmed against production data — run the orphan-record query before closing) → Priority 0: verify Phase 13.11 TOR duplicate-record fix (still pending, carried over) → Priority 0.5: browser-test 13.23–13.25 → Priority 1: Phase 13.8 Full Browser E2E Test → Priority 2: Import Grades consistency + Year Level architecture (newly scoped, not started) → 13.10 COG/TOR Records Tab → Phase 11.4 Brand Identity/UI Rebrand → Phase 10 Reporting → Phase 14 Curriculum
