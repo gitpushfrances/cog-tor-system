@@ -18,12 +18,6 @@
             .photo-box img { width: 0.9in; height: 0.9in; }
             .photo-box .photo-placeholder { display: block; padding-top: 0.34in; font-size: 7px; color: #666; }
 
-            /* ID picture: page 1 only, top-right, top edge aligned with the ESSU banner.
-               Sized to the free space beside the banner so nothing else on the page moves. */
-            .photo-box { position: absolute; top: 0; right: 0; width: 0.9in; height: 0.9in; border: 0.75pt solid #000; text-align: center; }
-            .photo-box img { width: 0.9in; height: 0.9in; }
-            .photo-box .photo-placeholder { display: block; padding-top: 0.34in; font-size: 7px; color: #666; }
-
             .doc-title { text-align: center; font-size: 13px; font-weight: bold; margin: 6px 0 14px; }
 
             .info-table { width: 100%; border-collapse: collapse; margin-bottom: 10px; font-size: 9px; }
@@ -102,16 +96,6 @@
     @php $torPhoto = $student->photoDataUri(); @endphp
 
     @foreach($pages as $pageIndex => $page)
-
-        @if($loop->first)
-            <div class="photo-box">
-                @if($torPhoto)
-                    <img src="{{ $torPhoto }}" alt="2x2 ID picture">
-                @else
-                    <span class="photo-placeholder">ID PICTURE</span>
-                @endif
-            </div>
-        @endif
 
         @if($loop->first)
             <div class="photo-box">

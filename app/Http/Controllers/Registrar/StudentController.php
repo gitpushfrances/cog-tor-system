@@ -139,51 +139,10 @@ class StudentController extends Controller
         }
         Storage::disk('local')->deleteDirectory('previous-school/' . $student->id);
 
-        if ($student->photo_path) {
-            Storage::disk('local')->delete($student->photo_path);
-        }
-        Storage::disk('local')->deleteDirectory('previous-school/' . $student->id);
-
         $student->delete();
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Student deleted successfully.');
-    }
-
-    /**
-     * Save or replace the student's 2x2 ID picture (used on page 1 of the TOR).
-     * The image is cropped to a square, resized to 600x600 and stored as JPEG
-     * on the private local disk, one file per student.
-     */
-    public function updatePhoto(Request $request, Student $student)
-    {
-        $request->validate([
-            'photo' => 'required|image|mimes:jpg,jpeg,png|max:5120|dimensions:min_width=200,min_height=200',
-        ], [
-            'photo.max'        => 'The picture must not be larger than 5 MB.',
-            'photo.dimensions' => 'The picture must be at least 200 x 200 pixels.',
-        ]);
-
-        if (! ImageProcessor::available()) {
-            return response()->json(['message' => 'The PHP GD extension is not enabled on this server.'], 422);
-        }
-
-        $jpeg = ImageProcessor::squareJpeg($request->file('photo')->getRealPath());
-
-        if ($jpeg === null) {
-            return response()->json(['message' => 'The picture could not be read. Use a JPG or PNG file.'], 422);
-        }
-
-        $path = 'student-photos/' . $student->id . '.jpg';
-        Storage::disk('local')->put($path, $jpeg);
-
-        $student->photo_path = $path;
-        $student->save();
-
-        return response()->json([
-            'message' => 'ID picture saved.',
-            'photo'   => $student->photoDataUri(),
-        ]);
     }
 
     /**
