@@ -57,10 +57,10 @@
 
                 <div>
                     <label style="display:block;font-size:0.7rem;font-weight:600;color:#8a7a60;margin-bottom:4px;">Semester <span style="font-weight:400;">(COG only)</span></label>
-                    <select name="semester_id" style="border:1px solid #d4c9b4;border-radius:8px;padding:8px 12px;font-size:0.85rem;">
+                    <select name="semester" style="border:1px solid #d4c9b4;border-radius:8px;padding:8px 12px;font-size:0.85rem;">
                         <option value="">All</option>
-                        @foreach($semesters as $sem)
-                            <option value="{{ $sem->id }}" {{ request('semester_id') == $sem->id ? 'selected' : '' }}>{{ $sem->semester_name }}</option>
+                        @foreach($semesters as $semesterName)
+                            <option value="{{ $semesterName }}" {{ request('semester') === $semesterName ? 'selected' : '' }}>{{ $semesterName }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -82,7 +82,7 @@
                     Filter
                 </button>
 
-                @if(request()->hasAny(['search','type','status','department_id','school_year_id','semester_id','date_from','date_to']))
+                @if(request()->hasAny(['search','type','status','department_id','school_year_id','semester','date_from','date_to']))
                     <a href="{{ route('registrar.documents.index') }}"
                        style="padding:9px 16px;border:1px solid #e2d9c8;border-radius:8px;font-size:0.875rem;color:#6b5f4a;text-decoration:none;">
                         Clear

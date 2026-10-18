@@ -209,7 +209,7 @@
                 @if($students->isNotEmpty())
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                     @foreach($students as $student)
-                    <a href="{{ route('registrar.students.profile', $student) }}"
+                    <a href="{{ route('registrar.students.profile', ['student' => $student, 'search' => $search, 'page' => $students->currentPage()]) }}"
                        style="display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #e2d9c8;border-radius:10px;text-decoration:none;transition:border-color 0.15s;"
                        onmouseover="this.style.borderColor='#c9a84c';this.style.background='#faf8f4'" onmouseout="this.style.borderColor='#e2d9c8';this.style.background='#fff'">
                         <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#e8c96e,#c9a84c);display:flex;align-items:center;justify-content:center;flex-shrink:0;">

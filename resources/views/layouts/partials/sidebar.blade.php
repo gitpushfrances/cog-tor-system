@@ -238,8 +238,13 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
 
 
         @if(auth()->user()->hasRole('registrar'))
+            @php
+                // Generate COG / TOR = the dashboard's Generate tab and the student profile it opens.
+                $onGenerate = (request()->routeIs('registrar.dashboard') && request('tab') === 'documents')
+                    || request()->routeIs('registrar.students.profile');
+            @endphp
             <a href="{{ route('registrar.dashboard') }}" title="Dashboard"
-               class="sdb-link {{ request()->routeIs('registrar.dashboard') ? 'sdb-active' : '' }}">
+               class="sdb-link {{ request()->routeIs('registrar.dashboard') && ! $onGenerate ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-gauge-high sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Dashboard</span>
             </a>
@@ -247,7 +252,7 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
             <div class="sdb-section-label sidebar-section-label">Academic</div>
 
             <a href="{{ route('registrar.students.index') }}" title="Students"
-               class="sdb-link {{ request()->routeIs('registrar.students.*') ? 'sdb-active' : '' }}">
+               class="sdb-link {{ request()->routeIs('registrar.students.*') && ! $onGenerate ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-user-graduate sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Students</span>
             </a>
@@ -263,6 +268,11 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
                class="sdb-link {{ request()->routeIs('registrar.encode-grades*') ? 'sdb-active' : '' }}">
                 <i class="fa-solid fa-pen-to-square sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Encode Grades</span>
+            </a>
+            <a href="{{ route('registrar.dashboard', ['tab' => 'documents']) }}" title="Generate COG / TOR"
+               class="sdb-link {{ $onGenerate ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-file-pdf sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Generate COG / TOR</span>
             </a>
             <a href="{{ route('registrar.documents.index') }}" title="Documents"
                class="sdb-link {{ request()->routeIs('registrar.documents.*') ? 'sdb-active' : '' }}">

@@ -69,7 +69,7 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
 });
 
 // Head of Department Routes
-Route::middleware(['auth', 'status', 'role:head_of_department'])->prefix('head-of-department')->name('head_of_department.')->group(function () {
+Route::middleware(['auth', 'status', 'role:head_of_department_disabled'])->prefix('head-of-department')->name('head_of_department.')->group(function () {
     Route::get('/dashboard', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'index'])->name('dashboard');
 
     Route::get('/submissions/{submission}/review', [App\Http\Controllers\HeadOfDepartment\HeadOfDepartmentController::class, 'review'])->name('submissions.review');
@@ -131,6 +131,15 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/students/{student}/edit', [App\Http\Controllers\Registrar\StudentController::class, 'edit'])->name('students.edit');
     Route::put('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'update'])->name('students.update');
     Route::delete('/students/{student}', [App\Http\Controllers\Registrar\StudentController::class, 'destroy'])->name('students.destroy');
+    Route::post('/students/{student}/photo', [App\Http\Controllers\Registrar\StudentController::class, 'updatePhoto'])->name('students.photo.update');
+
+    // Previous School Records (scanned TOR/COG from another school; Transferee and Irregular only)
+    Route::get('/students/{student}/previous-school-records', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'index'])->name('students.previous-school-records.index');
+    Route::post('/students/{student}/previous-school-records', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'store'])->name('students.previous-school-records.store');
+    Route::post('/previous-school-records/{record}/pages', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'addPages'])->name('previous-school-records.pages.store');
+    Route::delete('/previous-school-records/{record}', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'destroy'])->name('previous-school-records.destroy');
+    Route::delete('/previous-school-pages/{page}', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'destroyPage'])->name('previous-school-pages.destroy');
+    Route::get('/previous-school-pages/{page}/image', [App\Http\Controllers\Registrar\PreviousSchoolRecordController::class, 'image'])->name('previous-school-pages.image');
 
     // Enrollment Management
     Route::get('/enrollments', [App\Http\Controllers\Registrar\EnrollmentController::class, 'index'])->name('enrollments.index');

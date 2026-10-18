@@ -18,11 +18,25 @@ use Illuminate\Support\Facades\Storage;
 class DocumentController extends Controller
 {
     /**
-     * Approximate rows (year/semester labels + subject rows) that fit on
-     * one printed TOR page before a header/signature repeat is needed.
-     * Tune this after checking a real multi-page render.
+     * Table rows (year/semester labels + subjects) that fit on one A4 TOR page
+     * together with the header, grading legend, a one-line remark and the
+     * signatures that repeat on every page. Measured with DomPDF renders.
      */
-    private const TOR_ROWS_PER_PAGE = 25;
+    private const TOR_ROWS_PER_PAGE = 21;
+
+    /** Characters of a descriptive title that fit on one line of its column; longer titles wrap and take more rows. */
+    private const TOR_TITLE_CHARS_PER_LINE = 50;
+
+    /** Characters of remarks that fit on one printed line; each extra line costs table rows. */
+    private const TOR_REMARK_CHARS_PER_LINE = 100;
+    private const TOR_ROWS_PER_REMARK_LINE = 1;
+
+    /** Rows given up on the last page for the graduation statement. */
+    private const TOR_GRAD_STATEMENT_ROWS = 3;
+
+    /** Largest printed size of a scanned previous-school page (A4 content area minus the page header). */
+    private const TOR_SCAN_MAX_WIDTH_IN  = 6.85;
+    private const TOR_SCAN_MAX_HEIGHT_IN = 6.9;
 
     private function torValidationRules(): array
     {
@@ -75,6 +89,7 @@ class DocumentController extends Controller
 
                         return [
                             'semester_label' => $label,
+                            'semester_order' => (int) ($semester->semester_order ?? 0),
                             'subjects' => $bysem->map(fn($e) => [
                                 'course_code'  => $e->subject->code,
                                 'subject_name' => $e->subject->name,
@@ -98,61 +113,179 @@ class DocumentController extends Controller
     }
 
     /**
-     * flattens the year/semester/subject structure into a single ordered
-     * list of "entries" (year label, semester label, subject rows), then
-     * chunks that list into pages of roughly tor_rows_per_page rows each.
-     * a group label is never left as the very last row on a page.
+     * Builds the printed TOR pages in chronological order (year level, then
+     * semester): ESSU grade rows and scanned previous-school pages.
+     *
+     * - ESSU rows are chunked into pages of $rowsPerPage; a year/semester label
+     *   is never left as the last row of a page.
+     * - A scanned record starts on a new page, one page per image.
+     * - The last page is always a rows page (it carries the signatures and the
+     *   graduation statement) and holds at most $lastPageRows rows.
      */
-    private function paginatetorentries(array $yeargroups): array
+    private function paginatetorentries(array $yeargroups, $previousRecords = [], int $rowsPerPage = self::TOR_ROWS_PER_PAGE, ?int $lastPageRows = null): array
     {
-        $flat = [];
+        $lastPageRows ??= $rowsPerPage;
+
+        // ESSU semesters keep their existing order; each previous-school record goes
+        // in front of the first ESSU semester that comes at or after its start.
+        $essu = [];
         foreach ($yeargroups as $year) {
-            $flat[] = ['type' => 'year', 'label' => $year['year_label']];
             foreach ($year['semesters'] as $sem) {
-                $flat[] = ['type' => 'semester', 'label' => $sem['semester_label']];
-                foreach ($sem['subjects'] as $subject) {
-                    $flat[] = array_merge(['type' => 'subject'], $subject);
-                }
+                $essu[] = ['key' => (int) $year['year_level'] * 10 + (int) ($sem['semester_order'] ?? 0), 'year' => $year, 'sem' => $sem];
+            }
+        }
+        $scans = collect($previousRecords)->sortBy(fn ($r) => $r->startKey())->values()->all();
+
+        $blocks = [];
+        foreach ($essu as $block) {
+            while (! empty($scans) && $scans[0]->startKey() <= $block['key']) {
+                $blocks[] = ['record' => array_shift($scans)];
+            }
+            $blocks[] = $block;
+        }
+        foreach ($scans as $record) {
+            $blocks[] = ['record' => $record];
+        }
+
+        $pages    = [];
+        $buffer   = [];
+        $lastYear = null;
+
+        foreach ($blocks as $block) {
+            if (isset($block['record'])) {
+                $pages    = array_merge($pages, $this->chunkTorRows($buffer, $rowsPerPage));
+                $buffer   = [];
+                $lastYear = null;
+                $pages    = array_merge($pages, $this->torScanPages($block['record']));
+                continue;
+            }
+
+            if ($block['year']['year_level'] !== $lastYear) {
+                $buffer[] = ['type' => 'year', 'label' => $block['year']['year_label']];
+                $lastYear = $block['year']['year_level'];
+            }
+            $buffer[] = ['type' => 'semester', 'label' => $block['sem']['semester_label']];
+            foreach ($block['sem']['subjects'] as $subject) {
+                $buffer[] = array_merge(['type' => 'subject'], $subject);
             }
         }
 
-        if (empty($flat)) {
-            return [['entries' => [], 'isLast' => true]];
+        $tail = $this->chunkTorRows($buffer, $rowsPerPage);
+
+        // The last page must be a rows page that also fits the end-of-transcript content.
+        $lastEntries = empty($tail) ? [] : array_pop($tail)['entries'];
+        if (array_sum(array_map(fn ($e) => $this->torRowWeight($e), $lastEntries)) > $lastPageRows) {
+            $split = $this->chunkTorRows($lastEntries, $lastPageRows);
+            $lastEntries = array_pop($split)['entries'];
+            $tail = array_merge($tail, $split);
         }
 
-        $pages = [];
+        $pages = array_merge($pages, $tail);
+        $pages[] = ['type' => 'rows', 'entries' => $lastEntries, 'isLast' => true];
+
+        return $pages;
+    }
+
+    /**
+     * Chunks table rows into non-final pages by printed height (a subject whose
+     * title wraps counts as several rows); never ends a page on a year/semester label.
+     */
+    private function chunkTorRows(array $entries, int $rowsPerPage): array
+    {
+        $pages   = [];
         $current = [];
-        $count = count($flat);
+        $used    = 0;
+        $count   = count($entries);
 
         for ($i = 0; $i < $count; $i++) {
-            $entry = $flat[$i];
-            $wouldbelastonpage = (count($current) + 1) >= self::TOR_ROWS_PER_PAGE;
-            $islabel = in_array($entry['type'], ['year', 'semester']);
-            $hasmoreafter = $i < $count - 1;
+            $entry  = $entries[$i];
+            $weight = $this->torRowWeight($entry);
 
-            // don't leave a group label as the final row on a page — push it to the next page instead.
-            if ($wouldbelastonpage && $islabel && $hasmoreafter) {
-                $pages[] = ['entries' => $current, 'isLast' => false];
+            // A year/semester label must share its page with the labels after it and the first subject.
+            $needed = $weight;
+            if ($entry['type'] !== 'subject') {
+                for ($j = $i + 1; $j < $count; $j++) {
+                    $needed += $this->torRowWeight($entries[$j]);
+                    if ($entries[$j]['type'] === 'subject') {
+                        break;
+                    }
+                }
+            }
+
+            if (! empty($current) && $used + $needed > $rowsPerPage) {
+                $pages[] = ['type' => 'rows', 'entries' => $current, 'isLast' => false];
                 $current = [];
+                $used    = 0;
             }
 
             $current[] = $entry;
-
-            if (count($current) >= self::TOR_ROWS_PER_PAGE && $i < $count - 1) {
-                $pages[] = ['entries' => $current, 'isLast' => false];
-                $current = [];
-            }
+            $used     += $weight;
         }
 
-        if (!empty($current)) {
-            $pages[] = ['entries' => $current, 'isLast' => true];
-        }
-
-        if (!empty($pages)) {
-            $pages[count($pages) - 1]['isLast'] = true;
+        if (! empty($current)) {
+            $pages[] = ['type' => 'rows', 'entries' => $current, 'isLast' => false];
         }
 
         return $pages;
+    }
+
+    private function torRowWeight(array $entry): int
+    {
+        if ($entry['type'] !== 'subject') {
+            return 1;
+        }
+
+        return max(1, (int) ceil(mb_strlen((string) $entry['subject_name']) / self::TOR_TITLE_CHARS_PER_LINE));
+    }
+
+    /** One printed page per scanned image, scaled to fit without distortion. */
+    private function torScanPages($record): array
+    {
+        $pages = [];
+        $total = $record->pages->count();
+
+        foreach ($record->pages as $i => $page) {
+            $scale = min(
+                self::TOR_SCAN_MAX_WIDTH_IN / max(1, $page->width),
+                self::TOR_SCAN_MAX_HEIGHT_IN / max(1, $page->height)
+            );
+
+            $pages[] = [
+                'type'      => 'scan',
+                'isLast'    => false,
+                'school'    => $record->school_name,
+                'coverage'  => $record->coverageLabel(),
+                'pageNo'    => $i + 1,
+                'pageCount' => $total,
+                'file'      => Storage::disk('local')->path($page->path),
+                'url'       => route('registrar.previous-school-pages.image', $page),
+                'widthIn'   => round($page->width * $scale, 2),
+                'heightIn'  => round($page->height * $scale, 2),
+            ];
+        }
+
+        return $pages;
+    }
+
+    /**
+     * Row budgets for this TOR: long remarks repeat on every page, and the
+     * graduation statement sits on the last page only.
+     *
+     * @return array{0: int, 1: int} [rows per page, rows on the last page]
+     */
+    private function torRowBudgets(Student $student, TorRecord $tor): array
+    {
+        $remarkLines = max(1, (int) ceil(mb_strlen((string) $tor->remarks) / self::TOR_REMARK_CHARS_PER_LINE));
+        $rows = max(5, self::TOR_ROWS_PER_PAGE - ($remarkLines - 1) * self::TOR_ROWS_PER_REMARK_LINE);
+
+        $hasGradStatement = $student->status === 'graduated' && $tor->degree_awarded;
+
+        return [$rows, max(3, $rows - ($hasGradStatement ? self::TOR_GRAD_STATEMENT_ROWS : 0))];
+    }
+
+    private function previousSchoolRecordsFor(Student $student)
+    {
+        return $student->previousSchoolRecords()->with('pages')->get();
     }
     public function students()
     {
@@ -213,12 +346,8 @@ class DocumentController extends Controller
 
     public function cogForm(Student $student)
     {
-        $semesters = Semester::whereHas('enrollments', function ($q) use ($student) {
-            $q->where('student_id', $student->id)
-              ->whereHas('grade', fn($q) => $q->where('status', 'finalized'));
-        })->get();
-
-        return view('registrar.cog', compact('student', 'semesters'));
+        // COG is generated from the student profile modal; the old standalone page is retired.
+        return redirect()->route('registrar.students.profile', $student);
     }
 
     /**
@@ -377,11 +506,8 @@ class DocumentController extends Controller
 
     public function torForm(Student $student)
     {
-        $hasFinalized = Enrollment::where('student_id', $student->id)
-            ->whereHas('grade', fn($q) => $q->where('status', 'finalized'))
-            ->exists();
-
-        return view('registrar.tor', compact('student', 'hasFinalized'));
+        // TOR is generated from the student profile modal; the old standalone page is retired.
+        return redirect()->route('registrar.students.profile', $student);
     }
 
     /**
@@ -399,7 +525,6 @@ class DocumentController extends Controller
             ->get();
 
         $yearGroups = $this->buildTorGradeGroups($enrollments);
-        $pages = $this->paginateTorEntries($yearGroups);
 
         $totalUnits = $enrollments->sum(fn($e) => $e->subject->units);
         $cumulativeGwa = $totalUnits > 0
@@ -410,6 +535,9 @@ class DocumentController extends Controller
             ['document_number' => 'PREVIEW', 'cumulative_gwa' => $cumulativeGwa],
             $request->only(array_keys($this->torValidationRules()))
         ));
+
+        [$rowsPerPage, $lastPageRows] = $this->torRowBudgets($student, $tor);
+        $pages = $this->paginateTorEntries($yearGroups, $this->previousSchoolRecordsFor($student), $rowsPerPage, $lastPageRows);
 
         $forPdf = false;
         $html = view('registrar.pdf.tor', compact('student', 'pages', 'tor', 'forPdf'))->render();
@@ -465,7 +593,8 @@ class DocumentController extends Controller
         });
 
         $documentNumber = $tor->document_number;
-        $pages = $this->paginateTorEntries($yearGroups);
+        [$rowsPerPage, $lastPageRows] = $this->torRowBudgets($student, $tor);
+        $pages = $this->paginateTorEntries($yearGroups, $this->previousSchoolRecordsFor($student), $rowsPerPage, $lastPageRows);
 
         try {
             $forPdf = true;
@@ -538,7 +667,7 @@ class DocumentController extends Controller
         $status     = $request->input('status');          // 'current' | 'superseded' | null (all)
         $search     = $request->input('search');          // student name/number
         $schoolYear = $request->input('school_year_id');
-        $semesterId = $request->input('semester_id');
+        $semester   = $request->input('semester');        // semester name, e.g. "1st Semester"
         $departmentId = $request->input('department_id');
         $dateFrom   = $request->input('date_from');
         $dateTo     = $request->input('date_to');
@@ -586,10 +715,11 @@ class DocumentController extends Controller
         }
 
         // School Year / Semester filters — COG only (TOR is cumulative, has no single semester)
-        if ($semesterId) {
-            $cogQuery->where('semester_id', $semesterId);
-        } elseif ($schoolYear) {
+        if ($schoolYear) {
             $cogQuery->whereHas('semester', fn($q) => $q->where('school_year_id', $schoolYear));
+        }
+        if ($semester) {
+            $cogQuery->whereHas('semester', fn($q) => $q->where('semester_name', $semester));
         }
 
         $cogRecords = ($type === 'tor') ? collect() : $cogQuery->get()->map(function ($r) {
@@ -608,7 +738,11 @@ class DocumentController extends Controller
         $groupedByStudent = $documents->groupBy(fn($d) => $d->student_id);
 
         $schoolYears = SchoolYear::orderBy('year_code', 'desc')->get();
-        $semesters   = Semester::orderBy('semester_order')->get();
+        $semesters   = Semester::query()
+            ->select('semester_name')
+            ->groupBy('semester_name')
+            ->orderByRaw('MIN(semester_order)')
+            ->pluck('semester_name');
         $departments = Department::orderBy('name')->get();
 
         return view('registrar.documents', compact(

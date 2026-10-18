@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 class Student extends Model
 {
     use HasFactory;
@@ -30,6 +31,19 @@ class Student extends Model
         'birth_date' => 'date',
     ];
 
+    /**
+     * 2x2 ID picture as a data URI (used by the TOR PDF, its preview and the TOR modal).
+     * Stored privately under storage/app; never served from public/.
+     */
+    public function photoDataUri(): ?string
+    {
+        if (! $this->photo_path || ! Storage::disk('local')->exists($this->photo_path)) {
+            return null;
+        }
+
+        return 'data:image/jpeg;base64,' . base64_encode(Storage::disk('local')->get($this->photo_path));
+    }
+
     // Relationships
     public function course()
     {
@@ -54,6 +68,17 @@ class Student extends Model
     public function cogRecords()
     {
         return $this->hasMany(CogRecord::class);
+    }
+
+    public function previousSchoolRecords()
+    {
+        return $this->hasMany(PreviousSchoolRecord::class);
+    }
+
+    /** Only Transferee and Irregular students may have scanned records from a previous school. */
+    public function canHavePreviousSchoolRecords(): bool
+    {
+        return in_array($this->student_type, ['Transferee', 'Irregular'], true);
     }
 
     public function torRecords()

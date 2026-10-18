@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
@@ -54,7 +55,7 @@ class UserController extends Controller
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email',
             'password'      => 'required|string|min:8|confirmed',
-            'role'          => 'required|exists:roles,name',
+            'role'          => ['required', Rule::in(['registrar'])],
             'status'        => 'required|in:active,pending,inactive',
         ]);
 
@@ -86,7 +87,7 @@ class UserController extends Controller
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users,email,' . $user->id,
             'password'      => 'nullable|string|min:8|confirmed',
-            'role'          => 'required|exists:roles,name',
+            'role'          => ['required', Rule::in(['registrar'])],
             'status'        => 'required|in:active,pending,inactive',
         ]);
 

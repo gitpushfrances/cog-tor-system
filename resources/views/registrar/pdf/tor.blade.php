@@ -9,8 +9,20 @@
 
             .page-break { page-break-after: always; }
 
-            .header-logo { text-align: center; margin-bottom: 6px; }
+            .header-logo { text-align: left; margin-bottom: 6px; }
             .header-logo img { height: 55px; }
+
+            /* ID picture: page 1 only, top-right, top edge aligned with the ESSU banner.
+               Sized to the free space beside the banner so nothing else on the page moves. */
+            .photo-box { position: absolute; top: 0; right: 0; width: 0.9in; height: 0.9in; border: 0.75pt solid #000; text-align: center; }
+            .photo-box img { width: 0.9in; height: 0.9in; }
+            .photo-box .photo-placeholder { display: block; padding-top: 0.34in; font-size: 7px; color: #666; }
+
+            /* ID picture: page 1 only, top-right, top edge aligned with the ESSU banner.
+               Sized to the free space beside the banner so nothing else on the page moves. */
+            .photo-box { position: absolute; top: 0; right: 0; width: 0.9in; height: 0.9in; border: 0.75pt solid #000; text-align: center; }
+            .photo-box img { width: 0.9in; height: 0.9in; }
+            .photo-box .photo-placeholder { display: block; padding-top: 0.34in; font-size: 7px; color: #666; }
 
             .doc-title { text-align: center; font-size: 13px; font-weight: bold; margin: 6px 0 14px; }
 
@@ -20,6 +32,10 @@
             .info-value { border-bottom: 1px solid #000; font-weight: bold; font-size: 10px; }
 
             .prelim-title { font-size: 10px; margin: 8px 0 4px; }
+
+            .scan-caption { text-align: center; font-size: 9px; margin: 0 0 6px; }
+            .scan-image { text-align: center; }
+            .scan-image img { border: 0.5pt solid #999; }
 
             .collegiate-title { text-align: center; font-size: 12px; font-weight: bold; margin: 14px 0 6px; }
 
@@ -83,7 +99,29 @@
     </head>
     <body>
 
+    @php $torPhoto = $student->photoDataUri(); @endphp
+
     @foreach($pages as $pageIndex => $page)
+
+        @if($loop->first)
+            <div class="photo-box">
+                @if($torPhoto)
+                    <img src="{{ $torPhoto }}" alt="2x2 ID picture">
+                @else
+                    <span class="photo-placeholder">ID PICTURE</span>
+                @endif
+            </div>
+        @endif
+
+        @if($loop->first)
+            <div class="photo-box">
+                @if($torPhoto)
+                    <img src="{{ $torPhoto }}" alt="2x2 ID picture">
+                @else
+                    <span class="photo-placeholder">ID PICTURE</span>
+                @endif
+            </div>
+        @endif
 
         <div class="header-logo">
             @if(file_exists(public_path('images/logo/essu-horizontal.png')))
@@ -108,9 +146,9 @@
             </tr>
             <tr>
                 <td class="info-label">DATE OF BIRTH</td>
-                <td class="info-value">{{ $student->date_of_birth ? $student->date_of_birth->format('F d, Y') : '' }}</td>
+                <td class="info-value">{{ $student->birth_date?->format('F d, Y') }}</td>
                 <td class="info-label">PLACE OF BIRTH</td>
-                <td class="info-value">{{ $student->place_of_birth ?? '' }}</td>
+                <td class="info-value">{{ $tor->place_of_birth }}</td>
             </tr>
         </table>
 
@@ -118,18 +156,27 @@
         <table class="info-table">
             <tr>
                 <td class="info-label">Elementary</td>
-                <td class="info-value" style="width: 42%;">{{ $student->elementary_school ?? '' }}</td>
+                <td class="info-value" style="width: 42%;">{{ $tor->elementary_school }}</td>
                 <td class="info-label" style="width: 110px;">Year of Graduation</td>
-                <td class="info-value">{{ $student->elementary_graduation_year ?? '' }}</td>
+                <td class="info-value">{{ $tor->elementary_graduation_year }}</td>
             </tr>
             <tr>
                 <td class="info-label">High School</td>
-                <td class="info-value">{{ $student->high_school ?? '' }}</td>
+                <td class="info-value">{{ $tor->high_school }}</td>
                 <td class="info-label">Year of Graduation</td>
-                <td class="info-value">{{ $student->high_school_graduation_year ?? '' }}</td>
+                <td class="info-value">{{ $tor->high_school_graduation_year }}</td>
             </tr>
         </table>
 
+        @if(($page['type'] ?? 'rows') === 'scan')
+        <div class="collegiate-title">PREVIOUS SCHOOL RECORD</div>
+        <div class="scan-caption">
+            <strong>{{ $page['school'] }}</strong> &middot; {{ $page['coverage'] }} &middot; Scanned copy, page {{ $page['pageNo'] }} of {{ $page['pageCount'] }}
+        </div>
+        <div class="scan-image">
+            <img src="{{ $forPdf ? $page['file'] : $page['url'] }}" style="width: {{ $page['widthIn'] }}in; height: {{ $page['heightIn'] }}in;" alt="Scanned previous school record">
+        </div>
+        @else
         <div class="collegiate-title">COLLEGIATE RECORD</div>
 
         <table class="record">
@@ -254,6 +301,7 @@
                 approved by the Board of Regents on {{ $tor->board_regents_approval_date ? $tor->board_regents_approval_date->format('F d, Y') : '' }},
                 with NSTP Serial Number <strong>{{ $tor->nstp_serial_number }}</strong>.
             </div>
+        @endif
         @endif
 
         @if(!$loop->last)

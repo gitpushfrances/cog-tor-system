@@ -1,6 +1,10 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ route('registrar.dashboard') }}" class="inline-block mb-2 text-sm text-indigo-600 hover:underline">← Back to Dashboard</a>
+        <a href="{{ route('registrar.dashboard', array_filter(['tab' => 'documents', 'search' => request('search'), 'page' => request('page')])) }}"
+           style="display:inline-flex;align-items:center;gap:8px;margin-bottom:8px;padding:8px 16px;font-size:0.85rem;font-weight:500;color:#374151;background:#fff;border:1px solid #d1d5db;border-radius:8px;text-decoration:none;"
+           onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#fff'">
+            <i class="fa-solid fa-arrow-left" style="font-size:0.75rem;"></i> Back to Generate COG / TOR
+        </a>
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800">{{ $student->getFullName() }}</h2>
@@ -16,7 +20,13 @@
             </div>
 
             {{-- TOR Button --}}
-            <div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                @if($student->canHavePreviousSchoolRecords())
+                    <button type="button" onclick="openPsrModal()"
+                            style="display:inline-flex;align-items:center;gap:8px;margin-top:8px;padding:8px 18px;font-size:0.875rem;font-weight:600;color:#166534;background:#fff;border:1px solid #16a34a;border-radius:8px;cursor:pointer;">
+                        <i class="fa-regular fa-images"></i> Previous School Records
+                    </button>
+                @endif
                 <button type="button" onclick="openTorModal()"
                         class="inline-flex items-center gap-2 px-5 py-2 mt-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700">
                     <i class="mr-1 fa-regular fa-file-lines"></i> Generate TOR
@@ -160,6 +170,26 @@
             <div id="torModalFooter" class="flex justify-end gap-2 px-6 py-4 border-t border-gray-100 bg-gray-50 rounded-b-xl"></div>
         </div>
     </div>
+
+    @if($student->canHavePreviousSchoolRecords())
+    <div id="psrModal" class="fixed inset-0 z-50 items-center justify-center hidden p-4 bg-gray-900/60 backdrop-blur-sm">
+        <div class="flex flex-col w-full max-w-3xl max-h-[92vh] bg-white rounded-xl shadow-2xl">
+            <div class="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+                <div>
+                    <p class="text-xs font-semibold tracking-wider text-green-600 uppercase">Previous School Records</p>
+                    <h3 class="mt-1 text-lg font-semibold text-gray-900">{{ $student->getFullName() }}</h3>
+                    <p class="mt-0.5 text-sm text-gray-500">Scanned TOR/COG pages from another school, printed on the TOR in the year and semester they cover.</p>
+                </div>
+                <button type="button" onclick="closePsrModal()" class="p-1.5 text-gray-400 rounded-lg hover:bg-gray-100 hover:text-gray-600 transition">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="psrModalBody" class="min-h-0 px-6 py-5 overflow-y-auto"></div>
+        </div>
+    </div>
+    @endif
 
     <script>
         const cogRoutes = {
@@ -435,6 +465,7 @@
         const torRoutes = {
             preview: '{{ route('registrar.students.tor.preview', $student) }}',
             generate: '{{ route('registrar.students.tor.generate', $student) }}',
+            photo: '{{ route('registrar.students.photo.update', $student) }}',
         };
         const torDefaults = {
             checked_by_name: @js($documentSettings->registrar_name),
@@ -446,6 +477,7 @@
             campus_admin_title: @js($documentSettings->campus_admin_title),
         };
         const studentIsGraduated = @js($student->status === 'graduated');
+        let torPhoto = @js($student->photoDataUri());
         let torState = { dirty: false, form: {} };
 
         function setTorModalSize(mode) {
@@ -557,6 +589,7 @@
             ` : '';
 
             document.getElementById('torModalBody').innerHTML = `
+                ${torPhotoSection()}
                 <div class="mb-6">
                     <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Student Record Details</p>
                     <div class="space-y-4">
@@ -660,6 +693,66 @@
                     </svg>
                 </button>
             `;
+        }
+
+        function torPhotoThumb() {
+            return torPhoto
+                ? `<img src="${torPhoto}" alt="ID picture" style="width:100%;height:100%;object-fit:cover;">`
+                : `<span style="font-size:11px;color:#9ca3af;">No picture</span>`;
+        }
+
+        function torPhotoSection() {
+            return `
+                <div class="p-4 mb-6 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">2x2 ID Picture</p>
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        <div id="torPhotoThumb" style="width:96px;height:96px;flex-shrink:0;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff;border:1px solid #d1d5db;border-radius:6px;">
+                            ${torPhotoThumb()}
+                        </div>
+                        <div style="min-width:0;">
+                            <label style="display:inline-flex;align-items:center;padding:7px 14px;font-size:13px;font-weight:600;color:#374151;background:#fff;border:1px solid #d1d5db;border-radius:8px;cursor:pointer;">
+                                <span id="torPhotoBtnText">${torPhoto ? 'Replace picture' : 'Upload picture'}</span>
+                                <input type="file" accept="image/jpeg,image/png" onchange="uploadTorPhoto(this)" style="display:none;">
+                            </label>
+                            <p style="margin-top:6px;font-size:12px;color:#6b7280;">JPG or PNG, up to 5 MB. Cropped to a square and saved to the student's record.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function uploadTorPhoto(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const btnText = document.getElementById('torPhotoBtnText');
+            const data = new FormData();
+            data.append('photo', file);
+            btnText.textContent = 'Uploading…';
+
+            fetch(torRoutes.photo, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                body: data,
+            })
+            .then(async (res) => {
+                const body = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(body.errors?.photo?.[0] || body.message || 'Upload failed.');
+                }
+                return body;
+            })
+            .then((body) => {
+                torPhoto = body.photo;
+                document.getElementById('torPhotoThumb').innerHTML = torPhotoThumb();
+            })
+            .catch((err) => {
+                Swal.fire({ icon: 'error', title: 'Picture not saved', text: err.message });
+            })
+            .finally(() => {
+                btnText.textContent = torPhoto ? 'Replace picture' : 'Upload picture';
+                input.value = '';
+            });
         }
 
         function goToTorPreview() {
@@ -800,6 +893,206 @@
             document.body.appendChild(form);
             torState.dirty = false;
             form.submit();
+        }
+
+        // ---- Previous School Records (Transferee / Irregular) ----
+        const psrRoutes = {
+            index: '{{ route('registrar.students.previous-school-records.index', $student) }}',
+            store: '{{ route('registrar.students.previous-school-records.store', $student) }}',
+            addPages: (id) => `{{ url('registrar/previous-school-records') }}/${id}/pages`,
+            destroy: (id) => `{{ url('registrar/previous-school-records') }}/${id}`,
+            destroyPage: (id) => `{{ url('registrar/previous-school-pages') }}/${id}`,
+        };
+        const psrSemesters = { 1: '1st Semester', 2: '2nd Semester', 3: 'Summer' };
+        let psrRecords = [];
+
+        function psrEscape(text) {
+            const div = document.createElement('div');
+            div.textContent = text ?? '';
+            return div.innerHTML;
+        }
+
+        function psrRequest(url, method, body = null) {
+            return fetch(url, {
+                method,
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                body,
+            }).then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    const err = new Error(data.errors ? Object.values(data.errors)[0][0] : (data.message || 'Request failed.'));
+                    err.status = res.status;
+                    err.data = data;
+                    throw err;
+                }
+                return data;
+            });
+        }
+
+        function psrError(err) {
+            Swal.fire({ icon: 'error', title: 'Not saved', text: err.message });
+        }
+
+        function openPsrModal() {
+            document.getElementById('psrModal').classList.remove('hidden');
+            document.getElementById('psrModal').classList.add('flex');
+            document.getElementById('psrModalBody').innerHTML = '<p class="text-sm text-gray-500">Loading…</p>';
+            psrRequest(psrRoutes.index, 'GET').then((data) => {
+                psrRecords = data.records;
+                renderPsr();
+            }).catch(psrError);
+        }
+
+        function closePsrModal() {
+            document.getElementById('psrModal').classList.add('hidden');
+            document.getElementById('psrModal').classList.remove('flex');
+        }
+
+        function psrOptions(values, selected) {
+            return Object.entries(values).map(([v, label]) =>
+                `<option value="${v}" ${String(v) === String(selected) ? 'selected' : ''}>${label}</option>`).join('');
+        }
+
+        function renderPsr() {
+            const years = { 1: '1st Year', 2: '2nd Year', 3: '3rd Year', 4: '4th Year', 5: '5th Year' };
+
+            const list = psrRecords.length ? psrRecords.map((r) => `
+                <div class="p-4 mb-3 border border-gray-200 rounded-lg">
+                    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-900">${psrEscape(r.school_name)}</p>
+                            <p class="text-xs text-gray-500">${psrEscape(r.coverage)} &middot; ${r.pages.length} image(s)</p>
+                        </div>
+                        <button type="button" onclick="psrDeleteRecord(${r.id})"
+                                style="font-size:12px;font-weight:600;color:#dc2626;background:none;border:none;cursor:pointer;">Delete record</button>
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+                        ${r.pages.map((p, i) => `
+                            <div style="position:relative;">
+                                <a href="${p.url}" target="_blank" rel="noopener">
+                                    <img src="${p.url}" alt="Page ${i + 1}" style="width:70px;height:90px;object-fit:cover;border:1px solid #d1d5db;border-radius:4px;">
+                                </a>
+                                <button type="button" onclick="psrDeletePage(${p.id})" title="Remove image"
+                                        style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;line-height:18px;font-size:12px;color:#fff;background:#dc2626;border:none;border-radius:50%;cursor:pointer;">&times;</button>
+                            </div>`).join('')}
+                        <label title="Add images" style="width:70px;height:90px;display:flex;align-items:center;justify-content:center;font-size:22px;color:#6b7280;border:1px dashed #9ca3af;border-radius:4px;cursor:pointer;">
+                            +
+                            <input type="file" accept="image/jpeg,image/png" multiple style="display:none;" onchange="psrAddPages(${r.id}, this)">
+                        </label>
+                    </div>
+                </div>`).join('') : '<p class="mb-4 text-sm text-gray-500">No previous school records yet.</p>';
+
+            document.getElementById('psrModalBody').innerHTML = `
+                ${list}
+                <div class="p-4 mt-2 border border-gray-200 rounded-lg bg-gray-50/60">
+                    <p class="mb-4 text-xs font-semibold tracking-wider text-gray-500 uppercase">Add Record</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="${cogLabelClass}">Previous School <span class="text-red-500">*</span></label>
+                            <input id="psrSchool" type="text" maxlength="255" placeholder="e.g. Eastern Visayas State University" class="${cogInputClass} bg-white">
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label class="${cogLabelClass}">From <span class="text-red-500">*</span></label>
+                                <div style="display:flex;gap:6px;">
+                                    <select id="psrFromYear" class="${cogInputClass} bg-white">${psrOptions(years, 1)}</select>
+                                    <select id="psrFromSem" class="${cogInputClass} bg-white">${psrOptions(psrSemesters, 1)}</select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="${cogLabelClass}">To <span class="text-red-500">*</span></label>
+                                <div style="display:flex;gap:6px;">
+                                    <select id="psrToYear" class="${cogInputClass} bg-white">${psrOptions(years, 1)}</select>
+                                    <select id="psrToSem" class="${cogInputClass} bg-white">${psrOptions(psrSemesters, 2)}</select>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="${cogLabelClass}">Scanned Images <span class="text-red-500">*</span></label>
+                            <input id="psrImages" type="file" accept="image/jpeg,image/png" multiple class="text-sm">
+                            <p style="margin-top:6px;font-size:12px;color:#6b7280;">JPG or PNG, up to 10 MB each, up to 15 images. Select them in page order.</p>
+                        </div>
+                        <div style="text-align:right;">
+                            <button id="psrSaveBtn" type="button" onclick="psrSave(false)"
+                                    class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Save Record</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function psrSave(confirmOverlap) {
+            const files = document.getElementById('psrImages').files;
+            const data = new FormData();
+            data.append('school_name', document.getElementById('psrSchool').value.trim());
+            data.append('from_year_level', document.getElementById('psrFromYear').value);
+            data.append('from_semester', document.getElementById('psrFromSem').value);
+            data.append('to_year_level', document.getElementById('psrToYear').value);
+            data.append('to_semester', document.getElementById('psrToSem').value);
+            Array.from(files).forEach((f) => data.append('images[]', f));
+            if (confirmOverlap) data.append('confirm_overlap', '1');
+
+            const btn = document.getElementById('psrSaveBtn');
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+
+            psrRequest(psrRoutes.store, 'POST', data).then((res) => {
+                psrRecords.push(res.record);
+                psrRecords.sort((a, b) => (a.from_year_level * 10 + a.from_semester) - (b.from_year_level * 10 + b.from_semester));
+                renderPsr();
+            }).catch((err) => {
+                btn.disabled = false;
+                btn.textContent = 'Save Record';
+                if (err.status === 409 && err.data.overlap) {
+                    Swal.fire({
+                        title: 'Overlaps ESSU grades',
+                        text: err.data.message,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Save anyway',
+                        cancelButtonText: 'Go back',
+                    }).then((r) => { if (r.isConfirmed) psrSave(true); });
+                    return;
+                }
+                psrError(err);
+            });
+        }
+
+        function psrReplace(record) {
+            psrRecords = psrRecords.map((r) => r.id === record.id ? record : r);
+            renderPsr();
+        }
+
+        function psrAddPages(recordId, input) {
+            const data = new FormData();
+            Array.from(input.files).forEach((f) => data.append('images[]', f));
+            psrRequest(psrRoutes.addPages(recordId), 'POST', data)
+                .then((res) => psrReplace(res.record))
+                .catch(psrError)
+                .finally(() => { input.value = ''; });
+        }
+
+        function psrDeletePage(pageId) {
+            Swal.fire({ title: 'Remove this image?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Remove' })
+                .then((r) => {
+                    if (!r.isConfirmed) return;
+                    const data = new FormData();
+                    data.append('_method', 'DELETE');
+                    psrRequest(psrRoutes.destroyPage(pageId), 'POST', data).then((res) => psrReplace(res.record)).catch(psrError);
+                });
+        }
+
+        function psrDeleteRecord(recordId) {
+            Swal.fire({ title: 'Delete this record and all its images?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Delete' })
+                .then((r) => {
+                    if (!r.isConfirmed) return;
+                    const data = new FormData();
+                    data.append('_method', 'DELETE');
+                    psrRequest(psrRoutes.destroy(recordId), 'POST', data).then(() => {
+                        psrRecords = psrRecords.filter((x) => x.id !== recordId);
+                        renderPsr();
+                    }).catch(psrError);
+                });
         }
 
         function confirmUnfinalize(btn) {

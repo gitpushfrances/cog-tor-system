@@ -55,8 +55,5 @@ class UserSeeder extends Seeder
         $pendingFaculty->assignRole('faculty');
 
         $this->command->info('Test user accounts seeded successfully!');
-        // Registrar User$this->command->info('Admin:     admin@cogtor.test / password');
-        $this->command->info('Registrar: registrar@cogtor.test / password');
-        $this->command->info('Pending:   pending@cogtor.test / password (cannot login)');
     }
 }
