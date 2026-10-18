@@ -47,10 +47,10 @@
                             <td class="px-4 py-2 text-center space-x-2">
                                 <a href="{{ route('admin.backup.download', $backup['name']) }}"
                                    class="text-blue-600 hover:underline text-xs">Download</a>
-                                <form method="POST" action="{{ route('admin.backup.delete', $backup['name']) }}" class="inline">
+                                <form method="POST" action="{{ route('admin.backup.delete', $backup['name']) }}" class="inline"
+                                      data-password-confirm="Delete this backup?" data-password-button="Delete">
                                     @csrf @method('DELETE')
                                     <button type="submit"
-                                        onclick="return confirm('Delete this backup?')"
                                         class="text-red-500 hover:underline text-xs">Delete</button>
                                 </form>
                             </td>
@@ -112,24 +112,28 @@
                 Swal.fire({ icon: 'warning', title: 'No file selected', text: 'Choose a backup .zip or .sql file first.' });
                 return;
             }
-            Swal.fire({
+            confirmWithPassword({
                 title: 'Restore database?',
                 text: 'This will overwrite ALL current data with the contents of the selected backup.',
-                icon: 'warning',
-                showCancelButton: true,
                 confirmButtonText: 'Yes, restore',
-                confirmButtonColor: '#dc2626',
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Restoring...',
-                        text: 'Do not close this page.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        didOpen: () => Swal.showLoading(),
-                    });
-                    form.submit();
+            }).then((password) => {
+                if (password === null) return;
+                let input = form.querySelector('input[name="confirm_password"]');
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'confirm_password';
+                    form.appendChild(input);
                 }
+                input.value = password;
+                Swal.fire({
+                    title: 'Restoring...',
+                    text: 'Do not close this page.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => Swal.showLoading(),
+                });
+                form.submit();
             });
         });
     </script>

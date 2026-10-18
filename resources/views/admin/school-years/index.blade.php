@@ -35,7 +35,8 @@
                         </td>
                         <td class="flex gap-2 px-6 py-4 text-sm">
                             @if($sy->status !== 'active')
-                                <form action="{{ route('admin.school-years.set-active', $sy) }}" method="POST">
+                                <form action="{{ route('admin.school-years.set-active', $sy) }}" method="POST"
+                                      data-password-confirm="Set {{ $sy->year_code }} as the active school year?" data-password-button="Set Active">
                                     @csrf
                                     <button class="text-green-600 hover:underline">Set Active</button>
                                 </form>
@@ -60,21 +61,15 @@
 
     <script>
         function confirmDeleteSchoolYear(form, isActive, name) {
-            if (isActive) {
-                openConfirmModal({
-                    title: 'Delete active school year?',
-                    message: `"${name}" is the active school year. Deleting it will automatically set the next upcoming school year as active. This cannot be undone.`,
-                    form: form,
-                    icon: 'warning',
-                });
-            } else {
-                openConfirmModal({
-                    title: 'Delete school year?',
-                    message: `Delete "${name}"? This cannot be undone.`,
-                    form: form,
-                    icon: 'trash',
-                });
-            }
+            submitWithPassword(form, isActive ? {
+                title: 'Delete active school year?',
+                text: `"${name}" is the active school year. Deleting it will automatically set the next upcoming school year as active. This cannot be undone.`,
+                confirmButtonText: 'Delete',
+            } : {
+                title: 'Delete school year?',
+                text: `Delete "${name}"? This cannot be undone.`,
+                confirmButtonText: 'Delete',
+            });
             return false;
         }
     </script>

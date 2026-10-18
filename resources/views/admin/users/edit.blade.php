@@ -7,7 +7,8 @@
     <div style="max-width:640px;margin:0 auto;">
         <div style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:28px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
 
-            <form action="{{ route('admin.users.update', $user) }}" method="POST">
+            <form action="{{ route('admin.users.update', $user) }}" method="POST"
+                  data-password-confirm="Save changes to {{ $user->name }}?" data-password-button="Save" data-password-text="Changing an account's role, status or password requires your password.">
                 @csrf @method('PUT')
 
                 <div style="display:grid;gap:20px;">

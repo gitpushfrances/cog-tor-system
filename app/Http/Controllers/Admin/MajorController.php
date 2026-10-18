@@ -10,6 +10,12 @@ use Illuminate\Validation\Rule;
 
 class MajorController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['destroy']);
+    }
+
     public function index()
     {
         $majors = Major::with('course.department')->withCount('students')->latest()->paginate(15);

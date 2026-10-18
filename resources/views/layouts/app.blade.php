@@ -13,7 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
     </head>
     <body class="font-sans antialiased" style="background-color:#eef4e7;overflow-y:auto;">
         <script>
@@ -45,7 +45,60 @@
 
             </div>
         </div>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+    <script>
+        // Password confirmation for deletes and high-risk changes (checked again on the server).
+        window.confirmWithPassword = function (options) {
+            return Swal.fire({
+                title: options.title || 'Confirm with your password',
+                html: options.html,
+                text: options.html ? undefined : options.text,
+                icon: options.icon || 'warning',
+                input: 'password',
+                inputLabel: 'Enter your password to continue',
+                inputPlaceholder: 'Your account password',
+                inputAttributes: { autocomplete: 'current-password', autocapitalize: 'off' },
+                showCancelButton: true,
+                confirmButtonText: options.confirmButtonText || 'Confirm',
+                confirmButtonColor: options.confirmButtonColor || '#dc2626',
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true,
+                inputValidator: (value) => value ? undefined : 'Enter your password.',
+            }).then((result) => (result.isConfirmed ? result.value : null));
+        };
+
+        window.submitWithPassword = function (form, options) {
+            return window.confirmWithPassword(options).then((password) => {
+                if (password === null) return;
+                let input = form.querySelector('input[name="confirm_password"]');
+                if (!input) {
+                    input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'confirm_password';
+                    form.appendChild(input);
+                }
+                input.value = password;
+                form.submit();
+            });
+        };
+
+        // Forms marked data-password-confirm="Question?" ask for the password on submit.
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+            if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-password-confirm')) return;
+            event.preventDefault();
+            window.submitWithPassword(form, {
+                title: form.getAttribute('data-password-confirm'),
+                text: form.getAttribute('data-password-text') || undefined,
+                confirmButtonText: form.getAttribute('data-password-button') || 'Confirm',
+            });
+        });
+    </script>
+    @if(session('password_error'))
+        <script>
+            Swal.fire({ icon: 'error', title: 'Not changed', text: @js(session('password_error')), confirmButtonColor: '#c9a84c' });
+        </script>
+    @endif
     @stack('scripts')
     </body>
 </html>

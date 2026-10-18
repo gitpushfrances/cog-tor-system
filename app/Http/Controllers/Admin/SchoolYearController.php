@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 
 class SchoolYearController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['destroy', 'setActive']);
+    }
+
     public function index()
     {
         $schoolYears = SchoolYear::withCount('semesters')->latest()->paginate(15);

@@ -14,6 +14,12 @@ use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['destroy']);
+    }
+
     private const PHOTO_RULE = 'image|mimes:jpg,jpeg,png|max:5120|dimensions:min_width=200,min_height=200';
 
     public function index(Request $request)
@@ -194,6 +200,8 @@ class StudentController extends Controller
 
         $student->photo_path = $path;
         $student->save();
+
+        activity('student')->performedOn($student)->event('updated')->log('Updated ID picture');
 
         return null;
     }

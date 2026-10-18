@@ -12,6 +12,12 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['update', 'destroy']);
+    }
+
     public function index(Request $request)
     {
         $role   = $request->get('role', 'all');

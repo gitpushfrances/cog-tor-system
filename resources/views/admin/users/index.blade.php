@@ -130,7 +130,7 @@
                                    style="font-size:0.78rem;color:#c9a84c;font-weight:600;text-decoration:none;"
                                    onmouseover="this.style.color='#a8872e'" onmouseout="this.style.color='#c9a84c'">Edit</a>
                                 <form action="{{ route('admin.users.destroy', $user) }}" method="POST" style="display:inline;"
-                                    onsubmit="return confirm('Delete {{ $user->name }}?')">
+                                    data-password-confirm="Delete {{ $user->name }}?" data-password-button="Delete">
                                     @csrf @method('DELETE')
                                     <button type="submit" style="font-size:0.78rem;color:#dc2626;font-weight:600;background:none;border:none;cursor:pointer;padding:0;"
                                         onmouseover="this.style.color='#b91c1c'" onmouseout="this.style.color='#dc2626'">Delete</button>

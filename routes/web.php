@@ -33,6 +33,7 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
 
     // Backup & Restore — now protected inside admin middleware
     Route::get('/backup', [App\Http\Controllers\Admin\BackupController::class, 'index'])->name('backup.index');
+    Route::get('/activity-log', [App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('activity-log.index');
     Route::post('/backup/run', [App\Http\Controllers\Admin\BackupController::class, 'run'])->name('backup.run');
     Route::get('/backup/download/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'download'])->name('backup.download');
     Route::delete('/backup/delete/{filename}', [App\Http\Controllers\Admin\BackupController::class, 'delete'])->name('backup.delete');

@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\RecordsActivity;
 
 class PreviousSchoolRecord extends Model
 {
+    use RecordsActivity;
+
     public const SEMESTERS = [1 => '1st Semester', 2 => '2nd Semester', 3 => 'Summer'];
 
     protected $fillable = [

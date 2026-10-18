@@ -499,6 +499,10 @@ class DocumentController extends Controller
             return redirect()->back()->with('error', 'Something went wrong while generating the COG document. No record was saved.');
         }
 
+        activity('document')->performedOn($cog)->event('generated')
+            ->withProperties(['document_number' => $cog->document_number, 'student' => $student->getFullName(), 'semester' => $semester->semester_name])
+            ->log('Generated COG');
+
         return response($pdfOutput, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $documentNumber . '.pdf"',
@@ -628,6 +632,10 @@ class DocumentController extends Controller
         if ($background) {
             $student->update($background);
         }
+
+        activity('document')->performedOn($tor)->event('generated')
+            ->withProperties(['document_number' => $tor->document_number, 'student' => $student->getFullName()])
+            ->log('Generated TOR');
 
         return response($pdfOutput, 200, [
             'Content-Type' => 'application/pdf',

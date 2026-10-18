@@ -62,7 +62,7 @@
                                         </td>
                                         <td class="flex gap-2 px-6 py-3 text-sm">
                                             <a href="{{ route('admin.subjects.edit', $subject) }}" class="text-blue-600 hover:underline">Edit</a>
-                                            <form action="{{ route('admin.subjects.destroy', $subject) }}" method="POST" onsubmit="return confirm('Delete this subject?')">
+                                            <form action="{{ route('admin.subjects.destroy', $subject) }}" method="POST" data-password-confirm="Delete this subject?" data-password-button="Delete">
                                                 @csrf @method('DELETE')
                                                 <button class="text-red-600 hover:underline">Delete</button>
                                             </form>

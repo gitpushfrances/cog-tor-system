@@ -68,7 +68,7 @@
                             <div style="display:flex;align-items:center;gap:12px;">
                                 @if($semester->status !== 'active')
                                     <form action="{{ route('admin.semesters.set-active', $semester) }}" method="POST"
-                                        onsubmit="return confirm('Set {{ $semester->semester_name }} ({{ $semester->schoolYear->year_code ?? '' }}) as active? The current active semester will be marked completed.')">
+                                        data-password-confirm="Set {{ $semester->semester_name }} ({{ $semester->schoolYear->year_code ?? '' }}) as active?" data-password-text="The current active semester will be marked completed." data-password-button="Set Active">
                                         @csrf
                                         <button type="submit"
                                             style="font-size:0.78rem;color:#059669;font-weight:600;background:none;border:none;cursor:pointer;padding:0;"
@@ -113,21 +113,15 @@
 
     <script>
         function confirmDeleteSemester(form, isActive, name) {
-            if (isActive) {
-                openConfirmModal({
-                    title: 'Delete active semester?',
-                    message: `"${name}" is the active semester. Deleting it will automatically set the next upcoming semester as active. This cannot be undone.`,
-                    form: form,
-                    icon: 'warning',
-                });
-            } else {
-                openConfirmModal({
-                    title: 'Delete semester?',
-                    message: `Delete "${name}"? This cannot be undone.`,
-                    form: form,
-                    icon: 'trash',
-                });
-            }
+            submitWithPassword(form, isActive ? {
+                title: 'Delete active semester?',
+                text: `"${name}" is the active semester. Deleting it will automatically set the next upcoming semester as active. This cannot be undone.`,
+                confirmButtonText: 'Delete',
+            } : {
+                title: 'Delete semester?',
+                text: `Delete "${name}"? This cannot be undone.`,
+                confirmButtonText: 'Delete',
+            });
             return false;
         }
     </script>

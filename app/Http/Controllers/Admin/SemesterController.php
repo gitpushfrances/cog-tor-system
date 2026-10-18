@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class SemesterController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['destroy', 'setActive']);
+    }
+
     public function index()
     {
         $semesters = Semester::with('schoolYear')->latest()->paginate(15);

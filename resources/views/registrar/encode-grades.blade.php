@@ -296,6 +296,7 @@
                                     type="number"
                                     name="grades[{{ $subject->id }}]"
                                     value="{{ $existingGrade }}"
+                                    data-finalized="{{ $isFinalized ? $existingGrade : '' }}"
                                     min="1.00" max="5.00" step="0.25"
                                     placeholder="e.g. 1.75"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
@@ -307,6 +308,7 @@
                                     type="number"
                                     name="re_exam[{{ $subject->id }}]"
                                     value="{{ $existingReExam }}"
+                                    data-finalized="{{ $isFinalized ? ($existingReExam === '' ? '-' : $existingReExam) : '' }}"
                                     min="1.00" max="5.00" step="0.25"
                                     placeholder="optional"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
@@ -382,6 +384,21 @@ function confirmSave() {
             title: 'Incomplete Grades',
             text: 'Please fill in all grade fields before saving.',
             icon: 'warning',
+            confirmButtonColor: '#c9a84c',
+        });
+        return;
+    }
+
+    // Changing a grade that is already finalized needs the registrar's password.
+    const sameGrade = (a, b) => (a === '' ? null : Number(a)) === (b === '' || b === '-' ? null : Number(b));
+    const changesFinalized = Array.from(document.querySelectorAll('#encodeForm input[data-finalized]'))
+        .some((input) => input.dataset.finalized !== '' && !sameGrade(input.value, input.dataset.finalized));
+
+    if (changesFinalized) {
+        submitWithPassword(document.getElementById('encodeForm'), {
+            title: 'Change finalized grades?',
+            html: 'You are changing grades that are already <strong>Finalized</strong>. The change is recorded in the activity log.',
+            confirmButtonText: 'Yes, Save Changes',
             confirmButtonColor: '#c9a84c',
         });
         return;
@@ -513,9 +530,11 @@ function renderHistoryRow(r) {
 }
 
 let editingSubjectId = null;
+let editingOriginal = null; // { grade, reExam } of a finalized grade being edited
 
 function openGradeEditModal(subjectId, code, subjectName, currentValue, currentReExam) {
     editingSubjectId = subjectId;
+    editingOriginal = currentValue ? { grade: currentValue, reExam: currentReExam ?? '' } : null;
     document.getElementById('historyModal').style.display = 'none';
     document.getElementById('gradeEditTitle').textContent = currentValue ? 'Edit Grade' : 'Encode Grade';
     document.getElementById('gradeEditSubtitle').textContent = `${code} — ${subjectName}`;
@@ -552,13 +571,39 @@ function submitGradeEditModal() {
     }
     errorBox.style.display = 'none';
 
+    // Changing an already-finalized grade needs the registrar's password.
+    const toNum = (v) => (v === '' || v === null || v === undefined ? null : Number(v));
+    const changed = editingOriginal
+        && (toNum(value) !== toNum(editingOriginal.grade) || toNum(reExamValue) !== toNum(editingOriginal.reExam));
+
+    if (changed) {
+        document.getElementById('gradeEditModal').style.display = 'none';
+        confirmWithPassword({
+            title: 'Change a finalized grade?',
+            text: 'The change is recorded in the activity log.',
+            confirmButtonText: 'Save Change',
+            confirmButtonColor: '#c9a84c',
+        }).then((password) => {
+            if (password === null) {
+                document.getElementById('gradeEditModal').style.display = 'flex';
+                return;
+            }
+            sendQuickGrade(value, reExamValue, isEdit, password);
+        });
+        return;
+    }
+
+    sendQuickGrade(value, reExamValue, isEdit, null);
+}
+
+function sendQuickGrade(value, reExamValue, isEdit, password) {
     fetch(`/registrar/students/${currentHistoryStudentId}/quick-grade`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
         },
-        body: JSON.stringify({ subject_id: editingSubjectId, grade: value, re_exam_grade: reExamValue || null }),
+        body: JSON.stringify({ subject_id: editingSubjectId, grade: value, re_exam_grade: reExamValue || null, confirm_password: password }),
     })
     .then(res => res.json().then(data => ({ ok: res.ok, data })))
     .then(({ ok, data }) => {

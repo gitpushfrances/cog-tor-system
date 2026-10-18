@@ -1075,21 +1075,23 @@
         }
 
         function psrDeletePage(pageId) {
-            Swal.fire({ title: 'Remove this image?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Remove' })
-                .then((r) => {
-                    if (!r.isConfirmed) return;
+            confirmWithPassword({ title: 'Remove this image?', confirmButtonText: 'Remove' })
+                .then((password) => {
+                    if (password === null) return;
                     const data = new FormData();
                     data.append('_method', 'DELETE');
+                    data.append('confirm_password', password);
                     psrRequest(psrRoutes.destroyPage(pageId), 'POST', data).then((res) => psrReplace(res.record)).catch(psrError);
                 });
         }
 
         function psrDeleteRecord(recordId) {
-            Swal.fire({ title: 'Delete this record and all its images?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'Delete' })
-                .then((r) => {
-                    if (!r.isConfirmed) return;
+            confirmWithPassword({ title: 'Delete this record and all its images?', confirmButtonText: 'Delete' })
+                .then((password) => {
+                    if (password === null) return;
                     const data = new FormData();
                     data.append('_method', 'DELETE');
+                    data.append('confirm_password', password);
                     psrRequest(psrRoutes.destroy(recordId), 'POST', data).then(() => {
                         psrRecords = psrRecords.filter((x) => x.id !== recordId);
                         renderPsr();
@@ -1100,20 +1102,10 @@
         function confirmUnfinalize(btn) {
             const form = btn.closest('form');
             const semName = form.dataset.semester;
-            Swal.fire({
+            submitWithPassword(form, {
                 title: 'Undo Finalization?',
                 html: `This will revert all finalized grades for <strong>${semName}</strong> back to approved status.<br><br>Faculty will <strong>not</strong> be able to edit them — only the registrar can re-finalize.`,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Yes, Undo Finalize',
-                cancelButtonText: 'Cancel',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
             });
         }
     </script>

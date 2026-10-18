@@ -11,6 +11,12 @@ use ZipArchive;
 
 class BackupController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['delete', 'restore']);
+    }
+
     public function index()
     {
         $backupPath = storage_path('app/cog-tor-backup');
@@ -46,6 +52,8 @@ class BackupController extends Controller
                 return back()->with('error', 'Backup failed: ' . $errorDetail);
             }
 
+            activity('backup')->event('created')->log('Ran a database backup');
+
             return back()->with('success', 'Backup completed successfully.');
         } catch (\Exception $e) {
             return back()->with('error', 'Backup failed: ' . $e->getMessage());
@@ -67,6 +75,8 @@ class BackupController extends Controller
         if (file_exists($path) === true) {
             unlink($path);
         }
+        activity('backup')->event('deleted')->withProperties(['file' => $filename])->log('Deleted a backup');
+
         return back()->with('success', 'Backup deleted.');
     }
 
@@ -94,6 +104,8 @@ class BackupController extends Controller
                 'user_id' => auth()->id(),
                 'file'    => $file->getClientOriginalName(),
             ]);
+
+            activity('backup')->event('restored')->log('Restored the database from a backup');
 
             return back()->with('success', 'Database restored successfully.');
         } catch (\Throwable $e) {

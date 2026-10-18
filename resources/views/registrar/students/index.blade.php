@@ -223,19 +223,10 @@
             const name = this.dataset.name;
             const form = this.closest('.delete-form');
 
-            Swal.fire({
+            submitWithPassword(form, {
                 title: 'Delete Student?',
                 text: name + ' will be permanently removed. This cannot be undone.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
                 confirmButtonText: 'Yes, delete',
-                cancelButtonText: 'Cancel',
-            }).then(function (result) {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
             });
         });
     });

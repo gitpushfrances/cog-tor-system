@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\RecordsActivity;
 
 class PreviousSchoolRecordPage extends Model
 {
+    use RecordsActivity;
+
     protected $fillable = [
         'previous_school_record_id',
         'path',

@@ -20,6 +20,12 @@ use Illuminate\Support\Str;
  */
 class PreviousSchoolRecordController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['destroy', 'destroyPage']);
+    }
+
     private const MAX_PAGES = 15;
 
     public function index(Student $student): JsonResponse

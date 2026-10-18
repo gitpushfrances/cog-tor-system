@@ -60,7 +60,7 @@
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex gap-2">
                                             <a href="{{ route('admin.courses.edit', $course) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
-                                            <form action="{{ route('admin.courses.destroy', $course) }}" method="POST" class="inline" onsubmit="return confirm('Are you sure?')">
+                                            <form action="{{ route('admin.courses.destroy', $course) }}" method="POST" class="inline" data-password-confirm="Delete this course?" data-password-button="Delete">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="text-red-600 hover:text-red-900">Delete</button>

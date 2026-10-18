@@ -58,7 +58,7 @@
                                             <form action="{{ route('admin.departments.deactivate', $department) }}" method="POST" class="inline" id="deactivate-{{ $department->id }}">
                                                 @csrf
                                                 <button type="button"
-                                                    onclick="Swal.fire({title:'Deactivate Department?',text:'This will deactivate this department.',icon:'warning',showCancelButton:true,confirmButtonColor:'#dc2626',cancelButtonColor:'#6b7280',confirmButtonText:'Yes, Deactivate'}).then(r=>{if(r.isConfirmed)document.getElementById('deactivate-{{ $department->id }}').submit()})"
+                                                    onclick="submitWithPassword(document.getElementById('deactivate-{{ $department->id }}'), {title: 'Deactivate Department?', text: 'This will deactivate this department.', confirmButtonText: 'Yes, Deactivate'})"
                                                     class="text-red-600 hover:text-red-900">Deactivate</button>
                                             </form>
                                             @else

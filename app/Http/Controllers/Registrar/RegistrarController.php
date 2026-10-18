@@ -17,9 +17,16 @@ use App\Models\Semester;
 use App\Models\SchoolYear;
 use App\Models\Course;
 use App\Models\Department;
+use App\Http\Middleware\RequireActionPassword;
 
 class RegistrarController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['unfinalizeSubject']);
+    }
+
     public function finalizeSubject(Request $request, int $subjectId)
     {
         $registrarId = auth()->id();
@@ -288,6 +295,16 @@ class RegistrarController extends Controller
             ], 422);
         }
 
+        // Changing a grade that is already finalized requires the registrar's password.
+        $changesFinalized = $this->changesFinalizedGrades(
+            $student->id, $semester->id,
+            [$subject->id => $request->input('grade')],
+            [$subject->id => $request->input('re_exam_grade')]
+        );
+        if ($changesFinalized && ($error = RequireActionPassword::verify($request))) {
+            return RequireActionPassword::reject($request, $error);
+        }
+
         $registrarId = auth()->id();
 
         try {
@@ -370,6 +387,12 @@ class RegistrarController extends Controller
         $gradesInput = $request->input('grades'); // [ subject_id => grade_value ]
         $reExamInput = $request->input('re_exam', []); // [ subject_id => re_exam_value|null ]
         $registrarId = auth()->id();
+
+        // Changing a grade that is already finalized requires the registrar's password.
+        if ($this->changesFinalizedGrades((int) $studentId, (int) $semesterId, $gradesInput, $reExamInput)
+            && ($error = RequireActionPassword::verify($request))) {
+            return RequireActionPassword::reject($request, $error);
+        }
 
         try {
             DB::transaction(function () use ($gradesInput, $reExamInput, $studentId, $semesterId, $registrarId) {
@@ -480,5 +503,20 @@ class RegistrarController extends Controller
             ->withQueryString();
 
         return view('registrar.dashboard', compact('stats', 'pending_submissions', 'search', 'students'));
+    }
+
+    /** True when the submitted values would change a grade that is already finalized. */
+    private function changesFinalizedGrades(int $studentId, int $semesterId, array $grades, array $reExams = []): bool
+    {
+        $normalize = fn ($value) => filled($value) ? round((float) $value, 2) : null;
+
+        return Enrollment::with('grade')
+            ->where('student_id', $studentId)
+            ->where('semester_id', $semesterId)
+            ->whereIn('subject_id', array_keys($grades))
+            ->whereHas('grade', fn ($q) => $q->where('status', 'finalized'))
+            ->get()
+            ->contains(fn ($e) => $normalize($e->grade->grade) !== $normalize($grades[$e->subject_id] ?? null)
+                || $normalize($e->grade->re_exam_grade) !== $normalize($reExams[$e->subject_id] ?? null));
     }
 }

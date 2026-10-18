@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\RecordsActivity;
 
 class DocumentSetting extends Model
 {
+    use RecordsActivity;
+
     protected $fillable = [
         'registrar_name',
         'registrar_credentials',

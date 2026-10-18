@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -25,7 +28,23 @@ class EventServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Sign-in history for the activity log.
+        Event::listen(Login::class, function (Login $event) {
+            activity('auth')->causedBy($event->user)->event('login')
+                ->withProperties(['ip' => request()->ip()])->log('Signed in');
+        });
+
+        Event::listen(Logout::class, function (Logout $event) {
+            if ($event->user) {
+                activity('auth')->causedBy($event->user)->event('logout')->log('Signed out');
+            }
+        });
+
+        Event::listen(Failed::class, function (Failed $event) {
+            activity('auth')->event('failed_login')
+                ->withProperties(['email' => $event->credentials['email'] ?? null, 'ip' => request()->ip()])
+                ->log('Failed sign-in');
+        });
     }
 
     /**

@@ -174,6 +174,13 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
                 <span class="sidebar-label sdb-label">Backup &amp; Restore</span>
             </a>
 
+            <a href="{{ route('admin.activity-log.index') }}"
+               title="Activity Log"
+               class="sdb-link {{ request()->routeIs('admin.activity-log.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-clock-rotate-left sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Activity Log</span>
+            </a>
+
             <div class="sdb-section-label sidebar-section-label">Academic</div>
             <div class="sdb-divider sidebar-divider-collapsed" style="display:none;"></div>
 

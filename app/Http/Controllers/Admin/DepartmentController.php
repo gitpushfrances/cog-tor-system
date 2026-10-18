@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 
 class DepartmentController extends Controller
 {
+    public function __construct()
+    {
+        // Deletes and high-risk changes require the user's own password (RequireActionPassword).
+        $this->middleware('action.password')->only(['deactivate', 'destroy']);
+    }
+
     public function index()
     {
         $departments = Department::withCount('courses')

@@ -209,8 +209,8 @@
     </div>
 
 @push('scripts')
-<link href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.3.1/css/tom-select.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.3.1/js/tom-select.complete.min.js"></script>
+<link href="{{ asset('vendor/tom-select/css/tom-select.min.css') }}" rel="stylesheet">
+<script src="{{ asset('vendor/tom-select/js/tom-select.complete.min.js') }}"></script>
 <script>
     const enrolledMap = @json($enrolledMap ?? []);
     const studentCourseMap = @json($studentCourseMap ?? []);
@@ -304,20 +304,10 @@
     }
 
     function confirmRemoveEnrollment(id, studentName, subjectCode) {
-        Swal.fire({
+        submitWithPassword(document.getElementById('delete-enrollment-' + id), {
             title: 'Remove Enrollment?',
             html: `<span style="font-size:0.9rem;color:#374151;">Remove <strong>${studentName}</strong> from <strong>${subjectCode}</strong>? This cannot be undone.</span>`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
             confirmButtonText: 'Yes, Remove',
-            cancelButtonText: 'Cancel',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('delete-enrollment-' + id).submit();
-            }
         });
     }
 </script>

@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\RecordsActivity;
 use Illuminate\Support\Facades\Storage;
 class Student extends Model
 {
+    use RecordsActivity;
     use HasFactory;
 
     protected $fillable = [
