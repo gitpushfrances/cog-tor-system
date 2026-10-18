@@ -20,3 +20,4 @@ yarn-error.log
 storage/backup-project-path.txt
 *.bak*
 _ide_helper_models.php
+/storage/framework/lsp-*.php
