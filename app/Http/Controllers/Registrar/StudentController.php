@@ -9,10 +9,13 @@ use App\Models\Major;
 use App\Models\Semester;
 use App\Support\ImageProcessor;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
+    private const PHOTO_RULE = 'image|mimes:jpg,jpeg,png|max:5120|dimensions:min_width=200,min_height=200';
+
     public function index(Request $request)
     {
         $query = Student::with('course');
@@ -78,7 +81,7 @@ class StudentController extends Controller
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
             'suffix'         => 'nullable|string|max:10',
-            'birth_date'     => 'required|date',
+            'birth_date'     => 'required|date|before:today|after:1950-01-01',
             'gender'         => 'required|in:Male,Female',
             'email'          => 'required|email|unique:students,email',
             'phone'          => 'nullable|string|max:20',
@@ -86,9 +89,14 @@ class StudentController extends Controller
             'year_level'     => 'required|integer|min:1|max:5',
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
-        ]);
+        ] + $this->backgroundRules(), $this->validationMessages());
 
-        Student::create($validated);
+        $student = Student::create(collect($validated)->except('photo')->all());
+
+        if ($request->hasFile('photo') && ($error = $this->savePhoto($student, $request->file('photo')))) {
+            return redirect()->route('registrar.students.edit', $student)
+                             ->with('error', "Student added, but the ID picture was not saved: {$error}");
+        }
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Student added successfully.');
@@ -111,7 +119,7 @@ class StudentController extends Controller
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
             'suffix'         => 'nullable|string|max:10',
-            'birth_date'     => 'required|date',
+            'birth_date'     => 'required|date|before:today|after:1950-01-01',
             'gender'         => 'required|in:Male,Female',
             'email'          => 'required|email|unique:students,email,' . $student->id,
             'phone'          => 'nullable|string|max:20',
@@ -119,9 +127,13 @@ class StudentController extends Controller
             'year_level'     => 'required|integer|min:1|max:5',
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
-        ]);
+        ] + $this->backgroundRules(), $this->validationMessages());
 
-        $student->update($validated);
+        $student->update(collect($validated)->except('photo')->all());
+
+        if ($request->hasFile('photo') && ($error = $this->savePhoto($student, $request->file('photo')))) {
+            return back()->with('error', "Student updated, but the ID picture was not saved: {$error}");
+        }
 
         return redirect()->route('registrar.students.index')
                          ->with('success', 'Student updated successfully.');
@@ -152,21 +164,29 @@ class StudentController extends Controller
      */
     public function updatePhoto(Request $request, Student $student)
     {
-        $request->validate([
-            'photo' => 'required|image|mimes:jpg,jpeg,png|max:5120|dimensions:min_width=200,min_height=200',
-        ], [
-            'photo.max'        => 'The picture must not be larger than 5 MB.',
-            'photo.dimensions' => 'The picture must be at least 200 x 200 pixels.',
-        ]);
+        $request->validate(['photo' => 'required|' . self::PHOTO_RULE], $this->validationMessages());
 
-        if (! ImageProcessor::available()) {
-            return response()->json(['message' => 'The PHP GD extension is not enabled on this server.'], 422);
+        if ($error = $this->savePhoto($student, $request->file('photo'))) {
+            return response()->json(['message' => $error], 422);
         }
 
-        $jpeg = ImageProcessor::squareJpeg($request->file('photo')->getRealPath());
+        return response()->json([
+            'message' => 'ID picture saved.',
+            'photo'   => $student->photoDataUri(),
+        ]);
+    }
+
+    /** Crops to a square, resizes and stores the ID picture; returns an error message or null. */
+    private function savePhoto(Student $student, UploadedFile $file): ?string
+    {
+        if (! ImageProcessor::available()) {
+            return 'The PHP GD extension is not enabled on this server.';
+        }
+
+        $jpeg = ImageProcessor::squareJpeg($file->getRealPath());
 
         if ($jpeg === null) {
-            return response()->json(['message' => 'The picture could not be read. Use a JPG or PNG file.'], 422);
+            return 'The picture could not be read. Use a JPG or PNG file.';
         }
 
         $path = 'student-photos/' . $student->id . '.jpg';
@@ -175,9 +195,33 @@ class StudentController extends Controller
         $student->photo_path = $path;
         $student->save();
 
-        return response()->json([
-            'message' => 'ID picture saved.',
-            'photo'   => $student->photoDataUri(),
-        ]);
+        return null;
+    }
+
+    /** Place of birth, preliminary education and the ID picture — all optional. */
+    private function backgroundRules(): array
+    {
+        $year = 'nullable|integer|digits:4|min:1950|max:' . now()->year;
+
+        return [
+            'place_of_birth'              => 'nullable|string|max:255',
+            'elementary_school'           => 'nullable|string|max:255',
+            'elementary_graduation_year'  => $year,
+            'high_school'                 => 'nullable|string|max:255',
+            'high_school_graduation_year' => $year,
+            'photo'                       => 'nullable|' . self::PHOTO_RULE,
+        ];
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'birth_date.before'                  => 'The birth date must be before today.',
+            'birth_date.after'                   => 'The birth date must be after January 1, 1950.',
+            'elementary_graduation_year.digits'  => 'Enter a 4-digit year, e.g. 2012.',
+            'high_school_graduation_year.digits' => 'Enter a 4-digit year, e.g. 2018.',
+            'photo.max'                          => 'The picture must not be larger than 5 MB.',
+            'photo.dimensions'                   => 'The picture must be at least 200 x 200 pixels.',
+        ];
     }
 }

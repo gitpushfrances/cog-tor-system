@@ -12,6 +12,7 @@ use App\Models\DocumentSetting;
 use App\Models\TorRecord;
 use App\Models\Enrollment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
 
@@ -51,9 +52,9 @@ class DocumentController extends Controller
             'campus_admin_title'            => 'required|string|max:255',
             'place_of_birth'                => 'nullable|string|max:255',
             'elementary_school'             => 'nullable|string|max:255',
-            'elementary_graduation_year'    => 'nullable|string|max:20',
+            'elementary_graduation_year'    => 'nullable|integer|digits:4|min:1950|max:' . now()->year,
             'high_school'                   => 'nullable|string|max:255',
-            'high_school_graduation_year'   => 'nullable|string|max:20',
+            'high_school_graduation_year'   => 'nullable|integer|digits:4|min:1950|max:' . now()->year,
             'degree_awarded'                => 'nullable|string|max:255',
             'major_at_graduation'           => 'nullable|string|max:255',
             'graduation_date'               => 'nullable|date',
@@ -617,6 +618,15 @@ class DocumentController extends Controller
             ]);
 
             return redirect()->back()->with('error', 'Something went wrong while generating the TOR document. No record was saved.');
+        }
+
+        // Keep the student's background in sync with what was printed (blank modal fields never erase saved values).
+        $background = array_filter(
+            Arr::only($validated, ['place_of_birth', 'elementary_school', 'elementary_graduation_year', 'high_school', 'high_school_graduation_year']),
+            fn ($value) => filled($value)
+        );
+        if ($background) {
+            $student->update($background);
         }
 
         return response($pdfOutput, 200, [

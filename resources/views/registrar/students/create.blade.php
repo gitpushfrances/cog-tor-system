@@ -18,7 +18,7 @@
                     <h3 class="font-semibold text-gray-800">Student Information</h3>
                 </div>
 
-                <form action="{{ route('registrar.students.store') }}" method="POST" class="p-6 space-y-5">
+                <form action="{{ route('registrar.students.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-5">
                     @csrf
 
                     {{-- Student Number + Course --}}
@@ -96,7 +96,7 @@
                         </div>
                         <div>
                             <label class="block mb-1 text-sm font-medium text-gray-700">Birth Date <span class="text-red-500">*</span></label>
-                            <input type="date" name="birth_date" value="{{ old('birth_date') }}" required
+                            <input type="date" name="birth_date" value="{{ old('birth_date') }}" required min="1950-01-02" max="{{ now()->subDay()->format('Y-m-d') }}"
                                    class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('birth_date') border-red-400 @else border-gray-300 @enderror">
                             @error('birth_date')
                                 <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -139,6 +139,64 @@
                         <label class="block mb-1 text-sm font-medium text-gray-700">Address</label>
                         <input type="text" name="address" value="{{ old('address') }}"
                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </div>
+
+                    {{-- Place of Birth --}}
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">Place of Birth</label>
+                        <input type="text" name="place_of_birth" value="{{ old('place_of_birth') }}" placeholder="e.g. Guiuan, Eastern Samar"
+                               class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('place_of_birth') border-red-400 @else border-gray-300 @enderror">
+                        @error('place_of_birth')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- Preliminary Education (printed on the TOR) --}}
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Elementary School</label>
+                            <input type="text" name="elementary_school" value="{{ old('elementary_school') }}"
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('elementary_school') border-red-400 @else border-gray-300 @enderror">
+                            @error('elementary_school')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Elementary Year of Graduation</label>
+                            <input type="text" name="elementary_graduation_year" value="{{ old('elementary_graduation_year') }}" placeholder="e.g. 2012" inputmode="numeric" maxlength="4"
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('elementary_graduation_year') border-red-400 @else border-gray-300 @enderror">
+                            @error('elementary_graduation_year')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">High School</label>
+                            <input type="text" name="high_school" value="{{ old('high_school') }}"
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('high_school') border-red-400 @else border-gray-300 @enderror">
+                            @error('high_school')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sm font-medium text-gray-700">High School Year of Graduation</label>
+                            <input type="text" name="high_school_graduation_year" value="{{ old('high_school_graduation_year') }}" placeholder="e.g. 2018" inputmode="numeric" maxlength="4"
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('high_school_graduation_year') border-red-400 @else border-gray-300 @enderror">
+                            @error('high_school_graduation_year')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    {{-- ID Picture --}}
+                    <div>
+                        <label class="block mb-1 text-sm font-medium text-gray-700">ID Picture (2x2)</label>
+                        <input type="file" name="photo" accept="image/jpeg,image/png" class="block w-full text-sm text-gray-700">
+                        <p class="mt-1 text-xs text-gray-500">Optional. JPG or PNG, up to 5 MB. Cropped to a square and printed on page 1 of the TOR.</p>
+                        @error('photo')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
                     </div>
 
                     {{-- Student Type --}}

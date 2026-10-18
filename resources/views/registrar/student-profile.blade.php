@@ -477,6 +477,8 @@
             campus_admin_title: @js($documentSettings->campus_admin_title),
         };
         const studentIsGraduated = @js($student->status === 'graduated');
+        // Saved on the student record; editing them here updates the record when the TOR is generated.
+        const studentBackground = @js($student->only(['place_of_birth', 'elementary_school', 'elementary_graduation_year', 'high_school', 'high_school_graduation_year']));
         let torPhoto = @js($student->photoDataUri());
         let torState = { dirty: false, form: {} };
 
@@ -503,11 +505,11 @@
                     checked_by_title: torDefaults.checked_by_title,
                     campus_admin_name: torDefaults.campus_admin_name,
                     campus_admin_title: torDefaults.campus_admin_title,
-                    place_of_birth: '',
-                    elementary_school: '',
-                    elementary_graduation_year: '',
-                    high_school: '',
-                    high_school_graduation_year: '',
+                    place_of_birth: studentBackground.place_of_birth ?? '',
+                    elementary_school: studentBackground.elementary_school ?? '',
+                    elementary_graduation_year: studentBackground.elementary_graduation_year ?? '',
+                    high_school: studentBackground.high_school ?? '',
+                    high_school_graduation_year: studentBackground.high_school_graduation_year ?? '',
                     degree_awarded: '',
                     major_at_graduation: '',
                     graduation_date: '',
@@ -789,7 +791,7 @@
                 if (data.html) {
                     renderTorPreviewStep(data.html);
                 } else {
-                    Swal.fire('Error', 'Could not generate preview.', 'error');
+                    Swal.fire('Error', data.errors ? Object.values(data.errors)[0][0] : 'Could not generate preview.', 'error');
                     renderTorFormStep();
                 }
             })

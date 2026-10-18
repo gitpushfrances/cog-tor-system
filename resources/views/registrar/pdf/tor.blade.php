@@ -132,7 +132,7 @@
                 <td class="info-label">DATE OF BIRTH</td>
                 <td class="info-value">{{ $student->birth_date?->format('F d, Y') }}</td>
                 <td class="info-label">PLACE OF BIRTH</td>
-                <td class="info-value">{{ $tor->place_of_birth }}</td>
+                <td class="info-value">{{ $tor->place_of_birth ?: $student->place_of_birth }}</td>
             </tr>
         </table>
 
@@ -140,15 +140,15 @@
         <table class="info-table">
             <tr>
                 <td class="info-label">Elementary</td>
-                <td class="info-value" style="width: 42%;">{{ $tor->elementary_school }}</td>
+                <td class="info-value" style="width: 42%;">{{ $tor->elementary_school ?: $student->elementary_school }}</td>
                 <td class="info-label" style="width: 110px;">Year of Graduation</td>
-                <td class="info-value">{{ $tor->elementary_graduation_year }}</td>
+                <td class="info-value">{{ $tor->elementary_graduation_year ?: $student->elementary_graduation_year }}</td>
             </tr>
             <tr>
                 <td class="info-label">High School</td>
-                <td class="info-value">{{ $tor->high_school }}</td>
+                <td class="info-value">{{ $tor->high_school ?: $student->high_school }}</td>
                 <td class="info-label">Year of Graduation</td>
-                <td class="info-value">{{ $tor->high_school_graduation_year }}</td>
+                <td class="info-value">{{ $tor->high_school_graduation_year ?: $student->high_school_graduation_year }}</td>
             </tr>
         </table>
 
