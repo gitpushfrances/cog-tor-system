@@ -308,46 +308,10 @@ class RegistrarController extends Controller
         $registrarId = auth()->id();
 
         try {
-            $grade = DB::transaction(function () use ($student, $subject, $semester, $registrarId, $request) {
-                $enrollment = Enrollment::updateOrCreate(
-                    [
-                        'student_id'  => $student->id,
-                        'subject_id'  => $subject->id,
-                        'semester_id' => $semester->id,
-                    ],
-                    [
-                        'enrolled_by'     => $registrarId,
-                        'enrollment_date' => now()->toDateString(),
-                        'status'          => 'enrolled',
-                    ]
-                );
-
-                $grade = Grade::updateOrCreate(
-                    ['enrollment_id' => $enrollment->id],
-                    [
-                        'faculty_id'    => null,
-                        'grade'         => $request->input('grade'),
-                        're_exam_grade' => $request->input('re_exam_grade'),
-                        'status'        => 'finalized',
-                    ]
-                );
-
-                GradeSubmission::updateOrCreate(
-                    ['grade_id' => $grade->id],
-                    [
-                        'submitted_by' => $registrarId,
-                        'reviewed_by'  => $registrarId,
-                        'finalized_by' => $registrarId,
-                        'submitted_at' => now(),
-                        'reviewed_at'  => now(),
-                        'finalized_at' => now(),
-                        'dean_action'  => 'approved_by_head_of_department',
-                        'dean_remarks' => 'Direct entry by Registrar',
-                    ]
-                );
-
-                return $grade;
-            });
+            $grade = DB::transaction(fn () => $this->saveFinalizedGrade(
+                $student->id, $subject->id, $semester->id,
+                $request->input('grade'), $request->input('re_exam_grade'), $registrarId
+            ));
         } catch (\Throwable $e) {
             Log::error('Quick Encode Grade failed, transaction rolled back', [
                 'student_id' => $student->id,
@@ -397,8 +361,7 @@ class RegistrarController extends Controller
         try {
             DB::transaction(function () use ($gradesInput, $reExamInput, $studentId, $semesterId, $registrarId) {
                 foreach ($gradesInput as $subjectId => $gradeValue) {
-                    $subject = Subject::find($subjectId);
-                    if (!$subject) {
+                    if (!Subject::whereKey($subjectId)->exists()) {
                         Log::warning('Encode Grades: skipped unknown subject_id', [
                             'subject_id' => $subjectId,
                             'student_id' => $studentId,
@@ -406,46 +369,7 @@ class RegistrarController extends Controller
                         continue;
                     }
 
-                    // Upsert enrollment
-                    $enrollment = Enrollment::updateOrCreate(
-                        [
-                            'student_id'  => $studentId,
-                            'subject_id'  => $subjectId,
-                            'semester_id' => $semesterId,
-                        ],
-                        [
-                            'enrolled_by'     => $registrarId,
-                            'enrollment_date' => now()->toDateString(),
-                            'status'          => 'enrolled',
-                        ]
-                    );
-
-                    // Upsert grade — faculty_id null (Registrar encoded, not Faculty)
-                    $grade = Grade::updateOrCreate(
-                        ['enrollment_id' => $enrollment->id],
-                        [
-                            'faculty_id'    => null,
-                            'grade'         => $gradeValue,
-                            're_exam_grade' => $reExamInput[$subjectId] ?? null,
-                            'status'        => 'finalized',
-                            // remarks intentionally preserved — do not null out
-                        ]
-                    );
-
-                    // Create GradeSubmission so stats + unfinalize work correctly
-                    GradeSubmission::updateOrCreate(
-                        ['grade_id' => $grade->id],
-                        [
-                            'submitted_by'  => $registrarId,
-                            'reviewed_by'   => $registrarId,
-                            'finalized_by'  => $registrarId,
-                            'submitted_at'  => now(),
-                            'reviewed_at'   => now(),
-                            'finalized_at'  => now(),
-                            'dean_action'   => 'approved_by_head_of_department',
-                            'dean_remarks'  => 'Direct entry by Registrar',
-                        ]
-                    );
+                    $this->saveFinalizedGrade((int) $studentId, (int) $subjectId, (int) $semesterId, $gradeValue, $reExamInput[$subjectId] ?? null, $registrarId);
                 }
             });
         } catch (\Throwable $e) {
@@ -508,15 +432,184 @@ class RegistrarController extends Controller
     /** True when the submitted values would change a grade that is already finalized. */
     private function changesFinalizedGrades(int $studentId, int $semesterId, array $grades, array $reExams = []): bool
     {
-        $normalize = fn ($value) => filled($value) ? round((float) $value, 2) : null;
-
         return Enrollment::with('grade')
             ->where('student_id', $studentId)
             ->where('semester_id', $semesterId)
             ->whereIn('subject_id', array_keys($grades))
             ->whereHas('grade', fn ($q) => $q->where('status', 'finalized'))
             ->get()
-            ->contains(fn ($e) => $normalize($e->grade->grade) !== $normalize($grades[$e->subject_id] ?? null)
-                || $normalize($e->grade->re_exam_grade) !== $normalize($reExams[$e->subject_id] ?? null));
+            ->contains(fn ($e) => $this->gradeDiffers($e->grade, $grades[$e->subject_id] ?? null, $reExams[$e->subject_id] ?? null));
+    }
+
+    private function gradeDiffers(Grade $grade, $newGrade, $newReExam): bool
+    {
+        $normalize = fn ($value) => filled($value) ? round((float) $value, 2) : null;
+
+        return $normalize($grade->grade) !== $normalize($newGrade)
+            || $normalize($grade->re_exam_grade) !== $normalize($newReExam);
+    }
+
+    /**
+     * Saves one registrar-encoded grade as finalized: enrollment (kept if it exists),
+     * grade (faculty_id null; remarks preserved) and its finalized submission.
+     */
+    private function saveFinalizedGrade(int $studentId, int $subjectId, int $semesterId, $gradeValue, $reExamValue, int $registrarId): Grade
+    {
+        $enrollment = Enrollment::updateOrCreate(
+            ['student_id' => $studentId, 'subject_id' => $subjectId, 'semester_id' => $semesterId],
+            ['enrolled_by' => $registrarId, 'enrollment_date' => now()->toDateString(), 'status' => 'enrolled']
+        );
+
+        $grade = Grade::updateOrCreate(
+            ['enrollment_id' => $enrollment->id],
+            ['faculty_id' => null, 'grade' => $gradeValue, 're_exam_grade' => filled($reExamValue) ? $reExamValue : null, 'status' => 'finalized']
+        );
+
+        GradeSubmission::updateOrCreate(
+            ['grade_id' => $grade->id],
+            [
+                'submitted_by' => $registrarId,
+                'reviewed_by'  => $registrarId,
+                'finalized_by' => $registrarId,
+                'submitted_at' => now(),
+                'reviewed_at'  => now(),
+                'finalized_at' => now(),
+                'dean_action'  => 'approved_by_head_of_department',
+                'dean_remarks' => 'Direct entry by Registrar',
+            ]
+        );
+
+        return $grade;
+    }
+
+    /**
+     * Encode by Subject: pick a subject taught in a semester and encode the grades
+     * of every student enrolled in it (one teacher's grade sheet) at once.
+     */
+    public function encodeBySubjectForm(Request $request)
+    {
+        $schoolYears = SchoolYear::whereIn('status', ['active', 'completed'])->orderBy('year_code', 'desc')->get();
+        $departments = Department::orderBy('name')->get();
+
+        $selectedSchoolYear = $request->input('school_year_id') ?? optional(SchoolYear::where('status', 'active')->first())->id;
+        $selectedSemester   = $request->input('semester_id');
+        $selectedDepartment = $request->input('department_id');
+        $selectedCourse     = $request->input('course_id');
+        $selectedSubject    = $request->input('subject_id');
+
+        $semesters = $selectedSchoolYear
+            ? Semester::where('school_year_id', $selectedSchoolYear)->whereIn('status', ['active', 'completed'])->orderBy('semester_order')->get()
+            : collect();
+        if ($selectedSemester && ! $semesters->contains('id', (int) $selectedSemester)) {
+            $selectedSemester = null;
+        }
+
+        $courses = Course::active()
+            ->when($selectedDepartment, fn ($q) => $q->where('department_id', $selectedDepartment))
+            ->orderBy('name')
+            ->get();
+
+        // Only subjects that actually have students enrolled in the chosen semester.
+        $subjects = $selectedSemester
+            ? Subject::with('course')
+                ->whereHas('enrollments', fn ($q) => $q->where('semester_id', $selectedSemester)->where('status', '!=', 'dropped'))
+                ->when($selectedCourse, fn ($q) => $q->where('course_id', $selectedCourse))
+                ->when($selectedDepartment && ! $selectedCourse, fn ($q) => $q->whereHas('course', fn ($c) => $c->where('department_id', $selectedDepartment)))
+                ->orderBy('code')
+                ->get()
+            : collect();
+        if ($selectedSubject && ! $subjects->contains('id', (int) $selectedSubject)) {
+            $selectedSubject = null;
+        }
+
+        $subjectModel  = $selectedSubject ? $subjects->firstWhere('id', (int) $selectedSubject) : null;
+        $semesterModel = $selectedSemester ? $semesters->firstWhere('id', (int) $selectedSemester) : null;
+
+        $classList = $subjectModel
+            ? Enrollment::with(['student.course', 'grade'])
+                ->where('subject_id', $subjectModel->id)
+                ->where('semester_id', $semesterModel->id)
+                ->where('status', '!=', 'dropped')
+                ->get()
+                ->sortBy(fn ($e) => mb_strtolower($e->student->last_name . ' ' . $e->student->first_name))
+                ->values()
+            : collect();
+
+        return view('registrar.encode-grades-by-subject', compact(
+            'schoolYears', 'semesters', 'departments', 'courses', 'subjects', 'classList',
+            'selectedSchoolYear', 'selectedSemester', 'selectedDepartment', 'selectedCourse', 'selectedSubject',
+            'subjectModel', 'semesterModel'
+        ));
+    }
+
+    public function encodeBySubject(Request $request)
+    {
+        $request->validate([
+            'semester_id' => 'required|exists:semesters,id',
+            'subject_id'  => 'required|exists:subjects,id',
+            'grades'      => 'required|array',
+            'grades.*'    => 'nullable|numeric|min:1.00|max:5.00',
+            're_exam'     => 'nullable|array',
+            're_exam.*'   => 'nullable|numeric|min:1.00|max:5.00',
+        ]);
+
+        $semesterId = (int) $request->input('semester_id');
+        $subjectId  = (int) $request->input('subject_id');
+        $reExams    = $request->input('re_exam', []);
+
+        // Blank rows are skipped (grade not yet available); a re-exam needs a grade.
+        $grades = array_filter($request->input('grades', []), fn ($value) => filled($value));
+        foreach ($reExams as $studentId => $reExam) {
+            if (filled($reExam) && ! array_key_exists($studentId, $grades)) {
+                return back()->withInput()->with('error', 'A re-exam grade needs a final grade in the same row.');
+            }
+        }
+        if (empty($grades)) {
+            return back()->withInput()->with('error', 'Enter at least one grade.');
+        }
+
+        // Only students enrolled in this subject for this semester can be graded here.
+        $enrollments = Enrollment::with('grade')
+            ->where('subject_id', $subjectId)
+            ->where('semester_id', $semesterId)
+            ->where('status', '!=', 'dropped')
+            ->whereIn('student_id', array_keys($grades))
+            ->get()
+            ->keyBy('student_id');
+
+        if ($enrollments->count() !== count($grades)) {
+            return back()->withInput()->with('error', 'Some rows are not enrolled in this subject for this semester. Reload the class list and try again.');
+        }
+
+        // Changing a grade that is already finalized requires the registrar's password.
+        $changesFinalized = $enrollments->contains(fn ($e) => $e->grade && $e->grade->status === 'finalized'
+            && $this->gradeDiffers($e->grade, $grades[$e->student_id], $reExams[$e->student_id] ?? null));
+        if ($changesFinalized && ($error = RequireActionPassword::verify($request))) {
+            return RequireActionPassword::reject($request, $error);
+        }
+
+        $registrarId = auth()->id();
+
+        try {
+            DB::transaction(function () use ($grades, $reExams, $subjectId, $semesterId, $registrarId) {
+                foreach ($grades as $studentId => $gradeValue) {
+                    $this->saveFinalizedGrade((int) $studentId, $subjectId, $semesterId, $gradeValue, $reExams[$studentId] ?? null, $registrarId);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Encode by Subject failed, transaction rolled back', [
+                'subject_id'  => $subjectId,
+                'semester_id' => $semesterId,
+                'error'       => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', 'Something went wrong while saving grades. No grades were changed. Please try again.');
+        }
+
+        $subject = Subject::find($subjectId);
+
+        return redirect()
+            ->route('registrar.encode-grades.by-subject', $request->only(['school_year_id', 'semester_id', 'department_id', 'course_id', 'subject_id']))
+            ->with('success', count($grades) . " grade(s) for {$subject->code} saved and finalized.");
     }
 }

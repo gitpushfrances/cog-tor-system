@@ -23,6 +23,8 @@
 
     <div class="mx-auto space-y-5 max-w-7xl">
 
+        @include('registrar.partials.encode-tabs')
+
         @if(session('success'))
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;padding:12px 16px;border-radius:8px;font-size:0.875rem;">
                 {{ session('success') }}
