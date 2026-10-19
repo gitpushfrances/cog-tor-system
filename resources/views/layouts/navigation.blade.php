@@ -200,7 +200,6 @@ html, body { height: 100%; }
 </div>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 .sdb-section-label {
     padding:16px 8px 5px;font-size:0.62rem;letter-spacing:0.14em;

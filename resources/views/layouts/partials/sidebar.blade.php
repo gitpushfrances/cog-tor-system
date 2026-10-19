@@ -18,7 +18,6 @@ html, body { height: 100%; }
     /* NO transition here — added by JS after load to prevent flicker */
 }
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
 
 .sdb-section-label {
     padding: 16px 8px 5px;
