@@ -6,6 +6,10 @@
                 <p class="mt-1 text-sm text-gray-500">Manage all students</p>
             </div>
             <div class="flex gap-2">
+                <a href="{{ route('registrar.students.bulk') }}"
+                   class="inline-flex items-center px-4 py-2 text-xs font-semibold text-blue-700 bg-white border border-blue-300 rounded hover:bg-blue-50">
+                    <i class="mr-1 fa-solid fa-users"></i> Bulk Add
+                </a>
                 <a href="{{ route('registrar.students.create') }}"
                    class="inline-flex items-center px-4 py-2 text-xs font-semibold text-white bg-blue-600 rounded hover:bg-blue-700">
                     + Add Student
@@ -26,6 +30,16 @@
             @endif
             @if(session('warning'))
                 <div class="px-4 py-3 mb-4 text-yellow-800 bg-yellow-100 rounded">{{ session('warning') }}</div>
+            @endif
+            @if(session('bulk_skipped'))
+                <div class="px-4 py-3 mb-4 text-sm text-yellow-800 bg-yellow-100 rounded">
+                    <strong>Not added:</strong>
+                    <ul class="mt-1 list-disc" style="margin-left:1.25rem;">
+                        @foreach(session('bulk_skipped') as $line)
+                            <li>{{ $line }}</li>
+                        @endforeach
+                    </ul>
+                </div>
             @endif
 
 

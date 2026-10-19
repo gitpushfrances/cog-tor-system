@@ -130,6 +130,10 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     // Student Management
     Route::get('/students', [App\Http\Controllers\Registrar\StudentController::class, 'index'])->name('students.index');
     Route::get('/students/create', [App\Http\Controllers\Registrar\StudentController::class, 'create'])->name('students.create');
+    Route::get('/students/bulk', [App\Http\Controllers\Registrar\StudentBulkController::class, 'create'])->name('students.bulk');
+    Route::get('/students/bulk/template', [App\Http\Controllers\Registrar\StudentBulkController::class, 'template'])->name('students.bulk.template');
+    Route::post('/students/bulk/preview', [App\Http\Controllers\Registrar\StudentBulkController::class, 'preview'])->name('students.bulk.preview');
+    Route::post('/students/bulk', [App\Http\Controllers\Registrar\StudentBulkController::class, 'store'])->name('students.bulk.store');
     Route::post('/students', [App\Http\Controllers\Registrar\StudentController::class, 'store'])->name('students.store');
     Route::get('/students/{student}/details', [App\Http\Controllers\Registrar\StudentController::class, 'show'])->name('students.show');
     Route::get('/students/{student}/edit', [App\Http\Controllers\Registrar\StudentController::class, 'edit'])->name('students.edit');
@@ -153,9 +157,10 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::post('/enrollments/bulk', [App\Http\Controllers\Registrar\EnrollmentController::class, 'bulkStore'])->name('enrollments.bulk-store');
 
     // Excel Import/Export
-    Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
+    // Old one-step student import (no preview, weaker checks) replaced by Students → Bulk Add. Code kept.
+    // Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
     Route::get('/excel/export-students', [App\Http\Controllers\Registrar\ExcelController::class, 'exportStudents'])->name('excel.export-students');
-    Route::post('/excel/import-students', [App\Http\Controllers\Registrar\ExcelController::class, 'importStudents'])->name('excel.import-students');
+    // Route::post('/excel/import-students', [App\Http\Controllers\Registrar\ExcelController::class, 'importStudents'])->name('excel.import-students');
     // Masterlist import is disabled (client: grades are encoded in the system). Code kept in
     // ExcelController@importMasterlist / MasterlistImport; re-enable by restoring these two routes.
     // Route::get('/excel/masterlist-template', [App\Http\Controllers\Registrar\ExcelController::class, 'masterlistTemplate'])->name('excel.masterlist-template');

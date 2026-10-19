@@ -77,9 +77,10 @@ class StudentController extends Controller
         return view('registrar.students.create', compact('courses', 'majors'));
     }
 
-    public function store(Request $request)
+    /** Validation rules for a new student (Add Student form and Bulk Add). */
+    public static function newStudentRules(): array
     {
-        $validated = $request->validate([
+        return [
             'student_number' => 'required|string|max:20|unique:students,student_number',
             'course_id'      => 'required|exists:courses,id',
             'major_id'       => 'nullable|exists:majors,id',
@@ -95,7 +96,12 @@ class StudentController extends Controller
             'year_level'     => 'required|integer|min:1|max:5',
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
-        ] + $this->backgroundRules(), $this->validationMessages());
+        ] + self::backgroundRules();
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate(self::newStudentRules(), self::validationMessages());
 
         $student = Student::create(collect($validated)->except('photo')->all());
 
@@ -207,7 +213,7 @@ class StudentController extends Controller
     }
 
     /** Place of birth, preliminary education and the ID picture — all optional. */
-    private function backgroundRules(): array
+    private static function backgroundRules(): array
     {
         $year = 'nullable|integer|digits:4|min:1950|max:' . now()->year;
 
@@ -221,7 +227,7 @@ class StudentController extends Controller
         ];
     }
 
-    private function validationMessages(): array
+    public static function validationMessages(): array
     {
         return [
             'birth_date.before'                  => 'The birth date must be before today.',
