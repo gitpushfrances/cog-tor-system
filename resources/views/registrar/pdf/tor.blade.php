@@ -89,11 +89,31 @@
             .campus-admin-title { font-size: 9px; font-style: italic; }
 
             .grad-statement { margin-top: 24px; font-size: 10px; text-align: justify; }
+
+            /* Verification QR (client B4): every page, bottom-right, inside the bottom margin,
+               so it never moves the transcript content. */
+            .seal { position: fixed; right: 0; bottom: 0; }
+            .seal td { vertical-align: middle; padding: 0; }
+            .seal .seal-text { font-size: 6.5px; line-height: 1.3; text-align: right; padding-right: 5px; color: #000; }
+            .seal img { width: 0.58in; height: 0.58in; }
         </style>
     </head>
     <body>
 
     @php $torPhoto = $student->photoDataUri(); @endphp
+
+    @if($forPdf && $tor->exists)
+        <table class="seal">
+            <tr>
+                <td class="seal-text">
+                    {{ $tor->document_number }}<br>
+                    Verify code: <strong>{{ \App\Support\DocumentSeal::code($tor) }}</strong><br>
+                    Scan to read; verify at the ESSU Guiuan Registrar
+                </td>
+                <td><img src="{{ \App\Support\DocumentSeal::qrDataUri($tor) }}" alt="QR"></td>
+            </tr>
+        </table>
+    @endif
 
     @foreach($pages as $pageIndex => $page)
 

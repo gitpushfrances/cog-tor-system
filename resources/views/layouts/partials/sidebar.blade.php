@@ -263,6 +263,11 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
                 <i class="fa-solid fa-folder-open sdb-icon"></i>
                 <span class="sidebar-label sdb-label">Documents</span>
             </a>
+            <a href="{{ route('registrar.verify-document') }}" title="Verify Document"
+               class="sdb-link {{ request()->routeIs('registrar.verify-document') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-shield-halved sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Verify Document</span>
+            </a>
         @endif
 
     </nav>

@@ -169,6 +169,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     // Route::post('/excel/masterlist-import', [App\Http\Controllers\Registrar\ExcelController::class, 'importMasterlist'])->name('excel.masterlist-import');
     Route::get('/excel/masterlist-export', [App\Http\Controllers\Registrar\ExcelController::class, 'exportMasterlist'])->name('excel.masterlist-export');
     Route::get('/documents', [App\Http\Controllers\Registrar\DocumentController::class, 'documentsIndex'])->name('documents.index');
+    Route::get('/verify-document', App\Http\Controllers\Registrar\DocumentVerifyController::class)->name('verify-document');
     Route::get('/cog/{cog}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewCog'])->name('cog.preview');
     Route::get('/tor/{tor}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewTor'])->name('tor.preview');
 });
