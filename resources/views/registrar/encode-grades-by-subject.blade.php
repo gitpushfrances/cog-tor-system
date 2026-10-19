@@ -81,7 +81,15 @@
                     <div style="font-size:0.75rem;color:#8a7a60;">Leave a row blank if the grade is not available yet.</div>
                 </div>
 
-                <form method="POST" action="{{ route('registrar.encode-grades.by-subject.store') }}" id="subjectEncodeForm">
+                @php $gradesLocked = $semesterModel->isGradeLocked(); @endphp
+                @if($gradesLocked)
+                    <div style="padding:16px 24px 0;">
+                        @include('registrar.partials.grade-lock-banner', ['schoolYear' => $semesterModel->schoolYear->year_code ?? ''])
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('registrar.encode-grades.by-subject.store') }}" id="subjectEncodeForm"
+                      data-school-year="{{ $semesterModel->schoolYear->year_code ?? '' }}">
                     @csrf
                     <input type="hidden" name="school_year_id" value="{{ $selectedSchoolYear }}">
                     <input type="hidden" name="semester_id" value="{{ $semesterModel->id }}">
@@ -119,12 +127,16 @@
                                         <td style="padding:10px 16px;text-align:center;">
                                             <input type="number" name="grades[{{ $student->id }}]" value="{{ $gradeValue }}"
                                                    min="1.00" max="5.00" step="0.01" placeholder="—" style="{{ $input }}"
-                                                   data-finalized="{{ $isFinalized ? $grade->grade : '' }}">
+                                                   data-finalized="{{ $isFinalized ? $grade->grade : '' }}"
+                                                   data-original="{{ $grade ? $grade->grade : '' }}"
+                                                   @if($gradesLocked && $grade) data-locked readonly @endif>
                                         </td>
                                         <td style="padding:10px 16px;text-align:center;">
                                             <input type="number" name="re_exam[{{ $student->id }}]" value="{{ $reExamValue }}"
                                                    min="1.00" max="5.00" step="0.01" placeholder="optional" style="{{ $input }}"
-                                                   data-finalized="{{ $isFinalized ? ($grade->re_exam_grade ?? '-') : '' }}">
+                                                   data-finalized="{{ $isFinalized ? ($grade->re_exam_grade ?? '-') : '' }}"
+                                                   data-original="{{ $grade ? ($grade->re_exam_grade ?? '-') : '' }}"
+                                                   @if($gradesLocked && $grade) data-locked readonly @endif>
                                         </td>
                                         <td style="padding:10px 16px;text-align:center;">
                                             @if($isFinalized)
@@ -169,6 +181,21 @@
                 .some((input) => input.dataset.finalized !== '' && !sameGrade(input.value, input.dataset.finalized));
 
             const summary = `${filled} of ${gradeInputs.length} student(s) will be saved and set to <strong>Finalized</strong>. Blank rows are skipped.`;
+
+            // Past school year: changing an existing grade needs a reason and the password (blank rows are skipped).
+            const changesLocked = gradeInputs.some((input) => {
+                if (!input.hasAttribute('data-locked') || input.value === '') return false;
+                const reExam = form.querySelector(`input[name="${input.name.replace('grades[', 're_exam[')}"]`);
+                return !sameGrade(input.value, input.dataset.original) || (reExam && !sameGrade(reExam.value, reExam.dataset.original));
+            });
+
+            if (changesLocked) {
+                submitWithPasswordAndReason(form, {
+                    title: 'Correct past school year grades?',
+                    html: summary + `<br><br>SY <strong>${form.dataset.schoolYear}</strong> is closed. Your reason is saved in the activity log with the old and new grades.`,
+                });
+                return;
+            }
 
             if (changesFinalized) {
                 submitWithPassword(form, {

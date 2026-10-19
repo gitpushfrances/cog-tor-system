@@ -85,9 +85,11 @@
 
                                     {{-- Undo Finalize --}}
                                     <form method="POST"
-                                          action="{{ route('registrar.submissions.unfinalize-subject', $semGroup['semester']->id) }}"
+                                          action="{{ route('registrar.students.semesters.unfinalize', [$student, $semGroup['semester']]) }}"
                                           class="unfinalizeForm"
-                                          data-semester="{{ $semGroup['semester']->semester_name }}">
+                                          data-semester="{{ $semGroup['semester']->semester_name }}"
+                                          data-locked="{{ $semGroup['semester']->isGradeLocked() ? 1 : 0 }}"
+                                          data-school-year="{{ $semGroup['semester']->schoolYear?->year_code }}">
                                         @csrf
                                         <button type="button"
                                                 onclick="confirmUnfinalize(this)"
@@ -1102,6 +1104,15 @@
         function confirmUnfinalize(btn) {
             const form = btn.closest('form');
             const semName = form.dataset.semester;
+            if (form.dataset.locked === '1') {
+                submitWithPasswordAndReason(form, {
+                    title: 'Undo Finalization of a closed school year?',
+                    html: `SY <strong>${form.dataset.schoolYear}</strong> is closed. This student's finalized grades for <strong>${semName}</strong> go back to approved status. The reason is saved in the activity log.`,
+                    confirmButtonText: 'Yes, Undo Finalize',
+                    confirmButtonColor: '#dc2626',
+                });
+                return;
+            }
             submitWithPassword(form, {
                 title: 'Undo Finalization?',
                 html: `This will revert all finalized grades for <strong>${semName}</strong> back to approved status.<br><br>Faculty will <strong>not</strong> be able to edit them — only the registrar can re-finalize.`,

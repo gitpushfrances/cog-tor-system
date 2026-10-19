@@ -48,6 +48,15 @@ class Semester extends Model
         return $this->status === 'active';
     }
 
+    /**
+     * Grades of a school year that is not the active one are locked: changing
+     * them needs the registrar's password and a written reason (logged).
+     */
+    public function isGradeLocked(): bool
+    {
+        return $this->schoolYear?->status !== 'active';
+    }
+
     public function getFullName()
     {
         return $this->semester_name . ' - ' . $this->schoolYear->year_code;

@@ -17,6 +17,8 @@ use App\Models\Semester;
 use App\Models\SchoolYear;
 use App\Models\Course;
 use App\Models\Department;
+use Illuminate\Support\Collection;
+use Symfony\Component\HttpFoundation\Response;
 use App\Http\Middleware\RequireActionPassword;
 
 class RegistrarController extends Controller
@@ -26,6 +28,9 @@ class RegistrarController extends Controller
         // Deletes and high-risk changes require the user's own password (RequireActionPassword).
         $this->middleware('action.password')->only(['unfinalizeSubject']);
     }
+
+    /** Minimum length of the reason required to change a locked (past school year) grade. */
+    private const OVERRIDE_REASON_MIN = 10;
 
     public function finalizeSubject(Request $request, int $subjectId)
     {
@@ -84,6 +89,11 @@ class RegistrarController extends Controller
             return redirect()->back()->with('error', 'No finalized grades found for this subject.');
         }
 
+        $submissions->load('grade.enrollment.semester.schoolYear');
+        if ($submissions->contains(fn ($sub) => $sub->grade?->enrollment?->semester?->isGradeLocked() ?? true)) {
+            return redirect()->back()->with('error', 'Some of these grades belong to a closed school year. Undo them per student from the student profile.');
+        }
+
         try {
             DB::transaction(function () use ($submissions) {
                 foreach ($submissions as $sub) {
@@ -106,6 +116,51 @@ class RegistrarController extends Controller
 
         return redirect()->back()
             ->with('success', count($submissions) . ' grade(s) unfinalized and returned to approved status.');
+    }
+
+    /** Undo Finalize on a student profile: this student's finalized grades in one semester. */
+    public function unfinalizeSemester(Request $request, Student $student, Semester $semester)
+    {
+        $grades = Grade::with(['submission', 'enrollment.subject'])
+            ->where('status', 'finalized')
+            ->whereHas('enrollment', fn ($q) => $q->where('student_id', $student->id)->where('semester_id', $semester->id))
+            ->get();
+
+        if ($grades->isEmpty()) {
+            return back()->with('error', 'No finalized grades found for this semester.');
+        }
+
+        $locked = $semester->isGradeLocked();
+        if ($locked && ($error = $this->overrideReasonError($request, $semester))) {
+            return back()->with('password_error', $error);
+        }
+        if ($error = RequireActionPassword::verify($request)) {
+            return RequireActionPassword::reject($request, $error);
+        }
+
+        try {
+            DB::transaction(function () use ($grades) {
+                foreach ($grades as $grade) {
+                    $grade->submission?->update(['finalized_at' => null, 'finalized_by' => null]);
+                    $grade->update(['status' => 'approved_by_head_of_department']);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Unfinalize Semester failed, transaction rolled back', [
+                'student_id' => $student->id, 'semester_id' => $semester->id, 'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Something went wrong while unfinalizing grades. No grades were changed. Please try again.');
+        }
+
+        if ($locked) {
+            foreach ($grades as $grade) {
+                $this->logOverride($request, $semester, $grade, 'Undid finalization of a past school year grade',
+                    ['status' => 'finalized'], ['status' => 'approved_by_head_of_department']);
+            }
+        }
+
+        return back()->with('success', $grades->count() . " grade(s) for {$semester->semester_name} unfinalized and returned to approved status.");
     }
 
     public function encodeGradesForm(Request $request)
@@ -221,9 +276,12 @@ class RegistrarController extends Controller
             ->orderBy('name')
             ->get();
 
-        $enrollmentsBySubject = Enrollment::with('grade')
+        // Latest semester first, so each subject shows the most recent attempt.
+        $enrollmentsBySubject = Enrollment::with(['grade', 'semester.schoolYear'])
             ->where('student_id', $student->id)
             ->get()
+            ->sortByDesc(fn ($e) => [$e->semester?->schoolYear?->year_code, $e->semester?->semester_order])
+            ->unique('subject_id')
             ->keyBy('subject_id');
 
         $gradeIds = $enrollmentsBySubject->pluck('grade.id')->filter()->values();
@@ -257,6 +315,9 @@ class RegistrarController extends Controller
                 'encoded_by'    => $encoder?->name,
                 'encoded_email' => $encoder?->email,
                 'encoded_at'    => $submission?->finalized_at?->format('M d, Y g:i A'),
+                'semester_id'   => $grade ? $enrollment->semester_id : null,
+                'school_year'   => $grade ? $enrollment->semester?->schoolYear?->year_code : null,
+                'locked'        => $grade ? (bool) $enrollment->semester?->isGradeLocked() : false,
             ];
         });
 
@@ -274,11 +335,24 @@ class RegistrarController extends Controller
     {
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
+            'semester_id'   => 'nullable|exists:semesters,id',
             'grade'         => 'required|numeric|min:1.00|max:5.00',
             're_exam_grade' => 'nullable|numeric|min:1.00|max:5.00',
         ]);
 
         $subject = Subject::findOrFail($request->input('subject_id'));
+
+        // Editing an existing grade saves it in its own semester, not the active one.
+        if ($request->filled('semester_id')) {
+            $semester = Semester::with('schoolYear')->findOrFail($request->input('semester_id'));
+            $hasGrade = Enrollment::where(['student_id' => $student->id, 'subject_id' => $subject->id, 'semester_id' => $semester->id])
+                ->whereHas('grade')->exists();
+            if (! $hasGrade) {
+                return response()->json(['error' => 'This grade no longer exists in that semester. Reload and try again.'], 422);
+            }
+
+            return $this->saveQuickGrade($request, $student, $subject, $semester);
+        }
 
         $schoolYear = SchoolYear::where('status', 'active')->first();
         if (!$schoolYear) {
@@ -295,14 +369,17 @@ class RegistrarController extends Controller
             ], 422);
         }
 
-        // Changing a grade that is already finalized requires the registrar's password.
-        $changesFinalized = $this->changesFinalizedGrades(
-            $student->id, $semester->id,
-            [$subject->id => $request->input('grade')],
-            [$subject->id => $request->input('re_exam_grade')]
+        return $this->saveQuickGrade($request, $student, $subject, $semester);
+    }
+
+    private function saveQuickGrade(Request $request, Student $student, Subject $subject, Semester $semester)
+    {
+        $changed = $this->changedGrades(
+            Enrollment::with('grade')->where(['student_id' => $student->id, 'subject_id' => $subject->id, 'semester_id' => $semester->id])->get(),
+            fn ($e) => [$request->input('grade'), $request->input('re_exam_grade')]
         );
-        if ($changesFinalized && ($error = RequireActionPassword::verify($request))) {
-            return RequireActionPassword::reject($request, $error);
+        if ($rejection = $this->guardGradeChanges($request, $semester, $changed)) {
+            return $rejection;
         }
 
         $registrarId = auth()->id();
@@ -324,6 +401,8 @@ class RegistrarController extends Controller
             ], 500);
         }
 
+        $this->logOverrides($request, $semester, $changed);
+
         return response()->json([
             'success'       => true,
             'grade'         => number_format($grade->grade, 2),
@@ -332,6 +411,9 @@ class RegistrarController extends Controller
             'encoded_by'    => auth()->user()->name,
             'encoded_email' => auth()->user()->email,
             'encoded_at'    => now()->format('M d, Y g:i A'),
+            'semester_id'   => $semester->id,
+            'school_year'   => $semester->schoolYear?->year_code,
+            'locked'        => $semester->isGradeLocked(),
         ]);
     }
 
@@ -352,10 +434,14 @@ class RegistrarController extends Controller
         $reExamInput = $request->input('re_exam', []); // [ subject_id => re_exam_value|null ]
         $registrarId = auth()->id();
 
-        // Changing a grade that is already finalized requires the registrar's password.
-        if ($this->changesFinalizedGrades((int) $studentId, (int) $semesterId, $gradesInput, $reExamInput)
-            && ($error = RequireActionPassword::verify($request))) {
-            return RequireActionPassword::reject($request, $error);
+        $semester = Semester::with('schoolYear')->findOrFail($semesterId);
+        $changed  = $this->changedGrades(
+            Enrollment::with('grade')->where('student_id', $studentId)->where('semester_id', $semesterId)
+                ->whereIn('subject_id', array_keys($gradesInput))->get(),
+            fn ($e) => [$gradesInput[$e->subject_id] ?? null, $reExamInput[$e->subject_id] ?? null]
+        );
+        if ($rejection = $this->guardGradeChanges($request, $semester, $changed)) {
+            return $rejection;
         }
 
         try {
@@ -383,6 +469,8 @@ class RegistrarController extends Controller
                 ->withInput()
                 ->with('error', 'Something went wrong while saving grades. No grades were changed. Please try again.');
         }
+
+        $this->logOverrides($request, $semester, $changed);
 
         $student = Student::find($studentId);
 
@@ -430,15 +518,94 @@ class RegistrarController extends Controller
     }
 
     /** True when the submitted values would change a grade that is already finalized. */
-    private function changesFinalizedGrades(int $studentId, int $semesterId, array $grades, array $reExams = []): bool
+    /**
+     * Existing grades this save would change, with their values before the save.
+     * $newValues($enrollment) returns [grade, re_exam] for that enrollment.
+     */
+    private function changedGrades(Collection $enrollments, callable $newValues): Collection
     {
-        return Enrollment::with('grade')
-            ->where('student_id', $studentId)
-            ->where('semester_id', $semesterId)
-            ->whereIn('subject_id', array_keys($grades))
-            ->whereHas('grade', fn ($q) => $q->where('status', 'finalized'))
-            ->get()
-            ->contains(fn ($e) => $this->gradeDiffers($e->grade, $grades[$e->subject_id] ?? null, $reExams[$e->subject_id] ?? null));
+        return $enrollments
+            ->filter(fn ($e) => $e->grade !== null)
+            ->map(function ($e) use ($newValues) {
+                [$newGrade, $newReExam] = $newValues($e);
+
+                return $this->gradeDiffers($e->grade, $newGrade, $newReExam)
+                    ? ['grade' => $e->grade, 'old' => ['grade' => $e->grade->grade, 're_exam_grade' => $e->grade->re_exam_grade, 'status' => $e->grade->status]]
+                    : null;
+            })
+            ->filter()
+            ->values();
+    }
+
+    /**
+     * Past school year: any change to an existing grade needs a reason and the password.
+     * Active school year: changing a finalized grade needs the password.
+     * Returns the rejection response, or null when the save may go ahead.
+     */
+    private function guardGradeChanges(Request $request, Semester $semester, Collection $changed): ?Response
+    {
+        if ($changed->isEmpty()) {
+            return null;
+        }
+
+        if ($semester->isGradeLocked()) {
+            if ($error = $this->overrideReasonError($request, $semester)) {
+                return RequireActionPassword::reject($request, $error);
+            }
+        } elseif (! $changed->contains(fn ($c) => $c['old']['status'] === 'finalized')) {
+            return null;
+        }
+
+        if ($error = RequireActionPassword::verify($request)) {
+            return RequireActionPassword::reject($request, $error);
+        }
+
+        return null;
+    }
+
+    private function overrideReasonError(Request $request, Semester $semester): ?string
+    {
+        if (mb_strlen(trim((string) $request->input('override_reason'))) >= self::OVERRIDE_REASON_MIN) {
+            return null;
+        }
+
+        return 'Grades for SY ' . ($semester->schoolYear?->year_code ?? '?') . ' are locked. Give a reason (at least '
+            . self::OVERRIDE_REASON_MIN . ' characters) to correct them. Nothing was changed.';
+    }
+
+    /** One "override" activity entry per changed grade of a locked semester. */
+    private function logOverrides(Request $request, Semester $semester, Collection $changed): void
+    {
+        if (! $semester->isGradeLocked()) {
+            return;
+        }
+
+        foreach ($changed as $change) {
+            $grade = $change['grade']->fresh();
+            $this->logOverride($request, $semester, $grade, 'Corrected a past school year grade', $change['old'], [
+                'grade' => $grade->grade, 're_exam_grade' => $grade->re_exam_grade, 'status' => $grade->status,
+            ]);
+        }
+    }
+
+    private function logOverride(Request $request, Semester $semester, Grade $grade, string $description, array $old, array $new): void
+    {
+        // Keep only the fields that actually changed.
+        $changedKeys = array_keys(array_filter($new, fn ($value, $key) => (string) $value !== (string) ($old[$key] ?? ''), ARRAY_FILTER_USE_BOTH));
+        $old = array_intersect_key($old, array_flip($changedKeys));
+        $new = array_intersect_key($new, array_flip($changedKeys));
+
+        activity('grade')
+            ->causedBy($request->user())
+            ->performedOn($grade)
+            ->event('override')
+            ->withProperties([
+                'old'        => $old,
+                'attributes' => $new,
+                'reason'     => trim((string) $request->input('override_reason')),
+                'term'       => $semester->semester_name . ' ' . ($semester->schoolYear?->year_code ?? ''),
+            ])
+            ->log($description);
     }
 
     private function gradeDiffers(Grade $grade, $newGrade, $newReExam): bool
@@ -581,11 +748,10 @@ class RegistrarController extends Controller
             return back()->withInput()->with('error', 'Some rows are not enrolled in this subject for this semester. Reload the class list and try again.');
         }
 
-        // Changing a grade that is already finalized requires the registrar's password.
-        $changesFinalized = $enrollments->contains(fn ($e) => $e->grade && $e->grade->status === 'finalized'
-            && $this->gradeDiffers($e->grade, $grades[$e->student_id], $reExams[$e->student_id] ?? null));
-        if ($changesFinalized && ($error = RequireActionPassword::verify($request))) {
-            return RequireActionPassword::reject($request, $error);
+        $semester = Semester::with('schoolYear')->findOrFail($semesterId);
+        $changed  = $this->changedGrades($enrollments, fn ($e) => [$grades[$e->student_id], $reExams[$e->student_id] ?? null]);
+        if ($rejection = $this->guardGradeChanges($request, $semester, $changed)) {
+            return $rejection;
         }
 
         $registrarId = auth()->id();
@@ -605,6 +771,8 @@ class RegistrarController extends Controller
 
             return back()->withInput()->with('error', 'Something went wrong while saving grades. No grades were changed. Please try again.');
         }
+
+        $this->logOverrides($request, $semester, $changed);
 
         $subject = Subject::find($subjectId);
 
