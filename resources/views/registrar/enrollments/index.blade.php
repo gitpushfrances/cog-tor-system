@@ -53,14 +53,48 @@
                     </select>
                 </div>
 
+                @php $filterClass = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-100 disabled:text-gray-500'; @endphp
+                <div class="w-40">
+                    <label class="block mb-1 text-xs font-medium text-gray-600">Department</label>
+                    <select id="filter-department" class="{{ $filterClass }}" disabled>
+                        <option value="">All Departments</option>
+                        @foreach($departments as $department)
+                            <option value="{{ $department->id }}">{{ $department->code }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="w-40">
+                    <label class="block mb-1 text-xs font-medium text-gray-600">Course</label>
+                    <select id="filter-course" class="{{ $filterClass }}" disabled>
+                        <option value="">All Courses</option>
+                        @foreach($courses as $course)
+                            <option value="{{ $course->id }}" data-department="{{ $course->department_id }}">{{ $course->code }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="w-32">
+                    <label class="block mb-1 text-xs font-medium text-gray-600">Year Level</label>
+                    <select id="filter-year" class="{{ $filterClass }}" disabled>
+                        <option value="">All Years</option>
+                        @for($y = 1; $y <= 5; $y++)
+                            <option value="{{ $y }}">Year {{ $y }}</option>
+                        @endfor
+                    </select>
+                </div>
+
                 <div class="flex-1 min-w-48">
-                    <label class="block mb-1 text-xs font-medium text-gray-600">Subject</label>
+                    <label class="block mb-1 text-xs font-medium text-gray-600">Subject <span class="font-normal text-gray-400">({{ $activeSemester->semester_name }} only)</span></label>
                     <select name="subject_id" id="subject-select" required>
                         <option value="">Select student first...</option>
                         @foreach($subjects as $subject)
                               <option value="{{ $subject->id }}"
                                   data-label="{{ $subject->code }} — {{ $subject->name }} ({{ $subject->units }} units, Yr {{ $subject->year_level }})"
-                                  data-course="{{ $subject->course_id }}">
+                                  data-course="{{ $subject->course_id }}"
+                                  data-department="{{ $subject->course?->department_id }}"
+                                  data-year="{{ $subject->year_level }}"
+                                  data-valid="{{ $subject->semester === $activeSemester->semester_name ? 1 : 0 }}">
                                   {{ $subject->code }} — {{ $subject->name }} ({{ $subject->units }} units, Yr {{ $subject->year_level }})
                               </option>
                           @endforeach
@@ -74,6 +108,10 @@
                     <i class="mr-1 fa-solid fa-plus"></i> Enroll
                 </button>
             </form>
+            <p id="regular-note" class="hidden mt-3 text-xs text-gray-500">
+                <i class="mr-1 fa-solid fa-lock"></i>
+                Regular student: subjects are limited to their own course. Only Irregular or Transferee students can take subjects from other courses.
+            </p>
         </div>
         @endif
 
@@ -214,13 +252,28 @@
 <script>
     const enrolledMap = @json($enrolledMap ?? []);
     const studentCourseMap = @json($studentCourseMap ?? []);
+    const studentInfo = @json($studentInfo ?? []);
 
     const studentSelect = document.getElementById('student-select');
     const subjectSelect = document.getElementById('subject-select');
     const enrollForm = document.getElementById('enroll-form');
 
+    const filterDepartment = document.getElementById('filter-department');
+    const filterCourse = document.getElementById('filter-course');
+    const filterYear = document.getElementById('filter-year');
+    const regularNote = document.getElementById('regular-note');
+    const courseDepartment = Object.fromEntries(Array.from(filterCourse.options)
+        .filter(opt => opt.value).map(opt => [opt.value, opt.dataset.department]));
+
     const allSubjectOptions = Array.from(subjectSelect.querySelectorAll('option[value]:not([value=""])'))
-        .map(opt => ({ id: opt.value, label: opt.getAttribute('data-label'), courseId: opt.getAttribute('data-course') }));
+        .map(opt => ({
+            id: opt.value,
+            label: opt.getAttribute('data-label'),
+            courseId: opt.getAttribute('data-course'),
+            departmentId: opt.getAttribute('data-department'),
+            year: opt.getAttribute('data-year'),
+            valid: opt.getAttribute('data-valid') === '1',
+        }));
 
     const studentTom = new TomSelect(studentSelect, {
         placeholder: 'Search by name or student number...',
@@ -229,38 +282,96 @@
     const subjectTom = new TomSelect(subjectSelect, {
         placeholder: 'Select student first...',
         disabled: true,
+        optgroupField: 'group',
+        optgroups: [
+            { value: 'subjects', label: 'Subjects' },
+            { value: 'unset', label: 'Semester not set — fix in Admin → Subjects' },
+        ],
+        lockOptgroupOrder: true,
     });
 
     function currentStudentCourseId() {
-        return studentCourseMap[parseInt(studentSelect.value)] ?? studentCourseMap[studentSelect.value];
+        return studentInfo[studentSelect.value]?.course;
     }
 
-    studentTom.on('change', function (studentId) {
-        const enrolledSubjects = enrolledMap[parseInt(studentId)] || enrolledMap[studentId] || [];
+    function setFilters(enabled) {
+        [filterDepartment, filterCourse, filterYear].forEach(el => el.disabled = !enabled);
+    }
+
+    // Course list follows the Department filter.
+    function syncCourseOptions() {
+        Array.from(filterCourse.options).forEach(opt => {
+            opt.hidden = opt.value !== '' && filterDepartment.value !== '' && opt.dataset.department !== filterDepartment.value;
+        });
+        if (filterCourse.selectedOptions[0]?.hidden) filterCourse.value = '';
+    }
+
+    function renderSubjects() {
+        const studentId = studentSelect.value;
+        const info = studentInfo[studentId];
 
         subjectTom.clear(true);
         subjectTom.clearOptions();
 
-        if (!studentId) {
+        if (!studentId || !info) {
             subjectTom.disable();
             return;
         }
 
-        const studentCourseId = studentCourseMap[parseInt(studentId)] ?? studentCourseMap[studentId];
+        const enrolledSubjects = (enrolledMap[studentId] || []).map(Number);
 
         allSubjectOptions.forEach(subject => {
-            const isEnrolled = enrolledSubjects.includes(parseInt(subject.id));
-            const isDifferentCourse = parseInt(subject.courseId) !== parseInt(studentCourseId);
+            if (filterDepartment.value && subject.departmentId !== filterDepartment.value) return;
+            if (filterCourse.value && subject.courseId !== filterCourse.value) return;
+            if (filterYear.value && subject.year !== filterYear.value) return;
+
+            const isEnrolled = enrolledSubjects.includes(Number(subject.id));
+            const isDifferentCourse = Number(subject.courseId) !== Number(info.course);
+            let note = '';
+            if (!subject.valid) note = ' (Semester not set)';
+            else if (isEnrolled) note = ' (Already Enrolled)';
+            else if (isDifferentCourse) note = ' (Different Course)';
+
             subjectTom.addOption({
                 value: subject.id,
-                text: subject.label + (isEnrolled ? ' (Already Enrolled)' : (isDifferentCourse ? ' (Different Course)' : '')),
-                disabled: isEnrolled,
+                text: subject.label + note,
+                group: subject.valid ? 'subjects' : 'unset',
+                disabled: isEnrolled || !subject.valid,
             });
         });
 
         subjectTom.enable();
         subjectTom.refreshOptions(false);
+    }
+
+    studentTom.on('change', function (studentId) {
+        const info = studentInfo[studentId];
+
+        if (!studentId || !info) {
+            setFilters(false);
+            regularNote.classList.add('hidden');
+            renderSubjects();
+            return;
+        }
+
+        // Default every filter to the student's own course and year.
+        setFilters(true);
+        filterDepartment.value = courseDepartment[info.course] ?? '';
+        syncCourseOptions();
+        filterCourse.value = info.course ?? '';
+        filterYear.value = info.year ?? '';
+
+        // Regular students stay in their own course.
+        filterDepartment.disabled = info.regular;
+        filterCourse.disabled = info.regular;
+        regularNote.classList.toggle('hidden', !info.regular);
+
+        renderSubjects();
     });
+
+    filterDepartment.addEventListener('change', () => { syncCourseOptions(); renderSubjects(); });
+    filterCourse.addEventListener('change', renderSubjects);
+    filterYear.addEventListener('change', renderSubjects);
 
     if (studentSelect.value) studentTom.trigger('change', studentSelect.value);
 
@@ -270,7 +381,7 @@
 
         const subject = allSubjectOptions.find(s => s.id == selectedSubjectId);
         const studentCourseId = currentStudentCourseId();
-        const isDifferentCourse = subject && parseInt(subject.courseId) !== parseInt(studentCourseId);
+        const isDifferentCourse = subject && Number(subject.courseId) !== Number(studentCourseId);
 
         if (isDifferentCourse && !enrollForm.dataset.confirmed) {
             e.preventDefault();

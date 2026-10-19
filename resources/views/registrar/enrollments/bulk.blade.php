@@ -12,6 +12,12 @@
             <span class="px-4 py-2 text-sm font-medium border-b-2" style="color:#c9a84c;border-color:#c9a84c;">Bulk Enroll</span>
         </div>
 
+        @if(session('error') || $subjectError)
+            <div class="px-4 py-3 text-sm text-red-800 border border-red-200 rounded-lg bg-red-50">
+                {{ session('error') ?? $subjectError }}
+            </div>
+        @endif
+
         {{-- Active Semester Banner --}}
         @if($activeSemester)
             <div class="px-4 py-3 text-sm border rounded-lg bg-amber-50 border-amber-200 text-amber-800">
@@ -30,15 +36,23 @@
         <div class="p-6 bg-white border border-gray-200 shadow-sm rounded-xl">
             <form method="GET" action="{{ route('registrar.enrollments.bulk-create') }}" class="space-y-4">
                 <div>
-                    <label class="block mb-1 text-xs font-medium text-gray-600">Step 1 — Subject</label>
+                    <label class="block mb-1 text-xs font-medium text-gray-600">Step 1 — Subject <span class="font-normal text-gray-400">({{ $activeSemester->semester_name }} only)</span></label>
+                    @php [$semesterSubjects, $unsetSubjects] = $subjects->partition(fn ($s) => $s->semester === $activeSemester->semester_name); @endphp
                     <select name="subject_id" onchange="this.form.submit()" style="max-width:460px;"
                         class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
                         <option value="">Select a subject...</option>
-                        @foreach($subjects as $subject)
+                        @foreach($semesterSubjects as $subject)
                             <option value="{{ $subject->id }}" {{ (string) $subjectId === (string) $subject->id ? 'selected' : '' }}>
                                 {{ $subject->code }} — {{ $subject->name }} ({{ $subject->units }} units, Yr {{ $subject->year_level }})
                             </option>
                         @endforeach
+                        @if($unsetSubjects->isNotEmpty())
+                            <optgroup label="Semester not set — fix in Admin → Subjects">
+                                @foreach($unsetSubjects as $subject)
+                                    <option value="{{ $subject->id }}" disabled>{{ $subject->code }} — {{ $subject->name }}</option>
+                                @endforeach
+                            </optgroup>
+                        @endif
                     </select>
                 </div>
 
@@ -138,13 +152,14 @@
                                 @foreach($students as $student)
                                     @php
                                         $isEnrolled = in_array($student->id, $enrolledStudentIds);
-                                        $isCrossCourse = $student->course_id !== $selectedSubject->course_id;
+                                        $isCrossCourse = (int) $student->course_id !== (int) $selectedSubject->course_id;
+                                        $isBlocked = $isCrossCourse && ! in_array($student->student_type, $crossCourseTypes, true);
                                     @endphp
-                                    <tr>
+                                    <tr class="{{ $isBlocked ? 'opacity-60' : '' }}">
                                         <td class="px-6 py-3">
                                             <input type="checkbox" name="student_ids[]" value="{{ $student->id }}"
                                                 class="student-checkbox" onchange="updateSummary()"
-                                                {{ $isEnrolled ? 'disabled' : 'checked' }}>
+                                                {{ $isEnrolled || $isBlocked ? 'disabled' : 'checked' }}>
                                         </td>
                                         <td class="px-6 py-3 text-gray-600">{{ $student->student_number }}</td>
                                         <td class="px-6 py-3 font-medium text-gray-800">{{ $student->getFullName() }}</td>
@@ -153,6 +168,8 @@
                                         <td class="px-6 py-3">
                                             @if($isEnrolled)
                                                 <span class="px-2 py-0.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-full">Already Enrolled</span>
+                                            @elseif($isBlocked)
+                                                <span class="px-2 py-0.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-full" title="Only Irregular or Transferee students can take subjects outside their course">Regular — other course</span>
                                             @elseif($isCrossCourse)
                                                 <span class="px-2 py-0.5 text-xs font-medium rounded-full" style="background:#fef3e2;color:#92610c;">Different Course</span>
                                             @else
@@ -227,6 +244,12 @@
         });
     }
 
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     @if(session('bulk_report'))
     document.addEventListener('DOMContentLoaded', function () {
         const report = @json(session('bulk_report'));
@@ -234,12 +257,12 @@
         if (report.skipped && report.skipped.length > 0) {
             skippedHtml = '<div style="margin-top:12px;text-align:left;max-height:150px;overflow-y:auto;font-size:0.8rem;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px;">' +
                 '<strong>Skipped:</strong><ul style="margin-top:4px;padding-left:18px;">' +
-                report.skipped.map(s => `<li>${s}</li>`).join('') + '</ul></div>';
+                report.skipped.map(s => `<li>${escapeHtml(s)}</li>`).join('') + '</ul></div>';
         }
         Swal.fire({
             icon: report.enrolled > 0 ? 'success' : 'info',
             title: 'Bulk Enrollment Result',
-            html: `<span style="font-size:0.9rem;color:#374151;"><strong>${report.enrolled}</strong> enrolled into <strong>${report.subject}</strong>.` +
+            html: `<span style="font-size:0.9rem;color:#374151;"><strong>${report.enrolled}</strong> enrolled into <strong>${escapeHtml(report.subject)}</strong>.` +
                   (report.skipped.length > 0 ? ` <strong>${report.skipped.length}</strong> skipped.` : '') +
                   `</span>` + skippedHtml,
             confirmButtonColor: '#c9a84c',

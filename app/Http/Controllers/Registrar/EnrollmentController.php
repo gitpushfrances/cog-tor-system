@@ -8,11 +8,16 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Semester;
 use App\Models\Course;
+use App\Models\Department;
+use App\Support\RecordsAudit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class EnrollmentController extends Controller
 {
+    /** Student types allowed to take subjects outside their own course. */
+    private const CROSS_COURSE_TYPES = ['Irregular', 'Transferee'];
+
     public function __construct()
     {
         // Deletes and high-risk changes require the user's own password (RequireActionPassword).
@@ -63,7 +68,9 @@ class EnrollmentController extends Controller
         }
 
         $students = Student::active()->orderBy('last_name')->get();
-        $subjects = Subject::active()->orderBy('code')->get();
+        $subjects = $this->subjectsForSemester($activeSemester)->load('course');
+        $departments = Department::active()->orderBy('name')->get();
+        $courses = Course::active()->orderBy('code')->get();
 
         $enrolledMap = Enrollment::where('semester_id', $activeSemester?->id)
             ->get()
@@ -72,9 +79,16 @@ class EnrollmentController extends Controller
 
         $studentCourseMap = $students->pluck('course_id', 'id');
 
+        $studentInfo = $students->mapWithKeys(fn ($s) => [$s->id => [
+            'course'  => $s->course_id,
+            'year'    => $s->year_level,
+            'regular' => ! $this->mayCrossCourse($s),
+        ]]);
+
         return view('registrar.enrollments.index', compact(
             'enrollments', 'grouped', 'students', 'subjects', 'activeSemester', 'enrolledMap',
-            'studentCourseMap', 'dateFilter', 'groupBy', 'dateFrom', 'dateTo'
+            'studentCourseMap', 'studentInfo', 'departments', 'courses',
+            'dateFilter', 'groupBy', 'dateFrom', 'dateTo'
         ));
     }
 
@@ -90,7 +104,17 @@ class EnrollmentController extends Controller
         $subject = Subject::findOrFail($request->subject_id);
         $student = Student::findOrFail($request->student_id);
 
+        if (! $student->isActive()) {
+            return back()->with('error', "{$student->getFullName()} is not an active student.");
+        }
+
         $isCrossCourse = $subject->course_id !== $student->course_id;
+
+        if ($reason = $this->subjectBlock($subject, $activeSemester) ?? $this->studentBlock($student, $subject)) {
+            return back()
+                ->withInput(['student_id' => $student->id])
+                ->with('error', $reason);
+        }
 
         $alreadyEnrolled = Enrollment::where([
             'student_id'  => $student->id,
@@ -144,16 +168,24 @@ class EnrollmentController extends Controller
         $yearLevel = $request->get('year_level');
         $search    = $request->get('search');
 
-        $subjects = Subject::active()->orderBy('code')->get();
+        $subjects = $this->subjectsForSemester($activeSemester);
         $courses  = Course::active()->orderBy('name')->get();
 
         $students         = collect();
         $selectedSubject  = null;
         $tooMany          = false;
         $enrolledStudentIds = [];
+        $subjectError       = null;
 
         if ($subjectId && $activeSemester) {
             $selectedSubject = Subject::find($subjectId);
+
+            if ($selectedSubject && ($subjectError = $this->subjectBlock($selectedSubject, $activeSemester))) {
+                $selectedSubject = null;
+            }
+        }
+
+        if ($selectedSubject) {
 
             $query = Student::active()->with('course')
                 ->when($courseId, fn($q) => $q->where('course_id', $courseId))
@@ -172,17 +204,18 @@ class EnrollmentController extends Controller
                 $students = $query->orderBy('last_name')->get();
             }
 
-            if ($selectedSubject) {
-                $enrolledStudentIds = Enrollment::where('subject_id', $selectedSubject->id)
-                    ->where('semester_id', $activeSemester->id)
-                    ->pluck('student_id')
-                    ->toArray();
-            }
+            $enrolledStudentIds = Enrollment::where('subject_id', $selectedSubject->id)
+                ->where('semester_id', $activeSemester->id)
+                ->pluck('student_id')
+                ->toArray();
         }
+
+        $crossCourseTypes = self::CROSS_COURSE_TYPES;
 
         return view('registrar.enrollments.bulk', compact(
             'subjects', 'courses', 'students', 'selectedSubject', 'activeSemester',
-            'subjectId', 'courseId', 'yearLevel', 'search', 'enrolledStudentIds', 'tooMany'
+            'subjectId', 'courseId', 'yearLevel', 'search', 'enrolledStudentIds', 'tooMany',
+            'subjectError', 'crossCourseTypes'
         ));
     }
 
@@ -201,6 +234,11 @@ class EnrollmentController extends Controller
         }
 
         $subject = Subject::findOrFail($request->subject_id);
+
+        if ($reason = $this->subjectBlock($subject, $activeSemester)) {
+            return back()->with('error', $reason);
+        }
+
         $enrolled = 0;
         $skipped = [];
 
@@ -209,7 +247,12 @@ class EnrollmentController extends Controller
                 $student = Student::find($studentId);
 
                 if (!$student || !$student->isActive()) {
-                    $skipped[] = ($student->getFullName() ?? "Student #{$studentId}") . ' — not active';
+                    $skipped[] = ($student?->getFullName() ?? "Student #{$studentId}") . ' — not active';
+                    continue;
+                }
+
+                if ($this->studentBlock($student, $subject)) {
+                    $skipped[] = $student->getFullName() . ' — Regular student of another course';
                     continue;
                 }
 
@@ -244,5 +287,56 @@ class EnrollmentController extends Controller
                 'enrolled' => $enrolled,
                 'skipped'  => $skipped,
             ]);
+    }
+
+    /**
+     * Active subjects for the active semester, plus subjects whose semester is
+     * missing or misspelled (shown so the registrar knows to fix them in Admin).
+     */
+    private function subjectsForSemester(?Semester $semester)
+    {
+        if (! $semester) {
+            return collect();
+        }
+
+        return Subject::active()
+            ->where(fn ($q) => $q->where('semester', $semester->semester_name)
+                ->orWhereNull('semester')
+                ->orWhereNotIn('semester', RecordsAudit::SEMESTERS))
+            ->orderBy('code')
+            ->get();
+    }
+
+    /** Why this subject cannot be enrolled this semester, or null if it can. */
+    private function subjectBlock(Subject $subject, Semester $semester): ?string
+    {
+        if (! $subject->isActive()) {
+            return "{$subject->code} is inactive.";
+        }
+
+        if (! in_array($subject->semester, RecordsAudit::SEMESTERS, true)) {
+            return "{$subject->code} has no valid semester set. Fix it in Admin → Subjects first.";
+        }
+
+        if ($subject->semester !== $semester->semester_name) {
+            return "{$subject->code} is a {$subject->semester} subject. The active semester is {$semester->semester_name}.";
+        }
+
+        return null;
+    }
+
+    /** Why this student cannot take this subject, or null if they can. */
+    private function studentBlock(Student $student, Subject $subject): ?string
+    {
+        if ((int) $subject->course_id === (int) $student->course_id || $this->mayCrossCourse($student)) {
+            return null;
+        }
+
+        return "{$student->getFullName()} is a Regular student. Only Irregular or Transferee students can take subjects outside their course.";
+    }
+
+    private function mayCrossCourse(Student $student): bool
+    {
+        return in_array($student->student_type, self::CROSS_COURSE_TYPES, true);
     }
 }
