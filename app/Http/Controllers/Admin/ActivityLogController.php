@@ -16,6 +16,16 @@ use Spatie\Activitylog\Models\Activity;
 /** Admin → Activity Log: read-only history of changes, documents, backups and sign-ins. */
 class ActivityLogController extends Controller
 {
+    /** Relations the record labels need, loaded in a few queries instead of one per row. */
+    public const SUBJECT_RELATIONS = [
+        Enrollment::class      => ['student', 'subject'],
+        Grade::class           => ['enrollment.student', 'enrollment.subject'],
+        GradeSubmission::class => ['grade.enrollment.student', 'grade.enrollment.subject'],
+        Semester::class        => ['schoolYear'],
+        CogRecord::class       => ['student'],
+        TorRecord::class       => ['student'],
+    ];
+
     public function index(Request $request)
     {
         $filters = $request->validate([
@@ -37,15 +47,7 @@ class ActivityLogController extends Controller
             ->paginate(25)
             ->withQueryString();
 
-        // Load what the record labels need in a few queries instead of one per row.
-        $activities->getCollection()->loadMorph('subject', [
-            Enrollment::class      => ['student', 'subject'],
-            Grade::class           => ['enrollment.student', 'enrollment.subject'],
-            GradeSubmission::class => ['grade.enrollment.student', 'grade.enrollment.subject'],
-            Semester::class        => ['schoolYear'],
-            CogRecord::class       => ['student'],
-            TorRecord::class       => ['student'],
-        ]);
+        $activities->getCollection()->loadMorph('subject', self::SUBJECT_RELATIONS);
 
         return view('admin.activity-log.index', [
             'activities' => $activities,

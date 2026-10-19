@@ -3,7 +3,11 @@
         <p class="mb-1 text-xs font-medium tracking-widest text-blue-700 uppercase">Eastern Samar State University - Guiuan Campus</p>
         <h2 class="text-xl font-semibold leading-tight text-gray-800">Admin Dashboard</h2>
         <p class="mt-1 text-sm text-gray-500">
-            {{ $stats['current_school_year'] ? 'Active: ' . $stats['current_school_year']->year : 'No active school year set' }}
+            @if($stats['current_school_year'])
+                Active: SY {{ $stats['current_school_year']->year_code }}{{ $activeSemester ? ' · ' . $activeSemester->semester_name : ' · no active semester' }}
+            @else
+                No active school year set
+            @endif
         </p>
     </x-slot>
 
@@ -50,92 +54,37 @@
                 </div>
             </div>
 
-            {{-- Navigation Sections --}}
-
-            {{-- USER MANAGEMENT --}}
-            <div class="mb-6">
-                <h3 class="mb-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">User Management</h3>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <a href="{{ route('admin.users.index') }}" class="p-5 transition bg-white border-l-4 border-blue-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-users"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Users</div>
-                                <div class="text-xs text-gray-500">Manage faculty, heads of department, registrar accounts</div>
-                            </div>
-                        </div>
-                    </a>
+            {{-- Recent Activity (from Admin → Activity Log) --}}
+            <div class="mb-6 overflow-hidden bg-white rounded-lg shadow">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <h3 class="font-semibold text-gray-800">Recent Activity</h3>
+                    <a href="{{ route('admin.activity-log.index') }}" class="text-sm text-blue-600 hover:underline">View all →</a>
                 </div>
-            </div>
-
-            {{-- ACADEMIC SETUP --}}
-            <div class="mb-6">
-                <h3 class="mb-3 text-xs font-semibold tracking-wider text-gray-400 uppercase">Academic Setup</h3>
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                    <a href="{{ route('admin.departments.index') }}" class="p-5 transition bg-white border-l-4 border-purple-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-building"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Departments</div>
-                                <div class="text-xs text-gray-500">Manage academic departments</div>
-                            </div>
+                @forelse($recentActivity as $activity)
+                    <div style="display:flex;gap:16px;align-items:baseline;padding:10px 24px;border-top:1px solid #f3f4f6;font-size:0.85rem;">
+                        <div style="width:110px;flex-shrink:0;color:#6b7280;font-size:0.78rem;" title="{{ $activity->created_at->format('M d, Y g:i:s A') }}">
+                            {{ $activity->created_at->isToday() ? $activity->created_at->format('g:i A') : $activity->created_at->format('M d, g:i A') }}
                         </div>
-                    </a>
-                    <a href="{{ route('admin.courses.index') }}" class="p-5 transition bg-white border-l-4 border-indigo-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-book-open"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Courses</div>
-                                <div class="text-xs text-gray-500">Manage degree programs</div>
-                            </div>
+                        <div style="width:170px;flex-shrink:0;color:#111827;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            {{ $activity->causer?->name ?? 'System' }}
                         </div>
-                    </a>
-                    <a href="{{ route('admin.majors.index') }}" class="p-5 transition bg-white border-l-4 border-pink-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-graduation-cap"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Majors</div>
-                                <div class="text-xs text-gray-500">Manage majors under each course</div>
-                            </div>
+                        @php
+                            // Model events are logged as "created"/"updated"/"deleted": add what was changed.
+                            $what  = in_array($activity->description, ['created', 'updated', 'deleted', 'restored'], true)
+                                ? ucfirst($activity->description) . ' ' . str_replace('_', ' ', $activity->log_name)
+                                : $activity->description;
+                            $label = \App\Http\Controllers\Admin\ActivityLogController::recordLabel($activity);
+                        @endphp
+                        <div style="flex:1;min-width:0;color:#374151;">
+                            {{ $what }}
+                            @if($label !== '—')
+                                <span style="color:#6b7280;">· {{ $label }}</span>
+                            @endif
                         </div>
-                    </a>
-                    <a href="{{ route('admin.subjects.index') }}" class="p-5 transition bg-white border-l-4 rounded-lg shadow hover:shadow-md border-cyan-500">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-book"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Subjects</div>
-                                <div class="text-xs text-gray-500">Manage subjects and assign faculty</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.document-settings.edit') }}" class="p-5 transition bg-white border-l-4 border-gray-400 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-signature"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Document Settings</div>
-                                <div class="text-xs text-gray-500">Signatory names for COG/TOR</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.school-years.index') }}" class="p-5 transition bg-white border-l-4 border-green-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-calendar-alt"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">School Years</div>
-                                <div class="text-xs text-gray-500">Set active school year</div>
-                            </div>
-                        </div>
-                    </a>
-                    <a href="{{ route('admin.semesters.index') }}" class="p-5 transition bg-white border-l-4 border-teal-500 rounded-lg shadow hover:shadow-md">
-                        <div class="flex items-center gap-3">
-                            <i class="text-2xl fas fa-calendar"></i>
-                            <div>
-                                <div class="font-semibold text-gray-800">Semesters</div>
-                                <div class="text-xs text-gray-500">Set active semester</div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                    </div>
+                @empty
+                    <div style="padding:24px;text-align:center;color:#9ca3af;font-size:0.85rem;">No activity recorded yet.</div>
+                @endforelse
             </div>
 
             {{-- Recent Users Table --}}

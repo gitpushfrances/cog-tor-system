@@ -8,6 +8,8 @@ use App\Models\Student;
 use App\Models\Subject;
 use App\Models\Department;
 use App\Models\SchoolYear;
+use App\Models\Semester;
+use Spatie\Activitylog\Models\Activity;
 use Illuminate\Http\Request;
 
 class AdminController extends Controller
@@ -27,6 +29,13 @@ class AdminController extends Controller
 
         $recent_users = User::with('roles')->latest()->take(5)->get();
 
-        return view('admin.dashboard', compact('stats', 'recent_users'));
+        $activeSemester = $stats['current_school_year']
+            ? Semester::where('school_year_id', $stats['current_school_year']->id)->where('status', 'active')->first()
+            : null;
+
+        $recentActivity = Activity::with('causer')->latest('id')->take(10)->get()
+            ->loadMorph('subject', ActivityLogController::SUBJECT_RELATIONS);
+
+        return view('admin.dashboard', compact('stats', 'recent_users', 'activeSemester', 'recentActivity'));
     }
 }
