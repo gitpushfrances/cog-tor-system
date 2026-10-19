@@ -63,7 +63,7 @@
                 </div>
                 <div class="flex gap-3 mt-6">
                     <button type="submit" class="px-4 py-2 text-white bg-blue-600 rounded hover:bg-blue-700">Save Subject</button>
-                    <a href="{{ route('admin.subjects.index') }}" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Cancel</a>
+                    <a href="{{ ($back = $courses->firstWhere('id', (int) $selectedCourseId)) ? \App\Http\Controllers\Admin\CourseController::departmentPage($back) : route('admin.departments.index') }}" class="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300">Cancel</a>
                 </div>
             </form>
         </div>

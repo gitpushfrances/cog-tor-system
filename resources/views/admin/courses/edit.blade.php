@@ -86,7 +86,7 @@
                             <button type="submit" class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700">
                                 Update Course
                             </button>
-                            <a href="{{ route('admin.courses.index') }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
+                            <a href="{{ \App\Http\Controllers\Admin\CourseController::departmentPage($course) }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
                                 Cancel
                             </a>
                         </div>

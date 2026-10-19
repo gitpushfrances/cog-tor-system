@@ -26,6 +26,16 @@ class Department extends Model
     }
 
     // Helper Methods
+    public function majors()
+    {
+        return $this->hasManyThrough(Major::class, Course::class);
+    }
+
+    public function subjects()
+    {
+        return $this->hasManyThrough(Subject::class, Course::class);
+    }
+
     public function isActive()
     {
         return $this->status === 'active';

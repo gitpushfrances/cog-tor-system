@@ -18,14 +18,20 @@ class MajorController extends Controller
 
     public function index()
     {
-        $majors = Major::with('course.department')->withCount('students')->latest()->paginate(15);
-        return view('admin.majors.index', compact('majors'));
+        // Majors are managed inside their course's department (Admin → Departments).
+        return redirect()->route('admin.departments.index');
+    }
+
+    public function show(Major $major)
+    {
+        return redirect()->to(CourseController::departmentPage($major->course));
     }
 
     public function create()
     {
         $courses = Course::where('status', 'active')->orderBy('name')->get();
-        return view('admin.majors.create', compact('courses'));
+        $selectedCourseId = request('course_id');
+        return view('admin.majors.create', compact('courses', 'selectedCourseId'));
     }
 
     public function store(Request $request)
@@ -40,9 +46,9 @@ class MajorController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        Major::create($validated);
+        $major = Major::create($validated);
 
-        return redirect()->route('admin.majors.index')
+        return redirect()->to(CourseController::departmentPage($major->course))
             ->with('success', 'Major created successfully.');
     }
 
@@ -66,20 +72,20 @@ class MajorController extends Controller
 
         $major->update($validated);
 
-        return redirect()->route('admin.majors.index')
+        return redirect()->to(CourseController::departmentPage($major->fresh()->course))
             ->with('success', 'Major updated successfully.');
     }
 
     public function destroy(Major $major)
     {
         if ($major->students()->count() > 0) {
-            return redirect()->route('admin.majors.index')
+            return redirect()->to(CourseController::departmentPage($major->course))
                 ->with('error', 'Cannot delete major with existing students.');
         }
 
         $major->delete();
 
-        return redirect()->route('admin.majors.index')
+        return redirect()->to(CourseController::departmentPage($major->course))
             ->with('success', 'Major deleted successfully.');
     }
 }

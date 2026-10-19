@@ -18,7 +18,7 @@
                             <select name="department_id" id="department_id" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="">Select Department</option>
                                 @foreach($departments as $department)
-                                    <option value="{{ $department->id }}" {{ old('department_id') == $department->id ? 'selected' : '' }}>
+                                    <option value="{{ $department->id }}" {{ old('department_id', $selectedDepartmentId) == $department->id ? 'selected' : '' }}>
                                         {{ $department->code }} - {{ $department->name }}
                                     </option>
                                 @endforeach
@@ -88,7 +88,7 @@
                             <button type="submit" class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700">
                                 Create Course
                             </button>
-                            <a href="{{ route('admin.courses.index') }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
+                            <a href="{{ $selectedDepartmentId ? route('admin.departments.show', $selectedDepartmentId) : route('admin.departments.index') }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">
                                 Cancel
                             </a>
                         </div>

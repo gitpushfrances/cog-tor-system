@@ -16,17 +16,15 @@ class SubjectController extends Controller
         $this->middleware('action.password')->only(['destroy']);
     }
 
+    /** Subjects are managed inside their course's department (Admin → Departments). */
     public function index()
     {
-        $courses = Course::with(['department', 'subjects' => function ($query) {
-            $query->orderBy('year_level')->orderBy('semester')->orderBy('code');
-        }])->orderBy('code')->get();
+        return redirect()->route('admin.departments.index');
+    }
 
-        $courses->each(function ($course) {
-            $course->groupedSubjects = $course->subjects->groupBy(['year_level', 'semester']);
-        });
-
-        return view('admin.subjects.index', compact('courses'));
+    public function show(Subject $subject)
+    {
+        return redirect()->to(CourseController::departmentPage($subject->course));
     }
 
     public function create(Request $request)
@@ -51,9 +49,9 @@ class SubjectController extends Controller
             'status'     => 'required|in:active,inactive',
         ]);
 
-        Subject::create($request->only(['code', 'name', 'course_id', 'units', 'year_level', 'semester', 'status']));
+        $subject = Subject::create($request->only(['code', 'name', 'course_id', 'units', 'year_level', 'semester', 'status']));
 
-        return redirect()->route('admin.subjects.index')
+        return redirect()->to(CourseController::departmentPage($subject->course))
             ->with('success', 'Subject created successfully.');
     }
 
@@ -80,20 +78,21 @@ class SubjectController extends Controller
 
         $subject->update($request->only(['code', 'name', 'course_id', 'units', 'year_level', 'semester', 'status']));
 
-        return redirect()->route('admin.subjects.index')
+        return redirect()->to(CourseController::departmentPage($subject->fresh()->course))
             ->with('success', 'Subject updated successfully.');
     }
 
     public function destroy(Subject $subject)
     {
         if ($subject->enrollments()->count() > 0) {
-            return redirect()->route('admin.subjects.index')
+            return redirect()->to(CourseController::departmentPage($subject->course))
                 ->with('error', 'Cannot delete subject with existing enrollments.');
         }
 
+        $course = $subject->course;
         $subject->forceDelete();
 
-        return redirect()->route('admin.subjects.index')
+        return redirect()->to(CourseController::departmentPage($course))
             ->with('success', 'Subject deleted successfully.');
     }
 }

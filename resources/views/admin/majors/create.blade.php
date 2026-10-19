@@ -15,7 +15,7 @@
                             <select name="course_id" id="course_id" class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="">Select Course</option>
                                 @foreach($courses as $course)
-                                    <option value="{{ $course->id }}" {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                                    <option value="{{ $course->id }}" {{ old('course_id', $selectedCourseId) == $course->id ? 'selected' : '' }}>
                                         {{ $course->code }} - {{ $course->name }}
                                     </option>
                                 @endforeach
@@ -50,7 +50,7 @@
 
                         <div class="flex gap-4 mt-6">
                             <button type="submit" class="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700">Create Major</button>
-                            <a href="{{ route('admin.majors.index') }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">Cancel</a>
+                            <a href="{{ ($back = $courses->firstWhere('id', (int) $selectedCourseId)) ? \App\Http\Controllers\Admin\CourseController::departmentPage($back) : route('admin.departments.index') }}" class="px-4 py-2 font-bold text-white bg-gray-500 rounded hover:bg-gray-700">Cancel</a>
                         </div>
                     </form>
                 </div>

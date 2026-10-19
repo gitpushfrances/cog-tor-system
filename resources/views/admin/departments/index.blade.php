@@ -35,6 +35,8 @@
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Code</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Name</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Courses</th>
+                                    <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Majors</th>
+                                    <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Subjects</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Status</th>
                                     <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Actions</th>
                                 </tr>
@@ -42,9 +44,11 @@
                             <tbody class="divide-y divide-gray-200">
                                 @forelse($departments as $department)
                                 <tr>
-                                    <td class="px-6 py-4 font-semibold">{{ $department->code }}</td>
-                                    <td class="px-6 py-4">{{ $department->name }}</td>
+                                    <td class="px-6 py-4 font-semibold"><a href="{{ route('admin.departments.show', $department) }}" class="text-blue-600 hover:text-blue-900">{{ $department->code }}</a></td>
+                                    <td class="px-6 py-4"><a href="{{ route('admin.departments.show', $department) }}" class="hover:text-blue-900">{{ $department->name }}</a></td>
                                     <td class="px-6 py-4">{{ $department->courses_count }}</td>
+                                    <td class="px-6 py-4">{{ $department->majors_count }}</td>
+                                    <td class="px-6 py-4">{{ $department->subjects_count }}</td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 text-xs rounded-full
                                             {{ $department->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
@@ -53,6 +57,7 @@
                                     </td>
                                     <td class="px-6 py-4 text-sm">
                                         <div class="flex gap-2">
+                                            <a href="{{ route('admin.departments.show', $department) }}" class="font-semibold text-blue-600 hover:text-blue-900">Open</a>
                                             <a href="{{ route('admin.departments.edit', $department) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
                                             @if($department->status === 'active')
                                             <form action="{{ route('admin.departments.deactivate', $department) }}" method="POST" class="inline" id="deactivate-{{ $department->id }}">
@@ -69,7 +74,7 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">No departments found</td>
+                                    <td colspan="7" class="px-6 py-4 text-center text-gray-500">No departments found</td>
                                 </tr>
                                 @endforelse
                             </tbody>

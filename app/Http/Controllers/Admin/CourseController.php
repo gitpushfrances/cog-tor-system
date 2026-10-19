@@ -16,20 +16,28 @@ class CourseController extends Controller
         $this->middleware('action.password')->only(['destroy']);
     }
 
+    /** Courses are managed inside their department (Admin → Departments). */
     public function index()
     {
-        $courses = Course::with('department')
-            ->withCount('subjects', 'students')
-            ->latest()
-            ->paginate(15);
+        return redirect()->route('admin.departments.index');
+    }
 
-        return view('admin.courses.index', compact('courses'));
+    public function show(Course $course)
+    {
+        return redirect()->to(self::departmentPage($course));
     }
 
     public function create()
     {
         $departments = Department::where('status', 'active')->get();
-        return view('admin.courses.create', compact('departments'));
+        $selectedDepartmentId = request('department_id');
+        return view('admin.courses.create', compact('departments', 'selectedDepartmentId'));
+    }
+
+    /** The department page with this course opened. */
+    public static function departmentPage(Course $course): string
+    {
+        return route('admin.departments.show', [$course->department_id, 'course' => $course->id]) . '#course-' . $course->id;
     }
 
     public function store(Request $request)
@@ -46,9 +54,9 @@ class CourseController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        Course::create($validated);
+        $course = Course::create($validated);
 
-        return redirect()->route('admin.courses.index')
+        return redirect()->to(self::departmentPage($course))
             ->with('success', 'Course created successfully.');
     }
 
@@ -74,20 +82,20 @@ class CourseController extends Controller
 
         $course->update($validated);
 
-        return redirect()->route('admin.courses.index')
+        return redirect()->to(self::departmentPage($course))
             ->with('success', 'Course updated successfully.');
     }
 
     public function destroy(Course $course)
     {
         if ($course->subjects()->count() > 0 || $course->students()->count() > 0) {
-            return redirect()->route('admin.courses.index')
+            return redirect()->to(self::departmentPage($course))
                 ->with('error', 'Cannot delete course with existing subjects or students.');
         }
 
         $course->delete();
 
-        return redirect()->route('admin.courses.index')
+        return redirect()->route('admin.departments.show', $course->department_id)
             ->with('success', 'Course deleted successfully.');
     }
 }

@@ -184,34 +184,12 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
             <div class="sdb-section-label sidebar-section-label">Academic</div>
             <div class="sdb-divider sidebar-divider-collapsed" style="display:none;"></div>
 
-            {{-- Academic Setup group --}}
-            <div>
-                <button onclick="sidebarToggleGroup('academic')"
-                        title="Academic Setup"
-                        class="sdb-link sdb-group {{ request()->routeIs('admin.departments.*','admin.courses.*','admin.majors.*','admin.subjects.*') ? 'sdb-active' : '' }}">
-                    <i class="fa-solid fa-building-columns sdb-icon"></i>
-                    <span class="sidebar-label sdb-label" style="flex:1;text-align:left;">Academic Setup</span>
-                    <i id="chevron-academic" class="fa-solid fa-chevron-right sdb-chevron"></i>
-                </button>
-                <div id="group-academic" class="sdb-children">
-                    <a href="{{ route('admin.departments.index') }}" title="Departments"
-                       class="sdb-child {{ request()->routeIs('admin.departments.*') ? 'sdb-child-active' : '' }}">
-                        <i class="fa-solid fa-sitemap sdb-child-icon"></i>Departments
-                    </a>
-                    <a href="{{ route('admin.courses.index') }}" title="Courses"
-                       class="sdb-child {{ request()->routeIs('admin.courses.*') ? 'sdb-child-active' : '' }}">
-                        <i class="fa-solid fa-book-open sdb-child-icon"></i>Courses
-                    </a>
-                    <a href="{{ route('admin.majors.index') }}" title="Majors"
-                       class="sdb-child {{ request()->routeIs('admin.majors.*') ? 'sdb-child-active' : '' }}">
-                        <i class="fa-solid fa-graduation-cap sdb-child-icon"></i>Majors
-                    </a>
-                    <a href="{{ route('admin.subjects.index') }}" title="Subjects"
-                       class="sdb-child {{ request()->routeIs('admin.subjects.*') ? 'sdb-child-active' : '' }}">
-                        <i class="fa-solid fa-chalkboard sdb-child-icon"></i>Subjects
-                    </a>
-                </div>
-            </div>
+            {{-- Departments: courses, majors and subjects are managed inside each department (client B6) --}}
+            <a href="{{ route('admin.departments.index') }}" title="Departments"
+               class="sdb-link {{ request()->routeIs('admin.departments.*','admin.courses.*','admin.majors.*','admin.subjects.*') ? 'sdb-active' : '' }}">
+                <i class="fa-solid fa-sitemap sdb-icon"></i>
+                <span class="sidebar-label sdb-label">Departments</span>
+            </a>
 
             {{-- Academic Calendar group --}}
             <div>
