@@ -47,7 +47,7 @@
             {{-- Filters --}}
             <div class="p-4 mb-4 bg-white rounded-lg shadow">
                 <form method="GET" action="{{ route('registrar.students.index') }}" class="flex flex-wrap gap-3">
-                    <input type="text" name="search" value="{{ request('search') }}"
+                    <input type="text" name="search" value="{{ request('search') }}" data-student-suggest="{{ route('registrar.students.suggest') }}"
                            placeholder="Search name, number, email..."
                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded min-w-48 focus:outline-none focus:ring-1 focus:ring-blue-500">
 

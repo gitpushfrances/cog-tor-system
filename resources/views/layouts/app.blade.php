@@ -161,6 +161,9 @@
             Swal.fire({ icon: 'error', title: 'Not changed', text: @js(session('password_error')), confirmButtonColor: '#c9a84c' });
         </script>
     @endif
+    @if(auth()->user()?->hasRole('registrar'))
+        @include('layouts.partials.student-suggest')
+    @endif
     @stack('scripts')
     </body>
 </html>

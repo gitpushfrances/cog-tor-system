@@ -131,6 +131,7 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     // Student Management
     Route::get('/students', [App\Http\Controllers\Registrar\StudentController::class, 'index'])->name('students.index');
     Route::get('/students/create', [App\Http\Controllers\Registrar\StudentController::class, 'create'])->name('students.create');
+    Route::get('/students/suggest', [App\Http\Controllers\Registrar\StudentController::class, 'suggest'])->name('students.suggest');
     Route::get('/students/bulk', [App\Http\Controllers\Registrar\StudentBulkController::class, 'create'])->name('students.bulk');
     Route::get('/students/bulk/template', [App\Http\Controllers\Registrar\StudentBulkController::class, 'template'])->name('students.bulk.template');
     Route::post('/students/bulk/preview', [App\Http\Controllers\Registrar\StudentBulkController::class, 'preview'])->name('students.bulk.preview');

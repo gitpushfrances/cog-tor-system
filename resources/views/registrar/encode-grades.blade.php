@@ -88,7 +88,7 @@
             </style>
             <form method="GET" action="{{ route('registrar.encode-grades') }}" id="filterForm">
                 <div style="padding:16px 24px;border-bottom:1px solid #f0ebe0;display:flex;gap:10px;flex-wrap:wrap;">
-                    <input type="text" name="search" value="{{ $search }}"
+                    <input type="text" name="search" value="{{ $search }}" data-student-suggest="{{ route('registrar.students.suggest') }}"
                            placeholder="search name or student number..."
                            style="flex:2;min-width:200px;border:1px solid #d4c9b4;border-radius:8px;padding:8px 12px;font-size:0.875rem;outline:none;">
 

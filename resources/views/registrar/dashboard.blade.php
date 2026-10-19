@@ -186,7 +186,7 @@
             <div style="padding:24px;">
                 <form method="GET" action="{{ route('registrar.dashboard') }}" style="display:flex;gap:8px;margin-bottom:20px;">
                     <input type="hidden" name="tab" value="documents">
-                    <input type="text" name="search" value="{{ $search ?? '' }}"
+                    <input type="text" name="search" value="{{ $search ?? '' }}" data-student-suggest="{{ route('registrar.students.suggest') }}" data-suggest-mode="profile"
                            placeholder="Search by student name or student number..."
                            style="flex:1;border:1px solid #d4c9b4;border-radius:8px;padding:9px 14px;font-size:0.875rem;outline:none;"
                            onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">

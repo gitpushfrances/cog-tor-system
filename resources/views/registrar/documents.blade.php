@@ -13,7 +13,7 @@
 
                 <div>
                     <label style="display:block;font-size:0.7rem;font-weight:600;color:#8a7a60;margin-bottom:4px;">Search Student</label>
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Name or student number..."
+                    <input type="text" name="search" value="{{ request('search') }}" data-student-suggest="{{ route('registrar.students.suggest') }}" placeholder="Name or student number..."
                            style="border:1px solid #d4c9b4;border-radius:8px;padding:8px 12px;font-size:0.85rem;min-width:200px;">
                 </div>
 

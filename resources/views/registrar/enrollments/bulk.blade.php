@@ -81,7 +81,7 @@
                     <div class="sm:col-span-2">
                         <label class="block mb-1 text-xs font-medium text-gray-600">Search</label>
                         <div class="flex gap-2">
-                            <input type="text" name="search" value="{{ $search }}" placeholder="Name or student number..."
+                            <input type="text" name="search" value="{{ $search }}" data-student-suggest="{{ route('registrar.students.suggest') }}" placeholder="Name or student number..."
                                 class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400">
                             <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-lg hover:bg-gray-800">Filter</button>
                         </div>

@@ -77,6 +77,46 @@ class StudentController extends Controller
         return view('registrar.students.create', compact('courses', 'majors'));
     }
 
+    /**
+     * Type-ahead student search (client C3): up to 8 students matching every typed word
+     * against student number, first, middle or last name. Exact student-number prefixes first.
+     */
+    public function suggest(Request $request)
+    {
+        $q = trim((string) $request->query('q', ''));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        $terms = array_slice(preg_split('/[\s,]+/', $q, -1, PREG_SPLIT_NO_EMPTY), 0, 4);
+        $like = fn (string $term) => '%' . addcslashes($term, '%_\\') . '%';
+
+        $students = Student::with('course')
+            ->where(function ($query) use ($terms, $like) {
+                foreach ($terms as $term) {
+                    $query->where(fn ($w) => $w->where('student_number', 'like', $like($term))
+                        ->orWhere('first_name', 'like', $like($term))
+                        ->orWhere('middle_name', 'like', $like($term))
+                        ->orWhere('last_name', 'like', $like($term)));
+                }
+            })
+            ->orderByRaw('student_number LIKE ? DESC', [addcslashes($q, '%_\\') . '%'])
+            ->orderByRaw('CASE WHEN student_number LIKE ? THEN student_number END', [addcslashes($q, '%_\\') . '%'])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->limit(8)
+            ->get();
+
+        return response()->json($students->map(fn ($s) => [
+            'id'          => $s->id,
+            'number'      => $s->student_number,
+            'name'        => $s->last_name . ', ' . $s->first_name . ($s->middle_name ? ' ' . mb_substr($s->middle_name, 0, 1) . '.' : ''),
+            'course'      => trim(($s->course?->code ?? '') . ' ' . $s->year_level),
+            'status'      => $s->status,
+            'profile_url' => route('registrar.students.profile', $s),
+        ]));
+    }
+
     /** Validation rules for a new student (Add Student form and Bulk Add). */
     public static function newStudentRules(): array
     {
