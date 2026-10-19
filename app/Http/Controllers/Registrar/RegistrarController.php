@@ -340,8 +340,8 @@ class RegistrarController extends Controller
         $request->validate([
             'subject_id'    => 'required|exists:subjects,id',
             'semester_id'   => 'nullable|exists:semesters,id',
-            'grade'         => 'required|numeric|min:1.00|max:5.00',
-            're_exam_grade' => 'nullable|numeric|min:1.00|max:5.00',
+            'grade'         => 'required|numeric|decimal:0,2|min:1.00|max:5.00',
+            're_exam_grade' => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
         ]);
 
         $subject = Subject::findOrFail($request->input('subject_id'));
@@ -427,9 +427,9 @@ class RegistrarController extends Controller
             'student_id'  => 'required|exists:students,id',
             'semester_id' => 'required|exists:semesters,id',
             'grades'      => 'required|array|min:1',
-            'grades.*'    => 'required|numeric|min:1.00|max:5.00',
+            'grades.*'    => 'required|numeric|decimal:0,2|min:1.00|max:5.00',
             're_exam'     => 'nullable|array',
-            're_exam.*'   => 'nullable|numeric|min:1.00|max:5.00',
+            're_exam.*'   => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
         ]);
 
         $studentId   = $request->input('student_id');
@@ -719,9 +719,9 @@ class RegistrarController extends Controller
             'semester_id' => 'required|exists:semesters,id',
             'subject_id'  => 'required|exists:subjects,id',
             'grades'      => 'required|array',
-            'grades.*'    => 'nullable|numeric|min:1.00|max:5.00',
+            'grades.*'    => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
             're_exam'     => 'nullable|array',
-            're_exam.*'   => 'nullable|numeric|min:1.00|max:5.00',
+            're_exam.*'   => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
         ]);
 
         $semesterId = (int) $request->input('semester_id');

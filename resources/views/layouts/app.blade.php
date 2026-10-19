@@ -140,6 +140,21 @@
                 confirmButtonText: form.getAttribute('data-password-button') || 'Confirm',
             });
         });
+
+        // Double-click guard: a POST form is sent once; a second click within 8 seconds is ignored.
+        // (Forms sent by the password dialogs use form.submit(), which skips this listener.)
+        document.addEventListener('submit', function (event) {
+            const form = event.target;
+            if (event.defaultPrevented || !(form instanceof HTMLFormElement) || (form.getAttribute('method') || 'get').toLowerCase() !== 'post') return;
+            if (form.dataset.submitting) {
+                event.preventDefault();
+                return;
+            }
+            form.dataset.submitting = '1';
+            setTimeout(() => { delete form.dataset.submitting; }, 8000);
+        });
+        // Coming back with the browser's Back button: forms are usable again.
+        window.addEventListener('pageshow', () => document.querySelectorAll('form[data-submitting]').forEach((f) => delete f.dataset.submitting));
     </script>
     @if(session('password_error'))
         <script>

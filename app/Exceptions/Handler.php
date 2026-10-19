@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
@@ -25,6 +26,18 @@ class Handler extends ExceptionHandler
     {
         $this->reportable(function (Throwable $e) {
             //
+        });
+
+        // A second save of the same record (double click, two tabs) hits a unique key:
+        // tell the user instead of showing a server error. Nothing is saved twice.
+        $this->renderable(function (UniqueConstraintViolationException $e, $request) {
+            $message = 'This was already saved (for example by a double click or another tab). Nothing was saved twice. Refresh the page to see the current data.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $message, 'error' => $message], 409);
+            }
+
+            return back()->withInput($request->except($this->dontFlash))->with('error', $message);
         });
     }
 }

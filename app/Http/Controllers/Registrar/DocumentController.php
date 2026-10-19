@@ -439,9 +439,13 @@ class DocumentController extends Controller
         $supersededIds = [];
 
         $cog = \DB::transaction(function () use ($request, $student, $semester, $gradeData, $semesterGwa, &$supersededIds) {
+            // One generation at a time per student (double click, two tabs): the second waits, then supersedes the first.
+            Student::whereKey($student->id)->lockForUpdate()->first();
+
             $supersededIds = CogRecord::where('student_id', $student->id)
                 ->where('semester_id', $semester->id)
                 ->where('is_current', true)
+                ->lockForUpdate()
                 ->pluck('id')
                 ->toArray();
 
@@ -571,8 +575,12 @@ class DocumentController extends Controller
         $supersededIds = [];
 
         $tor = \DB::transaction(function () use ($student, $yearGroups, $cumulativeGwa, $validated, &$supersededIds) {
+            // One generation at a time per student (double click, two tabs): the second waits, then supersedes the first.
+            Student::whereKey($student->id)->lockForUpdate()->first();
+
             $supersededIds = TorRecord::where('student_id', $student->id)
                 ->where('is_current', true)
+                ->lockForUpdate()
                 ->pluck('id')
                 ->toArray();
 

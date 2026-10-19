@@ -248,10 +248,10 @@
                 </div>
                 <div style="padding:24px;">
                     <label style="font-size:0.75rem;font-weight:600;color:#4a4535;display:block;margin-bottom:6px;">Grade (1.00–5.00)</label>
-                    <input type="number" id="gradeEditInput" min="1.00" max="5.00" step="0.25" placeholder="e.g. 1.75"
+                    <input type="number" id="gradeEditInput" min="1.00" max="5.00" step="0.01" placeholder="e.g. 1.75"
                            style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:10px 12px;font-size:1rem;text-align:center;outline:none;">
                     <label style="font-size:0.75rem;font-weight:600;color:#4a4535;display:block;margin:14px 0 6px;">Re-Exam Grade (optional)</label>
-                    <input type="number" id="reExamEditInput" min="1.00" max="5.00" step="0.25" placeholder="leave blank if none"
+                    <input type="number" id="reExamEditInput" min="1.00" max="5.00" step="0.01" placeholder="leave blank if none"
                            style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:10px 12px;font-size:1rem;text-align:center;outline:none;">
                     <div id="gradeEditError" style="color:#dc2626;font-size:0.78rem;margin-top:8px;display:none;"></div>
                 </div>
@@ -331,7 +331,7 @@
                                     data-finalized="{{ $isFinalized ? $existingGrade : '' }}"
                                     data-original="{{ $existing?->grade ? $existingGrade : '' }}"
                                     @if($gradesLocked && $existing?->grade) data-locked readonly @endif
-                                    min="1.00" max="5.00" step="0.25"
+                                    min="1.00" max="5.00" step="0.01"
                                     placeholder="e.g. 1.75"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
                                     onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'"
@@ -345,7 +345,7 @@
                                     data-finalized="{{ $isFinalized ? ($existingReExam === '' ? '-' : $existingReExam) : '' }}"
                                     data-original="{{ $existing?->grade ? ($existingReExam === '' ? '-' : $existingReExam) : '' }}"
                                     @if($gradesLocked && $existing?->grade) data-locked readonly @endif
-                                    min="1.00" max="5.00" step="0.25"
+                                    min="1.00" max="5.00" step="0.01"
                                     placeholder="optional"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
                                     onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">

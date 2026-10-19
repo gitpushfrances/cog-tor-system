@@ -19,11 +19,8 @@
                 </div>
             </div>
 
-            <div class="p-4 sm:p-8 bg-white shadow sm:rounded-lg">
-                <div class="max-w-xl">
-                    @include('profile.partials.delete-user-form')
-                </div>
-            </div>
+            {{-- Self-deletion is disabled: accounts are part of the record (enrollments, grades, documents).
+                 The Admin sets an account to Inactive instead. --}}
         </div>
     </div>
 </x-app-layout>
