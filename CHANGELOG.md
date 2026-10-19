@@ -11,9 +11,9 @@
 
 ## CURRENT STATE (October 20, 2026) - READ THIS FIRST
 
-**Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass. Follow-up requests (Phase 8): 8a strict grade lock - done; 8b in-system masterlist with grade entry and student sections - next; 8c letterhead on TOR/COG - waiting for the client's file.
+**Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass. Follow-up requests (Phase 8): 8a strict grade lock - done; 8b in-system masterlist with grade entry and student sections - done; 8c letterhead on TOR/COG - waiting for the client's file.
 **Install / update on any PC:** `bash scripts/setup.sh` (see README, "Install or Update"). Database changes in this round are additive: a plain `php artisan migrate` is enough for an install that is already on the Phase 13.25 schema.
-**Tests:** `php artisan test` - 54 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
+**Tests:** `php artisan test` - 62 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
 
 The Phase 13 notes further down are kept as history.
 
@@ -95,6 +95,11 @@ Source: client's ADJUSTMENT.docx (Waray) - 3 TOR items (A1-A3), 6 fixes (B1-B6),
 - Replaces the 4b rule (past years open for missing grades; corrections with reason + password). The reason dialog and override logging were removed; old "override" entries stay in the Activity Log.
 - Finalizing pending grades is still allowed in a closed semester: it changes no grade value, and otherwise those grades could never reach the TOR.
 - By Student / By Subject show closed semesters as view only; the grade history modal shows "Closed" instead of Edit/Encode; the profile hides Undo Finalize for closed semesters.
+
+### Phase 8b - Sections and in-system masterlist (client request, October 20)
+- Students have an optional **Section** (e.g. A, 1B), stored in capitals: Add/Edit Student, Bulk Add template (new optional "Section" column; old templates still work), student list, profile. Migration `2026_10_20_000001` (nullable column + index; existing students keep no section).
+- **Encode Grades > Masterlist**: course + year level (+ section) for one semester; subjects across, students down (male, then female), a Grade and a Re-Ex input per enrolled subject ("—" = not enrolled). Only changed cells are sent and saved, in one transaction; changing a saved grade asks for the password; a closed semester is view only (8a rule). Enter moves down the column; leaving with unsaved changes warns.
+- Excel masterlist export takes the section too ("Export to Excel" on the Masterlist page).
 
 ### Known limitations (deliberate)
 - INC / Dr / WP / IP marks are not stored (grades are numeric 1.00-5.00). Not in the client's list; would need a schema change.

@@ -30,6 +30,7 @@ class Student extends Model
         'high_school',
         'high_school_graduation_year',
         'year_level',
+        'section',
         'student_type',
         'status',
     ];
@@ -37,6 +38,13 @@ class Student extends Model
     protected $casts = [
         'birth_date' => 'date',
     ];
+
+    /** Sections are stored trimmed and in capitals ("a " -> "A"); blank means no section. */
+    public function setSectionAttribute($value): void
+    {
+        $value = trim((string) $value);
+        $this->attributes['section'] = $value === '' ? null : mb_strtoupper($value);
+    }
 
     /**
      * 2x2 ID picture as a data URI (used by the TOR PDF, its preview and the TOR modal).

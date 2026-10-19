@@ -134,6 +134,7 @@ class StudentController extends Controller
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
+            'section'        => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9 \-]+$/'],
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
         ] + self::backgroundRules();
@@ -177,6 +178,7 @@ class StudentController extends Controller
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
+            'section'        => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9 \-]+$/'],
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
         ] + $this->backgroundRules(), $this->validationMessages());
@@ -276,6 +278,7 @@ class StudentController extends Controller
             'high_school_graduation_year.digits' => 'Enter a 4-digit year, e.g. 2018.',
             'photo.max'                          => 'The picture must not be larger than 5 MB.',
             'photo.dimensions'                   => 'The picture must be at least 200 x 200 pixels.',
+            'section.regex'                      => 'Section can use letters, numbers, spaces and dashes only (e.g. A or 1B).',
         ];
     }
 }

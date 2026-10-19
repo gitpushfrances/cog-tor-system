@@ -737,4 +737,135 @@ class RegistrarController extends Controller
             ->route('registrar.encode-grades.by-subject', $request->only(['school_year_id', 'semester_id', 'department_id', 'course_id', 'subject_id']))
             ->with('success', count($grades) . " grade(s) for {$subject->code} saved and finalized.");
     }
+
+    /**
+     * Masterlist: one course + year level (+ section) in one semester. Subjects across, students
+     * down (male, then female), a Grade and a Re-Ex input per enrolled subject. Same data as the
+     * Excel masterlist export; editable only while the semester accepts grades.
+     */
+    public function masterlistForm(Request $request)
+    {
+        $schoolYears = SchoolYear::whereIn('status', ['active', 'completed'])->orderBy('year_code', 'desc')->get();
+        $courses     = Course::active()->orderBy('code')->get();
+
+        $schoolYear = $schoolYears->firstWhere('id', (int) $request->input('school_year_id'))
+            ?? $schoolYears->firstWhere('status', 'active') ?? $schoolYears->first();
+        $semesters = $schoolYear
+            ? Semester::with('schoolYear')->where('school_year_id', $schoolYear->id)->orderBy('semester_order')->get()
+            : collect();
+        $semester = $semesters->firstWhere('id', (int) $request->input('semester_id'))
+            ?? $semesters->first(fn ($s) => $s->acceptsGrades()) ?? $semesters->first();
+
+        $course    = $courses->firstWhere('id', (int) $request->input('course_id'));
+        $yearLevel = in_array((int) $request->input('year_level'), range(1, 5), true) ? (int) $request->input('year_level') : null;
+        $section   = mb_strtoupper(trim((string) $request->input('section'))) ?: null;
+
+        $subjects = collect();
+        $sections = collect();
+        $male = $female = collect();
+
+        if ($course && $yearLevel && $semester) {
+            $subjects = Subject::where('course_id', $course->id)
+                ->where('year_level', $yearLevel)
+                ->where('semester', $semester->semester_name)
+                ->active()
+                ->orderBy('code')
+                ->get();
+
+            // Every non-dropped enrollment in these subjects this semester (irregular students from other courses included).
+            $enrollments = Enrollment::with(['student', 'grade'])
+                ->whereIn('subject_id', $subjects->pluck('id'))
+                ->where('semester_id', $semester->id)
+                ->where('status', '!=', 'dropped')
+                ->get()
+                ->filter(fn ($e) => $e->student);
+
+            $sections = $enrollments->pluck('student.section')->filter()->unique()->sort()->values();
+            if ($section) {
+                $enrollments = $enrollments->filter(fn ($e) => $e->student->section === $section);
+            }
+
+            $rows = $enrollments->groupBy('student_id')
+                ->map(fn ($items) => ['student' => $items->first()->student, 'cells' => $items->keyBy('subject_id')])
+                ->sortBy(fn ($row) => mb_strtolower($row['student']->last_name . ' ' . $row['student']->first_name))
+                ->values();
+            $male   = $rows->filter(fn ($row) => $row['student']->gender === 'Male')->values();
+            $female = $rows->filter(fn ($row) => $row['student']->gender !== 'Male')->values();
+        }
+
+        return view('registrar.encode-grades-masterlist', compact(
+            'schoolYears', 'courses', 'semesters', 'schoolYear', 'semester', 'course', 'yearLevel', 'section',
+            'subjects', 'sections', 'male', 'female'
+        ));
+    }
+
+    /** Saves the changed masterlist cells (keyed by enrollment id) of one semester, all or nothing. */
+    public function saveMasterlist(Request $request)
+    {
+        $request->validate([
+            'semester_id' => 'required|exists:semesters,id',
+            'expected'    => 'required|integer|min:0',
+            'grades'      => 'nullable|array',
+            'grades.*'    => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
+            're_exam'     => 'nullable|array',
+            're_exam.*'   => 'nullable|numeric|decimal:0,2|min:1.00|max:5.00',
+        ]);
+
+        $semester = Semester::with('schoolYear')->findOrFail($request->input('semester_id'));
+        if ($rejection = $this->rejectClosedSemester($request, $semester)) {
+            return $rejection;
+        }
+
+        // The page sends only changed cells; a count mismatch means the server cut the form short (PHP max_input_vars).
+        $sent = $request->input('grades', []);
+        if (count($sent) !== (int) $request->input('expected')) {
+            return back()->withInput()->with('error', 'Not every changed grade reached the server, so nothing was saved. Save fewer grades at a time.');
+        }
+
+        $grades  = array_filter($sent, fn ($value) => filled($value));
+        $reExams = $request->input('re_exam', []);
+        foreach ($reExams as $enrollmentId => $reExam) {
+            if (filled($reExam) && ! array_key_exists($enrollmentId, $grades)) {
+                return back()->withInput()->with('error', 'A re-exam grade needs a grade in the same cell. Nothing was saved.');
+            }
+        }
+        if (empty($grades)) {
+            return back()->withInput()->with('error', 'No grade was entered or changed.');
+        }
+
+        $enrollments = Enrollment::with('grade')
+            ->whereIn('id', array_keys($grades))
+            ->where('semester_id', $semester->id)
+            ->where('status', '!=', 'dropped')
+            ->get()
+            ->keyBy('id');
+        if ($enrollments->count() !== count($grades)) {
+            return back()->withInput()->with('error', 'Some cells no longer match an enrollment in this semester. Reload the masterlist and try again. Nothing was saved.');
+        }
+
+        $values  = fn ($e) => [$grades[$e->id], $reExams[$e->id] ?? null];
+        $changed = $this->changedGrades($enrollments, $values);
+        if ($rejection = $this->guardGradeChanges($request, $semester, $changed)) {
+            return $rejection;
+        }
+
+        // New grades, plus existing ones whose value actually changed.
+        $toSave = $enrollments->filter(fn ($e) => ! $e->grade || $this->gradeDiffers($e->grade, ...$values($e)));
+        $registrarId = auth()->id();
+
+        try {
+            DB::transaction(function () use ($toSave, $values, $semester, $registrarId) {
+                foreach ($toSave as $e) {
+                    [$grade, $reExam] = $values($e);
+                    $this->saveFinalizedGrade($e->student_id, $e->subject_id, $semester->id, $grade, $reExam, $registrarId);
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::error('Masterlist save failed, transaction rolled back', ['semester_id' => $semester->id, 'error' => $e->getMessage()]);
+
+            return back()->withInput()->with('error', 'Something went wrong while saving grades. No grades were changed. Please try again.');
+        }
+
+        return back()->with('success', $toSave->count() . ' grade(s) saved and finalized.');
+    }
 }

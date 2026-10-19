@@ -2,7 +2,7 @@
     <div class="sticky top-0 z-10 flex items-start justify-between px-6 py-4 bg-white border-b border-gray-100 rounded-t-xl">
         <div>
             <h3 class="text-lg font-semibold text-gray-800">{{ $student->getFullName() }}</h3>
-            <p class="text-sm text-gray-500">{{ $student->student_number }} &bull; {{ $student->course->code ?? 'N/A' }} &bull; Year {{ $student->year_level }}</p>
+            <p class="text-sm text-gray-500">{{ $student->student_number }} &bull; {{ $student->course->code ?? 'N/A' }} &bull; Year {{ $student->year_level }}@if($student->section) &bull; Section {{ $student->section }}@endif</p>
         </div>
         <button type="button" onclick="closeStudentDetails()" class="text-gray-400 transition hover:text-gray-600">
             <i class="text-xl fa-solid fa-xmark"></i>

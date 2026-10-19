@@ -24,7 +24,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
  * (grouped by semester), students down (MALE then FEMALE).
  *
  * - new MasterlistExport()                          → blank template (import is disabled; kept for reference)
- * - new MasterlistExport($schoolYear, $course, $yr) → the real masterlist with finalized grades
+ * - new MasterlistExport($schoolYear, $course, $yr[, $section]) → the real masterlist with finalized grades (one section, or all)
  */
 class MasterlistExport implements FromArray, WithEvents, WithTitle
 {
@@ -46,10 +46,10 @@ class MasterlistExport implements FromArray, WithEvents, WithTitle
     /** Real-export data (null in template mode). */
     protected ?array $data = null;
 
-    public function __construct(?SchoolYear $schoolYear = null, ?Course $course = null, ?int $yearLevel = null)
+    public function __construct(?SchoolYear $schoolYear = null, ?Course $course = null, ?int $yearLevel = null, ?string $section = null)
     {
         if ($schoolYear && $course && $yearLevel) {
-            $this->data = $this->loadData($schoolYear, $course, $yearLevel);
+            $this->data = $this->loadData($schoolYear, $course, $yearLevel, $section);
         }
 
         $this->firstSemStartCol = $this->nameCol + 1;
@@ -74,7 +74,7 @@ class MasterlistExport implements FromArray, WithEvents, WithTitle
     }
 
     /** Subjects of the course + year, per semester (the curriculum columns), and every enrolled student's finalized grades. */
-    protected function loadData(SchoolYear $schoolYear, Course $course, int $yearLevel): array
+    protected function loadData(SchoolYear $schoolYear, Course $course, int $yearLevel, ?string $section = null): array
     {
         $subjects = Subject::where('course_id', $course->id)
             ->where('year_level', $yearLevel)
@@ -97,7 +97,8 @@ class MasterlistExport implements FromArray, WithEvents, WithTitle
             ->whereIn('semester_id', $semesterIds->values())
             ->where('status', '!=', 'dropped')
             ->get()
-            ->filter(fn ($e) => $e->student && $semesterIds->get($subjects->firstWhere('id', $e->subject_id)?->semester) === $e->semester_id);
+            ->filter(fn ($e) => $e->student && $semesterIds->get($subjects->firstWhere('id', $e->subject_id)?->semester) === $e->semester_id)
+            ->filter(fn ($e) => $section === null || $e->student->section === $section);
 
         $rows = $enrollments->groupBy('student_id')->map(function (Collection $items) {
             $student = $items->first()->student;
@@ -113,6 +114,7 @@ class MasterlistExport implements FromArray, WithEvents, WithTitle
             'schoolYear' => $schoolYear,
             'course'     => $course,
             'yearLevel'  => $yearLevel,
+            'section'    => $section,
             'groups'     => $groups,
             'male'       => $rows->filter(fn ($row) => $row['student']->gender === 'Male')->values(),
             'female'     => $rows->filter(fn ($row) => $row['student']->gender !== 'Male')->values(),
@@ -414,7 +416,7 @@ class MasterlistExport implements FromArray, WithEvents, WithTitle
         $this->writeHeader($sheet, $lastColLetter);
         $sheet->setCellValue('C2', $data['course']->name);
         $sheet->setCellValue('C3', $data['course']->code);
-        $sheet->setCellValue('H3', $data['yearLevel']);
+        $sheet->setCellValue('H3', $data['yearLevel'] . ($data['section'] ? ' - Section ' . $data['section'] : ''));
         $sheet->setCellValue('C5', $data['schoolYear']->year_code);
         $sheet->getStyle('H3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
 

@@ -407,10 +407,15 @@ The message `Sending notification failed` after `backup:run` is **harmless** —
 | Place of Birth, Elementary School / Year, High School / Year | no | Same rules as Add Student |
 | Course Code | yes | Must match an active course |
 | Year Level | yes | 1-5 |
+| Section | no | e.g. `A`; stored in capitals. Older templates without this column still work |
 | Student Type | no | Regular (default), Irregular, Transferee |
 | Status | no | active (default), inactive, graduated, dropped |
 
 Rows with errors cannot be added; possible duplicates (same name and birth date) are shown unticked. The old one-step import is disabled.
+
+## Masterlist (grade entry)
+
+**Registrar > Encode Grades > Masterlist**: pick the school year, semester, course, year level and (optionally) section. Subjects run across, students down (male, then female), with a Grade and a Re-Ex box for every subject the student is enrolled in ("—" = not enrolled). Type the grades, then **Save & Finalize Changes**: only changed cells are saved. Changing a saved grade asks for your password. Only the active semester of the active school year can be edited; other semesters are view only. **Export to Excel** downloads the same class as the Excel masterlist.
 
 ---
 

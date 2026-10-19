@@ -121,7 +121,7 @@
                                 <div class="text-xs text-gray-500">{{ $student->email }}</div>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-700">{{ $student->course->code }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-700">Year {{ $student->year_level }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-700">Year {{ $student->year_level }}@if($student->section) <span class="text-gray-500">&middot; Sec. {{ $student->section }}</span>@endif</td>
                             <td class="px-6 py-4">
                                 @if($student->status === 'active')
                                     <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">Active</span>

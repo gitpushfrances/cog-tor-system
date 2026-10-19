@@ -88,6 +88,7 @@ class ExcelController extends Controller
             'school_year_id' => 'required|exists:school_years,id',
             'course_id'      => 'required|exists:courses,id',
             'year_level'     => 'required|integer|between:1,5',
+            'section'        => 'nullable|string|max:20',
         ]);
         if ($validator->fails()) {
             return back()->with('error', 'Masterlist export: pick a School Year, Course and Year Level.');
@@ -96,10 +97,12 @@ class ExcelController extends Controller
         $schoolYear = SchoolYear::findOrFail($request->input('school_year_id'));
         $course     = Course::findOrFail($request->input('course_id'));
         $yearLevel  = (int) $request->input('year_level');
+        $section    = mb_strtoupper(trim((string) $request->input('section'))) ?: null;
+        $label      = "{$course->code} Year {$yearLevel}" . ($section ? " Section {$section}" : '');
 
-        $export = new MasterlistExport($schoolYear, $course, $yearLevel);
+        $export = new MasterlistExport($schoolYear, $course, $yearLevel, $section);
         if ($export->studentCount() === 0) {
-            return back()->with('error', "No students are enrolled in {$course->code} Year {$yearLevel} subjects for SY {$schoolYear->year_code}. Nothing to export.");
+            return back()->with('error', "No students are enrolled in {$label} subjects for SY {$schoolYear->year_code}. Nothing to export.");
         }
 
         activity('document')
@@ -108,12 +111,15 @@ class ExcelController extends Controller
             ->withProperties([
                 'course'      => $course->code,
                 'year_level'  => $yearLevel,
+                'section'     => $section,
                 'school_year' => $schoolYear->year_code,
                 'students'    => $export->studentCount(),
             ])
-            ->log("Exported masterlist {$course->code} Year {$yearLevel}, SY {$schoolYear->year_code}");
+            ->log("Exported masterlist {$label}, SY {$schoolYear->year_code}");
 
-        return Excel::download($export, "masterlist_{$course->code}_Y{$yearLevel}_{$schoolYear->year_code}.xlsx");
+        $file = "masterlist_{$course->code}_Y{$yearLevel}" . ($section ? '_' . preg_replace('/[^A-Z0-9]+/', '', $section) : '') . "_{$schoolYear->year_code}.xlsx";
+
+        return Excel::download($export, $file);
     }
 
     public function masterlistTemplate()

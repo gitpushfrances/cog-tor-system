@@ -124,6 +124,8 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::post('/encode-grades', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeGrades'])->name('encode-grades.store');
     Route::get('/encode-grades/by-subject', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeBySubjectForm'])->name('encode-grades.by-subject');
     Route::post('/encode-grades/by-subject', [App\Http\Controllers\Registrar\RegistrarController::class, 'encodeBySubject'])->name('encode-grades.by-subject.store');
+    Route::get('/encode-grades/masterlist', [App\Http\Controllers\Registrar\RegistrarController::class, 'masterlistForm'])->name('encode-grades.masterlist');
+    Route::post('/encode-grades/masterlist', [App\Http\Controllers\Registrar\RegistrarController::class, 'saveMasterlist'])->name('encode-grades.masterlist.store');
     Route::get('/students/{student}/grade-history', [App\Http\Controllers\Registrar\RegistrarController::class, 'studentGradeHistory'])->name('students.grade-history');
     Route::post('/students/{student}/quick-grade', [App\Http\Controllers\Registrar\RegistrarController::class, 'quickEncodeGrade'])->name('students.quick-grade');
     Route::post('/students/{student}/semesters/{semester}/unfinalize', [App\Http\Controllers\Registrar\RegistrarController::class, 'unfinalizeSemester'])->name('students.semesters.unfinalize');

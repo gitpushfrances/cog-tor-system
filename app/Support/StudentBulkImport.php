@@ -41,6 +41,7 @@ class StudentBulkImport
         'high_school_graduation_year' => 'High School Year Graduated',
         'course_code'                 => 'Course Code *',
         'year_level'                  => 'Year Level *',
+        'section'                     => 'Section',
         'student_type'                => 'Student Type',
         'status'                      => 'Status',
     ];
@@ -106,7 +107,7 @@ class StudentBulkImport
             '3. Birth Date: YYYY-MM-DD (e.g. 2004-03-15) or MM/DD/YYYY.',
             '4. Gender, Course Code, Year Level, Student Type and Status have dropdowns.',
             '5. Student Type is Regular if left blank. Status is active if left blank.',
-            '6. Years graduated: 4-digit year (e.g. 2016).',
+            '6. Years graduated: 4-digit year (e.g. 2016). Section is optional (e.g. A).',
             '7. Up to ' . self::MAX_ROWS . ' students per file.',
             '',
             'Nothing is saved on upload. You get a preview first: errors, possible duplicates and',
@@ -307,6 +308,7 @@ class StudentBulkImport
         $status = strtolower((string) $data['status']);
         $data['status'] = $status === '' ? 'active' : $status;
         $data['course_code'] = mb_strtoupper((string) $data['course_code']);
+        $data['section'] = mb_strtoupper(trim((string) $data['section']));
 
         foreach (['middle_name', 'suffix', 'phone', 'address', 'place_of_birth', 'elementary_school', 'high_school'] as $field) {
             $data[$field] = $data[$field] === '' ? null : (string) $data[$field];

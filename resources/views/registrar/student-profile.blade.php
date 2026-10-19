@@ -11,7 +11,7 @@
                 <p class="text-sm text-gray-500">
                     {{ $student->student_number }} &bull;
                     {{ $student->course->name ?? 'N/A' }} &bull;
-                    Year {{ $student->year_level }} &bull;
+                    Year {{ $student->year_level }}@if($student->section) &bull; Section {{ $student->section }}@endif &bull;
                     <span class="capitalize">{{ $student->status }}</span>
                 </p>
                 @if($cumulativeGwa)

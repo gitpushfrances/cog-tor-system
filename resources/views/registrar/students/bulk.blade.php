@@ -107,7 +107,7 @@
                                     <td style="{{ $td }}color:#8a7a60;">{{ $row['line'] }}</td>
                                     <td style="{{ $td }}font-family:monospace;white-space:nowrap;">{{ $d['student_number'] }}</td>
                                     <td style="{{ $td }}font-weight:600;color:#1a1a2e;">{{ $d['last_name'] }}, {{ $d['first_name'] }} {{ $d['middle_name'] }} {{ $d['suffix'] }}</td>
-                                    <td style="{{ $td }}white-space:nowrap;">{{ $d['course_code'] }} · {{ $d['year_level'] }}</td>
+                                    <td style="{{ $td }}white-space:nowrap;">{{ $d['course_code'] }} · {{ $d['year_level'] }}{{ ($d['section'] ?? '') !== '' ? ' · ' . $d['section'] : '' }}</td>
                                     <td style="{{ $td }}">{{ $d['student_type'] }}</td>
                                     <td style="{{ $td }}white-space:nowrap;">{{ $d['birth_date'] }}</td>
                                     <td style="{{ $td }}">{{ $d['gender'] }}</td>
