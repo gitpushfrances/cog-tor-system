@@ -86,7 +86,7 @@
                 <td class="center">{{ $courseCode }}</td>
                 <td class="center">{{ $courseNo }}</td>
                 <td>{{ $row['subject_name'] }}</td>
-                <td class="center">{{ number_format($row['grade'], 1) }}</td>
+                <td class="center">{{ number_format($row['grade'], 2) }}</td>
                 <td class="center">{{ $row['units'] }}</td>
             </tr>
             @endforeach

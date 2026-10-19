@@ -15,7 +15,7 @@
                     <span class="capitalize">{{ $student->status }}</span>
                 </p>
                 @if($cumulativeGwa)
-                    <p class="mt-1 text-sm font-semibold text-indigo-700">Cumulative GWA: {{ number_format($cumulativeGwa, 1) }}</p>
+                    <p class="mt-1 text-sm font-semibold text-indigo-700">Cumulative GWA: {{ number_format($cumulativeGwa, 2) }}</p>
                 @endif
             </div>
 
@@ -119,7 +119,7 @@
                                             <td class="px-6 py-3 text-sm">{{ $enrollment->subject->units }}</td>
                                             <td class="px-6 py-3 text-sm font-bold
                                                 {{ $enrollment->grade->grade == 5.00 ? 'text-red-600' : 'text-gray-800' }}">
-                                                {{ number_format($enrollment->grade->grade, 1) }}
+                                                {{ number_format($enrollment->grade->grade, 2) }}
                                             </td>
                                             <td class="px-6 py-3 text-sm text-gray-500">{{ $enrollment->grade->remarks ?? '—' }}</td>
                                         </tr>
