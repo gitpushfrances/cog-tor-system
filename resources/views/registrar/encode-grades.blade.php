@@ -285,11 +285,10 @@
 
             @php $gradesLocked = $selectedSemesterModel?->isGradeLocked() ?? false; @endphp
             @if($gradesLocked)
-                @include('registrar.partials.grade-lock-banner', ['schoolYear' => $selectedSemesterModel->schoolYear->year_code ?? ''])
+                @include('registrar.partials.grade-lock-banner', ['semester' => $selectedSemesterModel])
             @endif
 
-            <form method="POST" action="{{ route('registrar.encode-grades.store') }}" id="encodeForm"
-                  data-school-year="{{ $selectedSemesterModel->schoolYear->year_code ?? '' }}">
+            <form method="POST" action="{{ route('registrar.encode-grades.store') }}" id="encodeForm">
                 @csrf
                 <input type="hidden" name="student_id"  value="{{ $selectedStudent }}">
                 <input type="hidden" name="semester_id" value="{{ $selectedSemester }}">
@@ -329,8 +328,7 @@
                                     name="grades[{{ $subject->id }}]"
                                     value="{{ $existingGrade }}"
                                     data-finalized="{{ $isFinalized ? $existingGrade : '' }}"
-                                    data-original="{{ $existing?->grade ? $existingGrade : '' }}"
-                                    @if($gradesLocked && $existing?->grade) data-locked readonly @endif
+                                    @if($gradesLocked) disabled @endif
                                     min="1.00" max="5.00" step="0.01"
                                     placeholder="e.g. 1.75"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
@@ -343,8 +341,7 @@
                                     name="re_exam[{{ $subject->id }}]"
                                     value="{{ $existingReExam }}"
                                     data-finalized="{{ $isFinalized ? ($existingReExam === '' ? '-' : $existingReExam) : '' }}"
-                                    data-original="{{ $existing?->grade ? ($existingReExam === '' ? '-' : $existingReExam) : '' }}"
-                                    @if($gradesLocked && $existing?->grade) data-locked readonly @endif
+                                    @if($gradesLocked) disabled @endif
                                     min="1.00" max="5.00" step="0.01"
                                     placeholder="optional"
                                     style="width:100px;border:1px solid #d4c9b4;border-radius:6px;padding:6px 10px;font-size:0.875rem;text-align:center;outline:none;"
@@ -373,12 +370,14 @@
                        style="padding:10px 20px;border:1px solid #e2d9c8;border-radius:8px;font-size:0.875rem;color:#6b5f4a;text-decoration:none;font-weight:600;">
                         Clear
                     </a>
+                    @unless($gradesLocked)
                     <button type="button" onclick="confirmSave()"
                         style="background:#c9a84c;color:#fff;padding:10px 24px;border-radius:8px;font-size:0.875rem;font-weight:700;border:none;cursor:pointer;"
                         onmouseover="this.style.background='#b8963e'" onmouseout="this.style.background='#c9a84c'">
                         <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i>
                         Save & Finalize Grades
                     </button>
+                    @endunless
                 </div>
             </form>
         </div>
@@ -427,18 +426,6 @@ function confirmSave() {
 
     const sameGrade = (a, b) => (a === '' ? null : Number(a)) === (b === '' || b === '-' ? null : Number(b));
 
-    // Past school year: changing an existing grade needs a reason and the password.
-    const changesLocked = Array.from(document.querySelectorAll('#encodeForm input[data-locked]'))
-        .some((input) => !sameGrade(input.value, input.dataset.original));
-
-    if (changesLocked) {
-        submitWithPasswordAndReason(document.getElementById('encodeForm'), {
-            title: 'Correct past school year grades?',
-            html: `SY <strong>${document.getElementById('encodeForm').dataset.schoolYear}</strong> is closed. Your reason is saved in the activity log with the old and new grades.`,
-        });
-        return;
-    }
-
     // Changing a grade that is already finalized needs the registrar's password.
     const changesFinalized = Array.from(document.querySelectorAll('#encodeForm input[data-finalized]'))
         .some((input) => input.dataset.finalized !== '' && !sameGrade(input.value, input.dataset.finalized));
@@ -484,6 +471,7 @@ function viewHistory(id, editable = false) {
     fetch(`/registrar/students/${id}/grade-history`)
         .then(res => res.json())
         .then(data => {
+            historyOpenSemester = data.open_semester;
             document.getElementById('historyName').textContent = data.name;
             document.getElementById('historyNumber').textContent = data.number;
             document.getElementById('historyMeta').textContent = `${data.course ?? '—'} • ${data.department ?? '—'}`;
@@ -535,18 +523,28 @@ function viewHistory(id, editable = false) {
         });
 }
 
+// Grades are entered only in the active semester; other rows show this label instead of a button.
+let historyOpenSemester = null;
+function closedLabel(title) {
+    return `<span title="${title}" style="color:#9ca3af;font-size:0.72rem;font-weight:600;white-space:nowrap;"><i class="fa-solid fa-lock" style="margin-right:4px;"></i>Closed</span>`;
+}
+
 function renderHistoryRow(r) {
     const reExamAttr = r.re_exam ?? '';
     const actionCell = historyEditable ? `
             <td style="padding:10px 16px;text-align:right;" id="hist-action-${r.subject_id}">
-                ${r.encoded
+                ${r.encoded && r.locked
                     ? `<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-right:6px;">${r.status}</span>
-                       ${r.locked ? `<i class="fa-solid fa-lock" title="SY ${r.school_year} is closed — a correction needs a reason" style="color:#92610c;margin-right:6px;"></i>` : ''}
-                       <button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', '${r.grade}', '${reExamAttr}', ${r.semester_id}, ${r.locked ? `'${r.school_year}'` : 'null'})"
+                       ${closedLabel(`SY ${r.school_year} semester is closed`)}`
+                    : r.encoded
+                    ? `<span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-right:6px;">${r.status}</span>
+                       <button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', '${r.grade}', '${reExamAttr}', ${r.semester_id})"
                            style="background:#f5f0e8;border:1px solid #e2d9c8;color:#4a4535;padding:4px 12px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:background 0.15s;"
                            onmouseover="this.style.background='#e2d9c8'" onmouseout="this.style.background='#f5f0e8'">
                            Edit
                        </button>`
+                    : !r.can_encode
+                    ? closedLabel(historyOpenSemester ? `Grades can be encoded only for ${historyOpenSemester} subjects` : 'No active semester')
                     : `<button type="button" onclick="openGradeEditModal(${r.subject_id}, '${r.code}', '${(r.subject || '').replace(/'/g, "\\'")}', null, null)"
                            style="background:#c9a84c;color:#fff;padding:4px 14px;border-radius:6px;font-size:0.75rem;font-weight:600;border:none;cursor:pointer;transition:background 0.15s;"
                            onmouseover="this.style.background='#b8963e'" onmouseout="this.style.background='#c9a84c'">
@@ -582,13 +580,10 @@ function renderHistoryRow(r) {
 let editingSubjectId = null;
 let editingOriginal = null; // { grade, reExam } of an existing grade being edited
 let editingSemesterId = null; // semester of that existing grade (null = new grade in the active semester)
-let editingLockedYear = null; // its school year code when that year's grades are locked
-
-function openGradeEditModal(subjectId, code, subjectName, currentValue, currentReExam, semesterId = null, lockedYear = null) {
+function openGradeEditModal(subjectId, code, subjectName, currentValue, currentReExam, semesterId = null) {
     editingSubjectId = subjectId;
     editingOriginal = currentValue ? { grade: currentValue, reExam: currentReExam ?? '' } : null;
     editingSemesterId = currentValue ? semesterId : null;
-    editingLockedYear = currentValue ? lockedYear : null;
     document.getElementById('historyModal').style.display = 'none';
     document.getElementById('gradeEditTitle').textContent = currentValue ? 'Edit Grade' : 'Encode Grade';
     document.getElementById('gradeEditSubtitle').textContent = `${code} — ${subjectName}`;
@@ -630,21 +625,6 @@ function submitGradeEditModal() {
     const changed = editingOriginal
         && (toNum(value) !== toNum(editingOriginal.grade) || toNum(reExamValue) !== toNum(editingOriginal.reExam));
 
-    if (changed && editingLockedYear) {
-        document.getElementById('gradeEditModal').style.display = 'none';
-        confirmWithPasswordAndReason({
-            title: 'Correct a past school year grade?',
-            html: `SY <strong>${editingLockedYear}</strong> is closed. Your reason is saved in the activity log with the old and new grade.`,
-        }).then((answer) => {
-            if (answer === null) {
-                document.getElementById('gradeEditModal').style.display = 'flex';
-                return;
-            }
-            sendQuickGrade(value, reExamValue, isEdit, answer.password, answer.reason);
-        });
-        return;
-    }
-
     if (changed) {
         document.getElementById('gradeEditModal').style.display = 'none';
         confirmWithPassword({
@@ -665,7 +645,7 @@ function submitGradeEditModal() {
     sendQuickGrade(value, reExamValue, isEdit, null);
 }
 
-function sendQuickGrade(value, reExamValue, isEdit, password, reason = null) {
+function sendQuickGrade(value, reExamValue, isEdit, password) {
     fetch(`/registrar/students/${currentHistoryStudentId}/quick-grade`, {
         method: 'POST',
         headers: {
@@ -678,7 +658,6 @@ function sendQuickGrade(value, reExamValue, isEdit, password, reason = null) {
             grade: value,
             re_exam_grade: reExamValue || null,
             confirm_password: password,
-            override_reason: reason,
         }),
     })
     .then(res => res.json().then(data => ({ ok: res.ok, data })))
@@ -701,8 +680,7 @@ function sendQuickGrade(value, reExamValue, isEdit, password, reason = null) {
         document.getElementById(`hist-time-${subjectId}`).innerHTML = data.encoded_at;
         document.getElementById(`hist-action-${subjectId}`).innerHTML = `
             <span style="background:#d1fae5;color:#065f46;padding:2px 10px;border-radius:20px;font-size:0.7rem;font-weight:700;margin-right:6px;">${data.status}</span>
-            ${data.locked ? `<i class="fa-solid fa-lock" title="SY ${data.school_year} is closed — a correction needs a reason" style="color:#92610c;margin-right:6px;"></i>` : ''}
-            <button type="button" onclick="openGradeEditModal(${subjectId}, '', '', '${data.grade}', '${data.re_exam_grade ?? ''}', ${data.semester_id}, ${data.locked ? `'${data.school_year}'` : 'null'})"
+            <button type="button" onclick="openGradeEditModal(${subjectId}, '', '', '${data.grade}', '${data.re_exam_grade ?? ''}', ${data.semester_id})"
                 style="background:#f5f0e8;border:1px solid #e2d9c8;color:#4a4535;padding:4px 12px;border-radius:6px;font-size:0.72rem;font-weight:600;cursor:pointer;transition:background 0.15s;"
                 onmouseover="this.style.background='#e2d9c8'" onmouseout="this.style.background='#f5f0e8'">
                 Edit

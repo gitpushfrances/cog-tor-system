@@ -9,11 +9,11 @@
 
 ---
 
-## CURRENT STATE (October 19, 2026) - READ THIS FIRST
+## CURRENT STATE (October 20, 2026) - READ THIS FIRST
 
-**Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass.
+**Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass. Follow-up requests (Phase 8): 8a strict grade lock - done; 8b in-system masterlist with grade entry and student sections - next; 8c letterhead on TOR/COG - waiting for the client's file.
 **Install / update on any PC:** `bash scripts/setup.sh` (see README, "Install or Update"). Database changes in this round are additive: a plain `php artisan migrate` is enough for an install that is already on the Phase 13.25 schema.
-**Tests:** `php artisan test` - 56 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
+**Tests:** `php artisan test` - 54 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
 
 The Phase 13 notes further down are kept as history.
 
@@ -40,7 +40,7 @@ Source: client's ADJUSTMENT.docx (Waray) - 3 TOR items (A1-A3), 6 fixes (B1-B6),
 | C2 | Activity log | Phase 3 (`51e28c0`) |
 | C3 | Search suggests students while typing | Phase 6a (`982bbc9`) |
 | C4 | Masterlist: input in the system, export kept | Phase 4c (`113f02b`) |
-| C5 | Grades editable only in the current school year | Phase 4b (`01c651e`) |
+| C5 | Grades editable only in the current school year | Phase 4b (`01c651e`); tightened to the active semester only in Phase 8a |
 | C6 | Bulk add students | Phase 4d (`7d55a45`) |
 | C8 | "Back to Generate COG/TOR" button | Phase 1 (`c59b7d3`) |
 | (verbal) | Encode Grades by subject / department / course | Phase 3b (`51e28c0`) |
@@ -89,6 +89,12 @@ Source: client's ADJUSTMENT.docx (Waray) - 3 TOR items (A1-A3), 6 fixes (B1-B6),
 - `.env.example` now has production defaults (`APP_ENV=production`, `APP_DEBUG=false`, `DB_DATABASE=cog_tor_system`).
 - Regression tests added under `tests/Feature/Release` (grade lock, integrity, departments, dashboard, type-ahead, QR/verify); Breeze tests no longer need a front-end build; `ExampleTest` matches the sign-in redirect.
 - 7b fix: on XAMPP MariaDB 10.4, `generated_at` of `cog_records`/`tor_records` had a hidden `ON UPDATE CURRENT_TIMESTAMP`, so replacing a COG/TOR rewrote the old one's issue time (replaced TORs failed QR verify; Documents dates wrong). Migration `2026_10_19_000005` removes it and restores rewritten times from `created_at`; `SealTest` covers it.
+
+### Phase 8a - Strict grade lock (client request, October 20)
+- Grades are entered or changed only in the active semester of the active school year (`Semester::acceptsGrades()`). Every other semester is closed with no exception: no new grade, no edit, no Undo Finalize. To work on a closed semester, Admin activates it first.
+- Replaces the 4b rule (past years open for missing grades; corrections with reason + password). The reason dialog and override logging were removed; old "override" entries stay in the Activity Log.
+- Finalizing pending grades is still allowed in a closed semester: it changes no grade value, and otherwise those grades could never reach the TOR.
+- By Student / By Subject show closed semesters as view only; the grade history modal shows "Closed" instead of Edit/Encode; the profile hides Undo Finalize for closed semesters.
 
 ### Known limitations (deliberate)
 - INC / Dr / WP / IP marks are not stored (grades are numeric 1.00-5.00). Not in the client's list; would need a schema change.

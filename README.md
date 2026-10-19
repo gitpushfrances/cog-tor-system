@@ -15,7 +15,7 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 
 This system streamlines the academic grading workflow. As of **Phase 13**, the workflow is being migrated from a multi-tier approval chain (Faculty → Head of Department → Registrar) to a **single-actor Registrar workflow**, per an updated client flowchart — the Registrar now encodes, validates, saves, and generates COG/TOR directly, with Faculty and Head of Department being phased out of the grade pipeline (disabled, not deleted, for reversibility). The system also includes automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
 
-> **Status (October 19, 2026):** the client adjustment round (ADJUSTMENT.docx, 18 items) is complete: TOR photo and QR verification, enrollment rules, past-year grade lock, bulk add, masterlist export, activity log, password-protected deletes, departments page, type-ahead search, offline assets. See CHANGELOG.md, "Client Adjustment Round".
+> **Status (October 19, 2026):** the client adjustment round (ADJUSTMENT.docx, 18 items) is complete: TOR photo and QR verification, enrollment rules, grade lock (active semester only, Phase 8a), bulk add, masterlist export, activity log, password-protected deletes, departments page, type-ahead search, offline assets. See CHANGELOG.md, "Client Adjustment Round".
 
 ### Key Features
 - **Two-Role System** — Admin, Registrar *(Faculty and Head of Department roles locked out at the route level per Phase 13.6 — code/data preserved, reversible, see note below)*

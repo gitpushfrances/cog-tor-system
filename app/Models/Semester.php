@@ -49,12 +49,24 @@ class Semester extends Model
     }
 
     /**
-     * Grades of a school year that is not the active one are locked: changing
-     * them needs the registrar's password and a written reason (logged).
+     * Client rule: grades are entered or changed only in the active semester of the
+     * active school year. Every other semester is closed, with no exception.
+     * To work on a closed semester, Admin activates it first.
      */
+    public function acceptsGrades(): bool
+    {
+        return $this->status === 'active' && $this->schoolYear?->status === 'active';
+    }
+
     public function isGradeLocked(): bool
     {
-        return $this->schoolYear?->status !== 'active';
+        return ! $this->acceptsGrades();
+    }
+
+    public function gradesClosedMessage(): string
+    {
+        return "Grades for {$this->semester_name} " . ($this->schoolYear?->year_code ?? '')
+            . ' are closed. Grades can be entered or changed only in the active semester of the active school year.';
     }
 
     public function getFullName()

@@ -81,53 +81,6 @@
             });
         };
 
-        // Past school year grades are locked: a correction needs a written reason and the password.
-        window.confirmWithPasswordAndReason = function (options) {
-            const minLength = 10;
-            return Swal.fire({
-                title: options.title || 'Correct a locked grade',
-                icon: 'warning',
-                html: (options.html ? `<div style="font-size:0.9rem;color:#374151;margin-bottom:12px;">${options.html}</div>` : '') +
-                    '<textarea id="swal-override-reason" class="swal2-textarea" maxlength="500" style="margin:0 0 10px;width:100%;box-sizing:border-box;" ' +
-                    'placeholder="Reason, e.g. INC completed; re-exam taken 2026-10-20"></textarea>' +
-                    '<input id="swal-override-password" type="password" class="swal2-input" autocomplete="current-password" ' +
-                    'style="margin:0;width:100%;box-sizing:border-box;" placeholder="Your account password">',
-                showCancelButton: true,
-                confirmButtonText: options.confirmButtonText || 'Save Correction',
-                confirmButtonColor: options.confirmButtonColor || '#c9a84c',
-                cancelButtonColor: '#6b7280',
-                reverseButtons: true,
-                focusConfirm: false,
-                didOpen: () => document.getElementById('swal-override-reason').focus(),
-                preConfirm: () => {
-                    const reason = document.getElementById('swal-override-reason').value.trim();
-                    const password = document.getElementById('swal-override-password').value;
-                    if (reason.length < minLength) return Swal.showValidationMessage(`Give a reason of at least ${minLength} characters.`);
-                    if (!password) return Swal.showValidationMessage('Enter your password.');
-                    return { reason, password };
-                },
-            }).then((result) => (result.isConfirmed ? result.value : null));
-        };
-
-        window.submitWithPasswordAndReason = function (form, options) {
-            return window.confirmWithPasswordAndReason(options).then((answer) => {
-                if (answer === null) return;
-                const set = (name, value) => {
-                    let input = form.querySelector(`input[name="${name}"]`);
-                    if (!input) {
-                        input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = name;
-                        form.appendChild(input);
-                    }
-                    input.value = value;
-                };
-                set('confirm_password', answer.password);
-                set('override_reason', answer.reason);
-                form.submit();
-            });
-        };
-
         // Forms marked data-password-confirm="Question?" ask for the password on submit.
         document.addEventListener('submit', function (event) {
             const form = event.target;

@@ -90,8 +90,8 @@ class IntegrityTest extends TestCase
     {
         $this->actingAs($this->reg);
         $student = Student::firstOrFail();
-        $subject = Subject::where('course_id', $student->course_id)->where('semester', '1st Semester')->firstOrFail();
-        $sem = Semester::where('semester_name', '1st Semester')->firstOrFail();
+        $sem = Semester::where('status', 'active')->firstOrFail(); // grades are accepted only in the active semester
+        $subject = Subject::where('course_id', $student->course_id)->where('semester', $sem->semester_name)->firstOrFail();
         $post = fn ($g) => $this->from('/x')->post(route('registrar.encode-grades.store'), ['student_id' => $student->id, 'semester_id' => $sem->id, 'grades' => [$subject->id => $g]]);
         $post('1.234')->assertSessionHasErrors();
         $post('1.1')->assertSessionHasNoErrors();
