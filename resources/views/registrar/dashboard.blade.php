@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <p style="font-size:0.75rem;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Eastern Samar State University - Guiuan Campus</p>
+        <p style="font-size:0.75rem;font-weight:600;color:#384a32;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Eastern Samar State University - Guiuan Campus</p>
         <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">Registrar Dashboard</h2>
         <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">Grade finalization and document generation</p>
     </x-slot>
@@ -30,9 +30,9 @@
             </div>
             <a href="{{ route('registrar.documents.index', ['type' => 'cog']) }}"
                style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-decoration:none;display:block;transition:border-color 0.15s;"
-               onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2d9c8'">
+               onmouseover="this.style.borderColor='#4b6043'" onmouseout="this.style.borderColor='#e2d9c8'">
                 <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;margin-bottom:6px;">COG Generated <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:0.65rem;"></i></div>
-                <div style="font-size:2rem;font-weight:700;color:#2563eb;">{{ $stats['cog_generated'] }}</div>
+                <div style="font-size:2rem;font-weight:700;color:#4b6043;">{{ $stats['cog_generated'] }}</div>
             </a>
             <a href="{{ route('registrar.documents.index', ['type' => 'tor']) }}"
                style="background:#fff;border:1px solid #e2d9c8;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);text-decoration:none;display:block;transition:border-color 0.15s;"

@@ -47,7 +47,7 @@
                             </option>
                         @endforeach
                         @if($unsetSubjects->isNotEmpty())
-                            <optgroup label="Semester not set — fix in Admin → Subjects">
+                            <optgroup label="Semester not set (fix in Admin, Departments)">
                                 @foreach($unsetSubjects as $subject)
                                     <option value="{{ $subject->id }}" disabled>{{ $subject->code }} — {{ $subject->name }}</option>
                                 @endforeach

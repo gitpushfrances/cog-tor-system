@@ -34,6 +34,7 @@ class EnrollmentController extends Controller
         $dateTo     = $request->get('date_to');
 
         $query = Enrollment::with(['student.course.department', 'subject.course', 'semester'])
+            ->withExists('grade')
             ->when($activeSemester, fn($q) => $q->where('semester_id', $activeSemester->id));
 
         if ($dateFilter === 'today') {
@@ -315,7 +316,7 @@ class EnrollmentController extends Controller
         }
 
         if (! in_array($subject->semester, RecordsAudit::SEMESTERS, true)) {
-            return "{$subject->code} has no valid semester set. Fix it in Admin → Subjects first.";
+            return "{$subject->code} has no valid semester set. Fix it in Admin, Departments first.";
         }
 
         if ($subject->semester !== $semester->semester_name) {

@@ -33,7 +33,7 @@ class AdminController extends Controller
             ? Semester::where('school_year_id', $stats['current_school_year']->id)->where('status', 'active')->first()
             : null;
 
-        $recentActivity = Activity::with('causer')->latest('id')->take(10)->get()
+        $recentActivity = Activity::with(['causer', 'subject'])->latest('id')->take(10)->get()
             ->loadMorph('subject', ActivityLogController::SUBJECT_RELATIONS);
 
         return view('admin.dashboard', compact('stats', 'recent_users', 'activeSemester', 'recentActivity'));

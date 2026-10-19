@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ route('admin.dashboard') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back to Dashboard</a>
+        <a href="{{ route('admin.dashboard') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-xl font-semibold leading-tight text-gray-800">Student Management</h2>
             <div class="flex flex-wrap gap-2">

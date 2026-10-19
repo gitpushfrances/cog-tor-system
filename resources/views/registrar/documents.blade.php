@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <p style="font-size:0.75rem;font-weight:600;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Eastern Samar State University - Guiuan Campus</p>
+        <p style="font-size:0.75rem;font-weight:600;color:#384a32;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Eastern Samar State University - Guiuan Campus</p>
         <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">Documents</h2>
         <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">All generated COG and TOR records</p>
     </x-slot>
@@ -152,7 +152,7 @@
                                 <tr style="border-top:1px solid #f0ebe0;">
                                     <td style="padding:10px 20px;color:#a89878;font-family:monospace;font-size:0.75rem;">#{{ $doc->id }}</td>
                                     <td style="padding:10px 20px;">
-                                        <span style="font-weight:700;font-size:0.75rem;color:{{ $doc->doc_type === 'COG' ? '#2563eb' : '#7c3aed' }};">{{ $doc->doc_type }}</span>
+                                        <span style="font-weight:700;font-size:0.75rem;color:{{ $doc->doc_type === 'COG' ? '#4b6043' : '#7c3aed' }};">{{ $doc->doc_type }}</span>
                                     </td>
                                     <td style="padding:10px 20px;font-family:monospace;font-size:0.8rem;color:#6b5f4a;">{{ $doc->document_number }}</td>
                                     <td style="padding:10px 20px;color:#4a4535;">
@@ -218,7 +218,7 @@
                             <tr style="border-top:1px solid #f0ebe0;">
                                 <td style="padding:12px 16px;color:#a89878;font-family:monospace;font-size:0.75rem;">#{{ $doc->id }}</td>
                                 <td style="padding:12px 16px;">
-                                    <span style="font-weight:700;font-size:0.75rem;color:{{ $doc->doc_type === 'COG' ? '#2563eb' : '#7c3aed' }};">{{ $doc->doc_type }}</span>
+                                    <span style="font-weight:700;font-size:0.75rem;color:{{ $doc->doc_type === 'COG' ? '#4b6043' : '#7c3aed' }};">{{ $doc->doc_type }}</span>
                                 </td>
                                 <td style="padding:12px 16px;font-family:monospace;font-size:0.8rem;color:#6b5f4a;">{{ $doc->document_number }}</td>
                                 <td style="padding:12px 16px;">

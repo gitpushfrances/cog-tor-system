@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ url()->previous() }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back</a>
+        <a href="{{ url()->previous() }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left"></i> Back</a>
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">Add Student</h2>
     </x-slot>
     <div class="py-6 max-w-3xl mx-auto px-4">

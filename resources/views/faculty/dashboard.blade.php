@@ -68,7 +68,7 @@
             <div class="overflow-hidden bg-white rounded-lg shadow">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-800">Recent Grades</h3>
-                    <a href="{{ route('faculty.subjects') }}" class="text-sm text-blue-600 hover:underline">View all subjects →</a>
+                    <a href="{{ route('faculty.subjects') }}" class="text-sm text-blue-600 hover:underline">View all subjects <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">

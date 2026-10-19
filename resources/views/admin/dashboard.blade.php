@@ -58,7 +58,7 @@
             <div class="mb-6 overflow-hidden bg-white rounded-lg shadow">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-800">Recent Activity</h3>
-                    <a href="{{ route('admin.activity-log.index') }}" class="text-sm text-blue-600 hover:underline">View all →</a>
+                    <a href="{{ route('admin.activity-log.index') }}" class="text-sm text-blue-600 hover:underline">View all <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
                 @forelse($recentActivity as $activity)
                     <div style="display:flex;gap:16px;align-items:baseline;padding:10px 24px;border-top:1px solid #f3f4f6;font-size:0.85rem;">
@@ -91,7 +91,7 @@
             <div class="overflow-hidden bg-white rounded-lg shadow">
                 <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <h3 class="font-semibold text-gray-800">Recent Users</h3>
-                    <a href="{{ route('admin.users.index') }}" class="text-sm text-blue-600 hover:underline">View all →</a>
+                    <a href="{{ route('admin.users.index') }}" class="text-sm text-blue-600 hover:underline">View all <i class="fa-solid fa-arrow-right"></i></a>
                 </div>
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">

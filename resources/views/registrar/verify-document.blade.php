@@ -53,8 +53,8 @@
 
                         @if($tor && in_array($result['status'], ['current', 'superseded'], true))
                             <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
-                                <a href="{{ route('registrar.tor.preview', $tor) }}" target="_blank" style="font-size:0.8rem;font-weight:600;color:#2563eb;"><i class="fa-solid fa-file-pdf"></i> Open the issued PDF</a>
-                                <a href="{{ route('registrar.students.profile', $tor->student_id) }}" style="font-size:0.8rem;font-weight:600;color:#2563eb;"><i class="fa-solid fa-user"></i> Student profile</a>
+                                <a href="{{ route('registrar.tor.preview', $tor) }}" target="_blank" style="font-size:0.8rem;font-weight:600;color:#4b6043;"><i class="fa-solid fa-file-pdf"></i> Open the issued PDF</a>
+                                <a href="{{ route('registrar.students.profile', $tor->student_id) }}" style="font-size:0.8rem;font-weight:600;color:#4b6043;"><i class="fa-solid fa-user"></i> Student profile</a>
                             </div>
                         @endif
                     </div>

@@ -89,7 +89,7 @@
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, backup now',
-                confirmButtonColor: '#2563eb',
+                confirmButtonColor: '#4b6043',
             }).then((result) => {
                 if (result.isConfirmed) {
                     Swal.fire({

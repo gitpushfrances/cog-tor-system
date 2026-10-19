@@ -3,7 +3,7 @@
     $btn   = 'display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-size:0.78rem;font-weight:600;text-decoration:none;cursor:pointer;white-space:nowrap;';
     $gold  = $btn . 'background:#c9a84c;color:#fff;border:none;';
     $plain = $btn . 'background:#fff;color:#6b5f4a;border:1px solid #e2d9c8;';
-    $link  = 'font-size:0.78rem;font-weight:600;color:#2563eb;text-decoration:none;background:none;border:none;cursor:pointer;padding:0;';
+    $link  = 'font-size:0.78rem;font-weight:600;color:#4b6043;text-decoration:none;background:none;border:none;cursor:pointer;padding:0;';
     $del   = 'font-size:0.78rem;font-weight:600;color:#dc2626;background:none;border:none;cursor:pointer;padding:0;';
     $pill  = fn ($active) => 'display:inline-block;padding:1px 8px;border-radius:999px;font-size:0.68rem;font-weight:700;' . ($active ? 'background:#d1fae5;color:#065f46;' : 'background:#fee2e2;color:#991b1b;');
 @endphp

@@ -451,12 +451,6 @@ class DocumentController extends Controller
 
             CogRecord::whereIn('id', $supersededIds)->update(['is_current' => false]);
 
-            \Log::info('COG supersede check', [
-                'student_id'       => $student->id,
-                'semester_id'      => $semester->id,
-                'rows_superseded'  => count($supersededIds),
-            ]);
-
             $documentNumber = 'COG-' . strtoupper(uniqid());
 
             return CogRecord::create([
@@ -585,11 +579,6 @@ class DocumentController extends Controller
                 ->toArray();
 
             TorRecord::whereIn('id', $supersededIds)->update(['is_current' => false]);
-
-            \Log::info('TOR supersede check', [
-                'student_id'      => $student->id,
-                'rows_superseded' => count($supersededIds),
-            ]);
 
             $documentNumber = 'TOR-' . strtoupper(uniqid());
 

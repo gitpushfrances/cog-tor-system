@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <h2 class="text-xl font-semibold leading-tight text-gray-800">Generate TOR — {{ $student->getFullName() }}</h2>
-            <a href="{{ route('registrar.students') }}" class="text-sm text-gray-600 hover:text-gray-900">← Back to Students</a>
+            <a href="{{ route('registrar.students') }}" class="text-sm text-gray-600 hover:text-gray-900"><i class="fa-solid fa-arrow-left"></i> Back to Students</a>
         </div>
     </x-slot>
 

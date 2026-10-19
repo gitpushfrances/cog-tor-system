@@ -37,7 +37,7 @@ class ActivityLogController extends Controller
         ]);
 
         $activities = Activity::query()
-            ->with('causer')
+            ->with(['causer', 'subject'])
             ->when($filters['user'] ?? null, fn ($q, $id) => $q->where('causer_type', User::class)->where('causer_id', $id))
             ->when($filters['type'] ?? null, fn ($q, $type) => $q->where('log_name', $type))
             ->when($filters['event'] ?? null, fn ($q, $event) => $q->where('event', $event))

@@ -214,7 +214,7 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-3">
-                                    @if(!$enrollment->grade()->exists())
+                                    @if(! $enrollment->grade_exists)
                                     <form id="delete-enrollment-{{ $enrollment->id }}"
                                         method="POST" action="{{ route('registrar.enrollments.destroy', $enrollment) }}">
                                         @csrf @method('DELETE')
@@ -285,7 +285,7 @@
         optgroupField: 'group',
         optgroups: [
             { value: 'subjects', label: 'Subjects' },
-            { value: 'unset', label: 'Semester not set — fix in Admin → Subjects' },
+            { value: 'unset', label: 'Semester not set (fix in Admin, Departments)' },
         ],
         lockOptgroupOrder: true,
     });

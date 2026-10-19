@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ route('faculty.dashboard') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back to Dashboard</a>
+        <a href="{{ route('faculty.dashboard') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
         <h2 class="text-xl font-semibold leading-tight text-gray-800">My Assigned Subjects</h2>
     </x-slot>
 

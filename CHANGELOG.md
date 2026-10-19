@@ -9,7 +9,98 @@
 
 ---
 
-## ⚡ RESUME POINT — READ THIS FIRST
+## CURRENT STATE (October 19, 2026) - READ THIS FIRST
+
+**Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass.
+**Install / update on any PC:** `bash scripts/setup.sh` (see README, "Install or Update"). Database changes in this round are additive: a plain `php artisan migrate` is enough for an install that is already on the Phase 13.25 schema.
+**Tests:** `php artisan test` - 56 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
+
+The Phase 13 notes further down are kept as history.
+
+---
+
+## CLIENT ADJUSTMENT ROUND - October 2026
+
+Source: client's ADJUSTMENT.docx (Waray) - 3 TOR items (A1-A3), 6 fixes (B1-B6), 8 additions (C1-C8) - plus an audit of the code. Delivered in dependency order; each phase is one commit on `main`.
+
+### Client items and where they were done
+
+| ID | Client request | Done in |
+|----|----------------|---------|
+| A1 | ESSU logo on the TOR aligned to the left | Phase 1 (`c59b7d3`) |
+| A2 | 2x2 ID picture on the TOR, top right | Phase 1 (`c59b7d3`) |
+| A3 | ID picture upload on Add/Edit Student, replaceable | Phase 1-2 (`c59b7d3`, `bc4a6d7`) |
+| B1 / C7 | Individual enrollment filtered by department, course, year; irregular students not limited | Phase 4a (`c46ab16`) |
+| B2 | Documents page: semester filter shows 1st / 2nd / Summer once | Phase 1 (`c59b7d3`) |
+| B3 | TOR date of birth, place of birth, preliminary education printed (were blank) | Phase 1-2 (`c59b7d3`, `bc4a6d7`) |
+| B4 | QR on the TOR | Phase 6c (`2835c56`) |
+| B5 | Admin dashboard without the User / Academic Setup buttons | Phase 5c (`a267617`) |
+| B6 | Course, Major and Subject managed inside Departments | Phase 5b (`503537e`) |
+| C1 | Password asked on every delete and high-risk change | Phase 3 (`51e28c0`) |
+| C2 | Activity log | Phase 3 (`51e28c0`) |
+| C3 | Search suggests students while typing | Phase 6a (`982bbc9`) |
+| C4 | Masterlist: input in the system, export kept | Phase 4c (`113f02b`) |
+| C5 | Grades editable only in the current school year | Phase 4b (`01c651e`) |
+| C6 | Bulk add students | Phase 4d (`7d55a45`) |
+| C8 | "Back to Generate COG/TOR" button | Phase 1 (`c59b7d3`) |
+| (verbal) | Encode Grades by subject / department / course | Phase 3b (`51e28c0`) |
+| (verbal) | Two-decimal grades are never rounded | Phase 4e, 5a (`ba8716e`, `214e9f4`) |
+
+### Phase 1 - Security fixes and TOR (`c59b7d3`, hotfix `63b403e`)
+- Head of Department back door closed (route role was still live); Admin can only create Registrar accounts; public registration removed.
+- TOR: ESSU logo left-aligned; 2x2 ID picture on page 1 (top right, sized so the layout does not move); date/place of birth and preliminary education fixed (field-name bug left them blank); signatures no longer spill onto an extra page (rows per page recalibrated).
+- Previous school records (Transferee / Irregular): scanned pages of the old school's TOR inserted in chronological order.
+- Documents semester filter de-duplicated; "Back to Generate COG/TOR" button; Generate COG/TOR in the sidebar.
+
+### Phase 2 - Student background (`bc4a6d7`)
+- Place of birth, elementary / high school and graduation years stored on the student and prefilled in the TOR form; ID picture on Add/Edit Student; birth date limited to 1950-today; test-database guard.
+
+### Phase 3 - Accountability (`51e28c0`)
+- Activity log on 13 models plus sign-ins, documents and backups (Admin > Activity Log, filterable).
+- Password prompt on deletes and high-risk changes (5 wrong attempts lock for 60 s; failures logged).
+- SweetAlert2, Tom Select and Font Awesome served from `public/vendor` (offline).
+- Encode Grades "By Subject": a whole class from one grade sheet.
+
+### Phase 4 - Records rules
+- 4.0 `records:audit` (read-only data-quality report) and `records:fix-safe` (dry run by default) (`ce491ea`).
+- 4a Enrollment: Department > Course > Year filters default to the student; only the active semester's subjects; Regular students limited to their course on the server (`c46ab16`).
+- 4b Grades of a past school year are locked; corrections need a reason and the password and are logged. Fixed: history "Edit" wrote into the active year; "Undo Finalize" unfinalized the wrong subject for every student (`01c651e`).
+- 4c Masterlist import disabled (code kept); real export in the masterlist grid layout (`113f02b`).
+- 4d Bulk Add Students: template, preview with errors / duplicates / automatic clean-ups, add ticked rows in one transaction (`7d55a45`).
+- 4e Asia/Manila timezone; database-enforced single current COG/TOR and single submission per grade; COG/TOR generation serialized per student; double-click guard; friendly duplicate-save message; user account fixes (no crash without password field, admin accounts protected, accounts with records cannot be deleted, account changes logged); profile self-deletion removed (`ba8716e`).
+
+### Phase 5 - Admin and grade display
+- 5a Grades and GWA printed with 2 decimals on the COG and student profile (were rounded to 1) (`214e9f4`).
+- 5b Departments page with courses, majors and subjects inside; fixed 4 show URLs that returned server errors (`503537e`).
+- 5c Admin dashboard: link cards removed, active school year line fixed, Recent Activity panel (`a267617`).
+
+### Phase 6 - Search, offline, QR
+- 6a Type-ahead student search on the five registrar search boxes (`982bbc9`).
+- 6b Web fonts served locally; no page contacts an outside server (`fc5349d`).
+- 6c QR on every TOR page with a verify code (HMAC with APP_KEY) and a Verify Document page: Valid-current / Valid-replaced / Does not match / Not found (`2835c56`). Adds `bacon/bacon-qr-code` 3.1.1.
+
+### Phase 7 - Release pass
+- Fixed: Admin > Users / School Years / Semesters "show" URLs returned server errors (routes now exclude `show`).
+- Performance: Activity Log and Admin Dashboard loaded each record one query at a time (38 queries per page, now 16); Enrollments page checked grades per row (36 queries, now 16).
+- Removed leftover debug log lines written on every COG/TOR generation.
+- Messages pointing to "Admin > Subjects" now point to Departments (moved in 5b).
+- UI: one brand color (ESSU forest green) for every primary button, link and focus ring - set once in `tailwind.config.js`; Breeze buttons follow it; text arrows replaced with icons; no emoji in the interface.
+- `scripts/setup.sh`: one command to install or update a PC (checks PHP 8.4 / extensions / Node, composer `--no-dev`, `npm ci` + build, migrate, caches, self-check).
+- `.env.example` now has production defaults (`APP_ENV=production`, `APP_DEBUG=false`, `DB_DATABASE=cog_tor_system`).
+- Regression tests added under `tests/Feature/Release` (grade lock, integrity, departments, dashboard, type-ahead, QR/verify); Breeze tests no longer need a front-end build; `ExampleTest` matches the sign-in redirect.
+- 7b fix: on XAMPP MariaDB 10.4, `generated_at` of `cog_records`/`tor_records` had a hidden `ON UPDATE CURRENT_TIMESTAMP`, so replacing a COG/TOR rewrote the old one's issue time (replaced TORs failed QR verify; Documents dates wrong). Migration `2026_10_19_000005` removes it and restores rewritten times from `created_at`; `SealTest` covers it.
+
+### Known limitations (deliberate)
+- INC / Dr / WP / IP marks are not stored (grades are numeric 1.00-5.00). Not in the client's list; would need a schema change.
+- Records created before Phase 4e were stored in UTC and display 8 hours early.
+- Faculty and Head of Department code is kept but unreachable (roles disabled, reversible).
+- `composer audit` lists advisories in existing dependencies; not upgraded right before the defense on purpose.
+
+---
+
+## PHASE 13 HISTORY (below)
+
+## RESUME POINT (Phase 13, historical)
 
 **Current Phase:** Phase 13 — Registrar-Only Workflow Migration
 **Status:** 🔄 In Progress (~95%) — Bulk Enrollment shipped (13.19), semester-transition enrollment status cascade + live-computed display shipped (13.20), Subject Units decimal support shipped (13.21), DatabaseSeeder summary cleanup shipped (13.22), Semester/School Year soft-delete duplicate-entry bug fixed + confirmation modal UI shipped (13.23), Course Code uniqueness rescoped to department shipped (13.24), Majors feature shipped (13.25). Browser end-to-end test (13.8) still NOT fully confirmed — static verification and spot-testing done this session, but a full checklist pass has not been explicitly signed off.

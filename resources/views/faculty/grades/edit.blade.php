@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ route('faculty.subjects.grades', $subject) }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back to Grades</a>
+        <a href="{{ route('faculty.subjects.grades', $subject) }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left"></i> Back to Grades</a>
         <h2 class="text-xl font-semibold leading-tight text-gray-800">Edit Grade</h2>
     </x-slot>
     <div class="max-w-xl px-4 py-6 mx-auto">

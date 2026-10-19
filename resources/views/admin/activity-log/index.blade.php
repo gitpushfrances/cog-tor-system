@@ -100,14 +100,14 @@
                                         @foreach(array_slice($rows, 0, 2) as [$name, $old, $new])
                                             <div style="font-size:0.78rem;color:#374151;">
                                                 <strong>{{ $name }}:</strong>
-                                                @if($old !== null && $new !== null) {{ \Illuminate\Support\Str::limit($old, 40) }} → {{ \Illuminate\Support\Str::limit($new, 40) }}
+                                                @if($old !== null && $new !== null) {{ \Illuminate\Support\Str::limit($old, 40) }} <i class="fa-solid fa-arrow-right" style="font-size:0.7em;color:#9ca3af;"></i> {{ \Illuminate\Support\Str::limit($new, 40) }}
                                                 @else {{ \Illuminate\Support\Str::limit($new ?? $old, 60) }}
                                                 @endif
                                             </div>
                                         @endforeach
                                         @if(count($rows) > 2)
                                             <details style="margin-top:4px;">
-                                                <summary style="cursor:pointer;font-size:0.75rem;color:#2563eb;">All {{ count($rows) }} fields</summary>
+                                                <summary style="cursor:pointer;font-size:0.75rem;color:#4b6043;">All {{ count($rows) }} fields</summary>
                                                 <table style="margin-top:6px;font-size:0.75rem;border-collapse:collapse;">
                                                     @foreach($rows as [$name, $old, $new])
                                                         <tr>

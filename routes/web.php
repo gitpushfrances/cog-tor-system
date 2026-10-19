@@ -41,7 +41,7 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
     Route::post('/backup/restore', [App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('backup.restore');
 
     // User Management
-    Route::resource('users', App\Http\Controllers\Admin\UserController::class);
+    Route::resource('users', App\Http\Controllers\Admin\UserController::class)->except('show');
     Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserController::class, 'approve'])->name('users.approve');
     Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserController::class, 'reject'])->name('users.reject');
 
@@ -59,11 +59,11 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
     Route::resource('subjects', App\Http\Controllers\Admin\SubjectController::class);
 
     // School Year Management
-    Route::resource('school-years', App\Http\Controllers\Admin\SchoolYearController::class);
+    Route::resource('school-years', App\Http\Controllers\Admin\SchoolYearController::class)->except('show');
     Route::post('/school-years/{schoolYear}/set-active', [App\Http\Controllers\Admin\SchoolYearController::class, 'setActive'])->name('school-years.set-active');
 
     // Semester Management
-    Route::resource('semesters', App\Http\Controllers\Admin\SemesterController::class);
+    Route::resource('semesters', App\Http\Controllers\Admin\SemesterController::class)->except('show');
     Route::post('/semesters/{semester}/set-active', [App\Http\Controllers\Admin\SemesterController::class, 'setActive'])->name('semesters.set-active');
 
     Route::get('/document-settings', [App\Http\Controllers\Admin\DocumentSettingController::class, 'edit'])->name('document-settings.edit');

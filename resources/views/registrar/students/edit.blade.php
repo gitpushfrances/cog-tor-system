@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex items-center gap-3">
             <a href="{{ route('registrar.students.index') }}"
-               class="text-gray-400 hover:text-gray-600">← Back</a>
+               class="text-gray-400 hover:text-gray-600"><i class="fa-solid fa-arrow-left"></i> Back</a>
             <div>
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">Edit Student</h2>
                 <p class="mt-1 text-sm text-gray-500">{{ $student->student_number }} — {{ $student->getFullName() }}</p>

@@ -824,7 +824,7 @@ function closeHistory() {
             html: html,
             icon: icon,
             width: 700,
-            confirmButtonColor: '#2563eb',
+            confirmButtonColor: '#4b6043',
             confirmButtonText: 'Done',
         });
     }

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        <a href="{{ route('faculty.subjects') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline">← Back to Subjects</a>
+        <a href="{{ route('faculty.subjects') }}" class="inline-block mb-2 text-sm text-blue-600 hover:underline"><i class="fa-solid fa-arrow-left"></i> Back to Subjects</a>
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
                 <h2 class="text-xl font-semibold leading-tight text-gray-800">{{ $subject->code }} - {{ $subject->name }}</h2>

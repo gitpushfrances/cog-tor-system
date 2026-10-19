@@ -8,7 +8,7 @@
                 </p>
             </div>
             <a href="{{ route('head_of_department.dashboard') }}"
-               class="text-sm text-gray-500 hover:text-gray-800">← Back to Dashboard</a>
+               class="text-sm text-gray-500 hover:text-gray-800"><i class="fa-solid fa-arrow-left"></i> Back to Dashboard</a>
         </div>
     </x-slot>
 

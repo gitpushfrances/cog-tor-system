@@ -2,7 +2,7 @@
 
 A comprehensive Academic Grading Management System built with Laravel 10, designed for educational institutions to manage grade submissions, approvals, and generate official academic documents (Certificate of Grades & Transcript of Records).
 
-![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
+![Status](https://img.shields.io/badge/Status-Client%20Testing-green)
 ![Laravel](https://img.shields.io/badge/Laravel-10.x-red)
 ![PHP](https://img.shields.io/badge/PHP-8.4-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -15,7 +15,7 @@ A comprehensive Academic Grading Management System built with Laravel 10, design
 
 This system streamlines the academic grading workflow. As of **Phase 13**, the workflow is being migrated from a multi-tier approval chain (Faculty → Head of Department → Registrar) to a **single-actor Registrar workflow**, per an updated client flowchart — the Registrar now encodes, validates, saves, and generates COG/TOR directly, with Faculty and Head of Department being phased out of the grade pipeline (disabled, not deleted, for reversibility). The system also includes automated GWA computation, official document generation (COG/TOR), and a full database backup and restore system.
 
-> **Phase 13 In Progress (~85%) — Registrar-Only Workflow Migration, started July 2, 2026.** Registrar direct-encode bugs fixed, `faculty_id` made nullable, full Registrar-side Student/Enrollment/Excel management built, and Faculty/HoD roles fully locked out (route-level, reversible) with test accounts removed. **Not yet done:** full browser end-to-end test pass. See CHANGELOG.md for full detail.
+> **Status (October 19, 2026):** the client adjustment round (ADJUSTMENT.docx, 18 items) is complete: TOR photo and QR verification, enrollment rules, past-year grade lock, bulk add, masterlist export, activity log, password-protected deletes, departments page, type-ahead search, offline assets. See CHANGELOG.md, "Client Adjustment Round".
 
 ### Key Features
 - **Two-Role System** — Admin, Registrar *(Faculty and Head of Department roles locked out at the route level per Phase 13.6 — code/data preserved, reversible, see note below)*
@@ -50,13 +50,13 @@ This system streamlines the academic grading workflow. As of **Phase 13**, the w
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1–8 | Foundation through Excel Features | ✅ Complete |
-| Phase 9 | System Restructure | ✅ Complete (99% — old E2E test superseded by Phase 13) |
-| Phase 10 | Reporting & Analytics | 📅 Planned |
-| Phase 11 | UI/UX Polish & Testing | 🔄 40% Done (blocked pending Phase 13) |
-| Phase 12 | Backup & Restore | ✅ Complete |
-| **Phase 13** | **Registrar-Only Workflow Migration** | 🔄 **~93% In Progress** |
-| Phase 14 | Curriculum Feature (renumbered from old Phase 13) | 📅 Planned |
+| Phase 1–8 | Foundation through Excel Features | Complete |
+| Phase 9 | System Restructure | Complete (99% — old E2E test superseded by Phase 13) |
+| Phase 10 | Reporting & Analytics | Planned |
+| Phase 11 | UI/UX Polish & Testing | 40% Done (blocked pending Phase 13) |
+| Phase 12 | Backup & Restore | Complete |
+| **Phase 13** | **Registrar-Only Workflow Migration** | **~93% In Progress** |
+| Phase 14 | Curriculum Feature (renumbered from old Phase 13) | Planned |
 
 **Overall Progress: ~98%**
 
@@ -87,7 +87,7 @@ Restore database from uploaded .sql file
 
 
 HEAD OF DEPARTMENT (per department — scoped by department_id)
-⚠️ Phase 13: Student/Enrollment/Excel responsibilities being absorbed by Registrar.
+Phase 13: Student/Enrollment/Excel responsibilities being absorbed by Registrar.
 Grade review and Faculty Assignment slated for route lockout (Phase 13.6, not yet applied).
 Scope: Full academic management, own department only.
 
@@ -110,7 +110,7 @@ Dashboard stats (students, enrollments, pending/approved grades) all scoped to d
 Delete Student → SweetAlert confirm modal
 
 FACULTY
-⚠️ Phase 13: This entire role is slated for route lockout (Phase 13.6, not yet applied) —
+Phase 13: This entire role is slated for route lockout (Phase 13.6, not yet applied) —
 Registrar now encodes grades directly per the client's updated flowchart.
 Scope: Assigned subjects only.
 
@@ -195,26 +195,42 @@ Generate TOR (full record, cumulative GWA) → SweetAlert confirm → PDF downlo
 
 ---
 
-## ⚠️ Pulling This Update (for existing installs)
+## Install or Update (any PC)
 
-This update (August 4, 2026) edited **existing** migration files in place instead of adding new ones — fixes to `create_courses_table.php` (Course Code uniqueness + new `majors` table) and `create_students_table.php` (`major_id` column). A plain `git pull` + `php artisan migrate` will **not** apply these changes, since Laravel only runs migrations it hasn't already recorded as run.
+One command installs a new PC or updates an existing one after `git pull`. Run it in **Git Bash** from the project folder:
 
-**After pulling, run:**
 ```bash
 git pull origin main
-php artisan migrate:fresh --seed
+bash scripts/setup.sh
 ```
 
-**This wipes and reseeds the entire local database.** If there is real data in this install that hasn't been backed up yet, back it up first:
+What it does, in order, and stops with a clear message if something is missing:
+
+1. Checks PHP 8.4+, the PHP extensions the app needs (pdo_mysql, mbstring, openssl, fileinfo, gd, zip, iconv, xml, dom), Composer and Node.js 18+.
+2. Creates `.env` from `.env.example` on a new PC (then asks you to check the database settings and run it again) and generates `APP_KEY` if missing. An existing `.env` is never overwritten.
+3. `composer install --no-dev` (no debug toolbar on the client PC).
+4. `npm ci` and `npm run build`.
+5. `php artisan migrate --force` (keeps data). An empty database also gets the default accounts.
+6. Caches config, routes and views.
+7. Self-check: offline libraries, fonts and QR package present; `records:audit` summary.
+
+**Start over with an empty database** (deletes everything, asks you to type `WIPE`):
+
 ```bash
-php artisan backup:run
+bash scripts/setup.sh --fresh
 ```
-(or use the Backup Now button under Admin → Backup & Restore — see the Backup & Restore section below). This project is still pre-production/test-data phase per the client's own confirmation, so a full reseed was the agreed approach rather than layering additive migrations — this note exists so a future production rollout doesn't repeat the same shortcut once real data exists.
+
+**Client / defense PC checklist**
+- `.env`: `APP_ENV=production`, `APP_DEBUG=false`, database settings filled in.
+- Keep the same `APP_KEY` once TORs are issued: the verify code printed on each TOR depends on it. Back up `.env` together with the database.
+- Change the default passwords (`admin@cogtor.test`, `registrar@cogtor.test`, password `password`) under Profile after a fresh install.
+- The app needs no internet after setup (fonts and libraries are served locally).
+- Run the tests on a development PC with `php artisan test` (uses the separate `cog_tor_system_test` database).
 
 ## Installation
 
 ### Prerequisites
-- PHP 8.1+
+- PHP 8.4+ (extensions: pdo_mysql, mbstring, openssl, fileinfo, gd, zip, iconv, xml, dom)
 - Composer
 - Node.js 18+ & NPM
 - MySQL 8.0+
@@ -230,7 +246,7 @@ php artisan backup:run
 
 2. **Install PHP dependencies**
 ```bash
-   composer install --ignore-platform-req=php
+   composer install
 ```
 
 3. **Install NPM dependencies**
@@ -353,7 +369,7 @@ The system includes a full database backup and restore feature accessible via th
 3. Click **Backup Now** and confirm
 4. The backup zip will appear in the Backup History table
 
-> ⚠️ **Requires Apache running.** On Windows dev environments, `php artisan serve` cannot reliably spawn the `mysqldump` subprocess the backup needs (a known Windows-specific limitation — see CHANGELOG.md Phase 13.12 and 13.15 for full detail). The **Backup Now** button works by triggering the backup through Apache instead. Before clicking Backup Now, make sure **both Apache and MySQL are running** in your XAMPP Control Panel — the rest of the app can still run normally via `php artisan serve`. If Apache is stopped, Backup Now will fail with a connection error. If the resulting backup is unexpectedly small (a few KB instead of several MB), see the per-machine setup steps in section 8b — this is usually a folder-permission issue, not a code bug.
+> **Requires Apache running.** On Windows dev environments, `php artisan serve` cannot reliably spawn the `mysqldump` subprocess the backup needs (a known Windows-specific limitation — see CHANGELOG.md Phase 13.12 and 13.15 for full detail). The **Backup Now** button works by triggering the backup through Apache instead. Before clicking Backup Now, make sure **both Apache and MySQL are running** in your XAMPP Control Panel — the rest of the app can still run normally via `php artisan serve`. If Apache is stopped, Backup Now will fail with a connection error. If the resulting backup is unexpectedly small (a few KB instead of several MB), see the per-machine setup steps in section 8b — this is usually a folder-permission issue, not a code bug.
 
 ### How to Restore from Backup
 1. Download the backup zip from Backup History
@@ -361,7 +377,7 @@ The system includes a full database backup and restore feature accessible via th
 3. Go to **Restore Database** section
 4. Upload the `.sql` file and click **Restore Now**
 
-> ⚠️ Restore overwrites the entire current database. Only use `.sql` files exported from this system.
+> Restore overwrites the entire current database. Only use `.sql` files exported from this system.
 
 ### Manual Backup via CLI
 ```bash
@@ -375,26 +391,26 @@ The message `Sending notification failed` after `backup:run` is **harmless** —
 
 ---
 
-## Excel Import Format
+## Bulk Add Students
 
-### Student Import Template
-Download from **Registrar → Students → Download Template** (institution-wide, Phase 13) or **HoD → Students → Download Template** (department-scoped, legacy). The template contains a notes row explaining each column's expected format.
+**Registrar > Students > Bulk Add**: download the template (.xlsx), fill one student per row, upload, check the preview, then add the ticked rows. Nothing is saved until you confirm.
 
-| Column | Format | Notes |
-|--------|--------|-------|
-| Student Number | YYYY-NNNNN | Must be unique, e.g. 2024-00011 |
-| First Name | Text | Required |
-| Middle Name | Text | Optional |
-| Last Name | Text | Required |
-| Suffix | Text | Optional |
-| Birth Date | YYYY-MM-DD | Strictly enforced, e.g. 2003-01-15 |
-| Gender | Male or Female | Case-sensitive |
-| Email | valid email | Must be unique |
-| Phone | 09XXXXXXXXX | Optional |
-| Address | Text | Optional |
-| Year Level | 1–5 | Max 5 |
-| Course Code | e.g. BSIT | Must match an active course (Registrar: any department; HoD: own department only) |
-| Status | active / inactive / graduated / dropped | |
+| Column | Required | Notes |
+|--------|----------|-------|
+| Student Number | yes | Unique |
+| Last Name, First Name | yes | ALL CAPS / all lowercase names are converted to Title Case in the preview |
+| Middle Name, Suffix | no | `jr` becomes `Jr.` |
+| Birth Date | yes | YYYY-MM-DD or MM/DD/YYYY (Excel dates accepted) |
+| Gender | yes | Male / Female (`m`, `f` accepted) |
+| Email | yes | Unique, stored lowercase |
+| Phone, Address | no | A phone number that lost its leading 0 in Excel is fixed |
+| Place of Birth, Elementary School / Year, High School / Year | no | Same rules as Add Student |
+| Course Code | yes | Must match an active course |
+| Year Level | yes | 1-5 |
+| Student Type | no | Regular (default), Irregular, Transferee |
+| Status | no | active (default), inactive, graduated, dropped |
+
+Rows with errors cannot be added; possible duplicates (same name and birth date) are shown unticked. The old one-step import is disabled.
 
 ---
 
@@ -457,20 +473,20 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | ✅ Complete | Foundation + Database Architecture |
-| Phase 2 | ✅ Complete | Models, Seeders, Relationships |
-| Phase 3 | ✅ Complete | Authentication & Authorization |
-| Phase 4 | ✅ Complete | Admin Module |
-| Phase 5 | ✅ Complete | Faculty Module *(slated for route lockout — Phase 13.6)* |
-| Phase 6 | ✅ Complete | Head of Department Module *(grade review + assignment slated for lockout; student/enrollment/Excel absorbed by Registrar — Phase 13)* |
-| Phase 7 | ✅ Complete | Registrar Module *(significantly extended in Phase 13)* |
-| Phase 8 | ✅ Complete | Excel Import/Export |
-| Phase 9 | ✅ 99% | System Restructure — old E2E test superseded by Phase 13 |
-| Phase 10 | 📅 Planned | Reporting & Analytics |
-| Phase 11 | 🔄 40% | UI/UX Polish & Testing — blocked pending Phase 13 |
-| Phase 12 | ✅ Complete | Backup & Restore |
-| **Phase 13** | 🔄 **~70%** | **Registrar-Only Workflow Migration** |
-| Phase 14 | 📅 Planned | Curriculum Feature *(renumbered from old Phase 13)* |
+| Phase 1 | Complete | Foundation + Database Architecture |
+| Phase 2 | Complete | Models, Seeders, Relationships |
+| Phase 3 | Complete | Authentication & Authorization |
+| Phase 4 | Complete | Admin Module |
+| Phase 5 | Complete | Faculty Module *(slated for route lockout — Phase 13.6)* |
+| Phase 6 | Complete | Head of Department Module *(grade review + assignment slated for lockout; student/enrollment/Excel absorbed by Registrar — Phase 13)* |
+| Phase 7 | Complete | Registrar Module *(significantly extended in Phase 13)* |
+| Phase 8 | Complete | Excel Import/Export |
+| Phase 9 | 99% | System Restructure — old E2E test superseded by Phase 13 |
+| Phase 10 | Planned | Reporting & Analytics |
+| Phase 11 | 40% | UI/UX Polish & Testing — blocked pending Phase 13 |
+| Phase 12 | Complete | Backup & Restore |
+| **Phase 13** | **~70%** | **Registrar-Only Workflow Migration** |
+| Phase 14 | Planned | Curriculum Feature *(renumbered from old Phase 13)* |
 
 ---
 
@@ -479,7 +495,7 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Issue | Status |
 |-------|--------|
 | 🆕 Browser end-to-end test for Registrar's new Student/Enrollment/Excel/Encode-Grades flow not yet run | Next session — Phase 13.8 |
-| 🆕 Dual role-check system (Spatie `HasRoles` vs legacy `role` column) — confirmed no bypass path in views/routes, `User.php` helper methods left as inert dead code | ✅ Done — Phase 13.6 |
+| 🆕 Dual role-check system (Spatie `HasRoles` vs legacy `role` column) — confirmed no bypass path in views/routes, `User.php` helper methods left as inert dead code | Done — Phase 13.6 |
 | Old 12-step multi-role end-to-end test is obsolete under the new single-actor flow | New test plan needed post-Phase 13 |
 | Admin dashboard still shows student nav links | Cleanup Phase 11 |
 | PDF storage not publicly accessible | Fix before production |
@@ -488,15 +504,15 @@ Cumulative GWA  = Σ(all grades × units) / Σ(all units) — across ALL finaliz
 | Registrar COG/TOR template not yet matched to official form | Blocked — awaiting physical template from Registrar's office |
 | Excel Report of Grades import not yet built | Blocked — awaiting format from panel |
 | Backup Now button requires Apache running (Windows dev environments) | Documented workaround — see CHANGELOG.md Phase 13.12; expected to work without this workaround on real server deployments |
-| ~~Enrollment "already enrolled" error firing on brand-new enrollments~~ | ✅ Fixed — Phase 13.14, see CHANGELOG.md |
-| ~~Masterlist import silently auto-creating phantom subjects on typo'd/misplaced codes~~ | ✅ Fixed — Phase 13.13, see CHANGELOG.md |
-| ~~Old-semester enrollments staying labeled "Enrolled" forever after a semester transition~~ | ✅ Fixed — Phase 13.20, see CHANGELOG.md |
-| ~~Subject Units field rejecting decimal values (e.g. `1.4`)~~ | ✅ Fixed — Phase 13.21, see CHANGELOG.md |
+| ~~Enrollment "already enrolled" error firing on brand-new enrollments~~ | Fixed — Phase 13.14, see CHANGELOG.md |
+| ~~Masterlist import silently auto-creating phantom subjects on typo'd/misplaced codes~~ | Fixed — Phase 13.13, see CHANGELOG.md |
+| ~~Old-semester enrollments staying labeled "Enrolled" forever after a semester transition~~ | Fixed — Phase 13.20, see CHANGELOG.md |
+| ~~Subject Units field rejecting decimal values (e.g. `1.4`)~~ | Fixed — Phase 13.21, see CHANGELOG.md |
 | Import Grades (Masterlist) requires enrollment to pre-exist, unlike Manual Encode which creates it implicitly | 🆕 Flagged, not yet fixed — needs `MasterlistImport.php` review |
 | `students.year_level` is a static field set once at creation, doesn't reflect real progression across school years | 🆕 Flagged, not yet fixed — larger architectural change, deliberately deferred; live "This Term" enrollment badge shipped as an interim step (13.20) |
-| ~~Deleting and recreating a semester/school year with the same values threw a duplicate-entry error~~ | ✅ Fixed — Phase 13.23, see CHANGELOG.md |
-| ~~Course code (e.g. `BSIT`) couldn't be reused under a second department~~ | ✅ Fixed — Phase 13.24, see CHANGELOG.md |
-| ~~No way to assign a major/specialization to a course or student~~ | ✅ Fixed — Phase 13.25, see CHANGELOG.md (not yet browser end-to-end tested) |
+| ~~Deleting and recreating a semester/school year with the same values threw a duplicate-entry error~~ | Fixed — Phase 13.23, see CHANGELOG.md |
+| ~~Course code (e.g. `BSIT`) couldn't be reused under a second department~~ | Fixed — Phase 13.24, see CHANGELOG.md |
+| ~~No way to assign a major/specialization to a course or student~~ | Fixed — Phase 13.25, see CHANGELOG.md (not yet browser end-to-end tested) |
 
 ---
 
