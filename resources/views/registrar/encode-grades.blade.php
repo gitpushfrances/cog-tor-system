@@ -5,19 +5,43 @@
                 <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">Encode Grades</h2>
                 <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">Registrar direct grade entry from physical records</p>
             </div>
-            <div style="display:flex;gap:8px;">
-                <a href="{{ route('registrar.excel.masterlist-template') }}"
-                   style="padding:8px 16px;border:1px solid #e2d9c8;border-radius:8px;font-size:0.8rem;color:#6b5f4a;text-decoration:none;display:flex;align-items:center;gap:6px;white-space:nowrap;background:#fff;">
-                    <i class="fa-solid fa-download"></i> Download Masterlist
-                </a>
-                <form action="{{ route('registrar.excel.masterlist-import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <label style="padding:8px 16px;border:1px solid #e2d9c8;border-radius:8px;font-size:0.8rem;color:#6b5f4a;display:flex;align-items:center;gap:6px;white-space:nowrap;background:#fff;cursor:pointer;">
-                        <i class="fa-solid fa-file-import"></i> Import Masterlist
-                        <input type="file" name="file" accept=".xlsx,.xls" style="display:none;" onchange="this.form.submit()">
+            {{-- Masterlist export (import is disabled: grades are encoded in the system) --}}
+            @php $exportSelect = 'width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:7px 10px;font-size:0.85rem;background:#fff;margin-top:4px;'; @endphp
+            <details style="position:relative;">
+                <summary style="list-style:none;padding:8px 16px;border:1px solid #e2d9c8;border-radius:8px;font-size:0.8rem;color:#6b5f4a;display:flex;align-items:center;gap:6px;white-space:nowrap;background:#fff;cursor:pointer;">
+                    <i class="fa-solid fa-file-export"></i> Export Masterlist <i class="fa-solid fa-chevron-down" style="font-size:0.65rem;"></i>
+                </summary>
+                <form method="GET" action="{{ route('registrar.excel.masterlist-export') }}"
+                      style="position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:260px;background:#fff;border:1px solid #e2d9c8;border-radius:10px;padding:14px;box-shadow:0 8px 24px rgba(0,0,0,0.12);">
+                    <label style="display:block;font-size:0.72rem;font-weight:600;color:#4a4535;">School Year
+                        <select name="school_year_id" required style="{{ $exportSelect }}">
+                            @foreach($schoolYears as $sy)
+                                <option value="{{ $sy->id }}" {{ (string) $selectedSchoolYear === (string) $sy->id ? 'selected' : '' }}>{{ $sy->year_code }}</option>
+                            @endforeach
+                        </select>
                     </label>
+                    <label style="display:block;font-size:0.72rem;font-weight:600;color:#4a4535;margin-top:10px;">Course
+                        <select name="course_id" required style="{{ $exportSelect }}">
+                            <option value="">Select course…</option>
+                            @foreach($masterlistCourses as $c)
+                                <option value="{{ $c->id }}" {{ (string) $selectedCourse === (string) $c->id ? 'selected' : '' }}>{{ $c->code }} — {{ $c->name }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    <label style="display:block;font-size:0.72rem;font-weight:600;color:#4a4535;margin-top:10px;">Year Level
+                        <select name="year_level" required style="{{ $exportSelect }}">
+                            @for($y = 1; $y <= 5; $y++)
+                                <option value="{{ $y }}" {{ (string) $selectedYearLevel === (string) $y ? 'selected' : '' }}>Year {{ $y }}</option>
+                            @endfor
+                        </select>
+                    </label>
+                    <button type="submit"
+                            style="margin-top:12px;width:100%;background:#c9a84c;color:#fff;padding:8px;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">
+                        <i class="fa-solid fa-download"></i> Download .xlsx
+                    </button>
+                    <p style="margin-top:8px;font-size:0.7rem;color:#8a7a60;">Both semesters of the school year, finalized grades only.</p>
                 </form>
-            </div>
+            </details>
         </div>
     </x-slot>
 

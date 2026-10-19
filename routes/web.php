@@ -156,8 +156,11 @@ Route::middleware(['auth', 'status', 'role:registrar'])->prefix('registrar')->na
     Route::get('/excel/student-template', [App\Http\Controllers\Registrar\ExcelController::class, 'studentTemplate'])->name('excel.student-template');
     Route::get('/excel/export-students', [App\Http\Controllers\Registrar\ExcelController::class, 'exportStudents'])->name('excel.export-students');
     Route::post('/excel/import-students', [App\Http\Controllers\Registrar\ExcelController::class, 'importStudents'])->name('excel.import-students');
-    Route::get('/excel/masterlist-template', [App\Http\Controllers\Registrar\ExcelController::class, 'masterlistTemplate'])->name('excel.masterlist-template');
-    Route::post('/excel/masterlist-import', [App\Http\Controllers\Registrar\ExcelController::class, 'importMasterlist'])->name('excel.masterlist-import');
+    // Masterlist import is disabled (client: grades are encoded in the system). Code kept in
+    // ExcelController@importMasterlist / MasterlistImport; re-enable by restoring these two routes.
+    // Route::get('/excel/masterlist-template', [App\Http\Controllers\Registrar\ExcelController::class, 'masterlistTemplate'])->name('excel.masterlist-template');
+    // Route::post('/excel/masterlist-import', [App\Http\Controllers\Registrar\ExcelController::class, 'importMasterlist'])->name('excel.masterlist-import');
+    Route::get('/excel/masterlist-export', [App\Http\Controllers\Registrar\ExcelController::class, 'exportMasterlist'])->name('excel.masterlist-export');
     Route::get('/documents', [App\Http\Controllers\Registrar\DocumentController::class, 'documentsIndex'])->name('documents.index');
     Route::get('/cog/{cog}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewCog'])->name('cog.preview');
     Route::get('/tor/{tor}/preview', [App\Http\Controllers\Registrar\DocumentController::class, 'previewTor'])->name('tor.preview');

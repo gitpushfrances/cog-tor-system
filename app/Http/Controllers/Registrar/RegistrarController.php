@@ -255,7 +255,11 @@ class RegistrarController extends Controller
                 ->keyBy('subject_id');
         }
 
+        // Masterlist export lists every active course (not narrowed by the Department filter).
+        $masterlistCourses = Course::active()->orderBy('code')->get();
+
         return view('registrar.encode-grades', compact(
+            'masterlistCourses',
             'schoolYears', 'departments', 'semesters', 'courses',
             'subjects', 'yearLevels', 'students', 'existingGrades',
             'selectedSchoolYear', 'selectedSemester', 'selectedDepartment',
