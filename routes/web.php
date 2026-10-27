@@ -42,8 +42,6 @@ Route::middleware(['auth', 'status', 'role:admin'])->prefix('admin')->name('admi
 
     // User Management
     Route::resource('users', App\Http\Controllers\Admin\UserController::class)->except('show');
-    Route::post('/users/{user}/approve', [App\Http\Controllers\Admin\UserController::class, 'approve'])->name('users.approve');
-    Route::post('/users/{user}/reject', [App\Http\Controllers\Admin\UserController::class, 'reject'])->name('users.reject');
 
     // Department Management
     Route::resource('departments', App\Http\Controllers\Admin\DepartmentController::class);

@@ -13,7 +13,7 @@
 
 **Current work:** Client Adjustment Round (ADJUSTMENT.docx, 18 items) - **complete**, including a release pass. Follow-up requests (Phase 8): 8a strict grade lock - done; 8b in-system masterlist with grade entry and student sections - done; 8c letterhead on TOR/COG - waiting for the client's file.
 **Install / update on any PC:** `bash scripts/setup.sh` (see README, "Install or Update"). Database changes in this round are additive: a plain `php artisan migrate` is enough for an install that is already on the Phase 13.25 schema.
-**Tests:** `php artisan test` - 62 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
+**Tests:** `php artisan test` - 72 tests, all passing (uses the separate `cog_tor_system_test` database; the suite refuses to run against any other database).
 
 The Phase 13 notes further down are kept as history.
 
@@ -100,6 +100,12 @@ Source: client's ADJUSTMENT.docx (Waray) - 3 TOR items (A1-A3), 6 fixes (B1-B6),
 - Students have an optional **Section** (e.g. A, 1B), stored in capitals: Add/Edit Student, Bulk Add template (new optional "Section" column; old templates still work), student list, profile. Migration `2026_10_20_000001` (nullable column + index; existing students keep no section).
 - **Encode Grades > Masterlist**: course + year level (+ section) for one semester; subjects across, students down (male, then female), a Grade and a Re-Ex input per enrolled subject ("—" = not enrolled). Only changed cells are sent and saved, in one transaction; changing a saved grade asks for the password; a closed semester is view only (8a rule). Enter moves down the column; leaving with unsaved changes warns.
 - Excel masterlist export takes the section too ("Export to Excel" on the Masterlist page).
+
+### Phase 9 - Final defense panel recommendations (October 28)
+Panel list: (1) Last / First / Middle name, (2) username instead of email, (3) "Pending" becomes "Inactive", (4) pop-up for invalid or inactive account at sign-in, (5) import the Registrar's raw data, (6) O.R. number format, (7) TOR credit 0 for a failed grade, (8) previous semesters / school years locked for grade input, (9) user's manual.
+- Item 8 was already done in Phase 8a (`a46c94d`); nothing to change.
+- **9a (items 1-4):** accounts have Last / First / Middle name (the old `name` is filled from them for existing screens, logs and documents) and sign in with a **username**; email is no longer asked anywhere. Statuses are Active / Inactive only. Sign-in shows a pop-up for a wrong username or password, an inactive account (refused before any page opens) and too many attempts. Migration `2026_10_28_000001` gives existing accounts a username from their email (`registrar@cogtor.test` -> `registrar`), splits their name on the last space, and turns Pending accounts Inactive. "Forgot password" now says to ask the administrator (the email reset cannot work offline).
+- **9b (item 7):** the TOR's Credit column shows **0.0 for a failed grade**. Failed follows the TOR's own legend (3.6-5.0; anything above 3.50); when there is a Re-Ex grade, it decides (5.00 with Re-Ex 2.75 earns the credit). GWA is unchanged. Rule in `Grade::earnedCredit()`.
 
 ### Known limitations (deliberate)
 - INC / Dr / WP / IP marks are not stored (grades are numeric 1.00-5.00). Not in the client's list; would need a schema change.

@@ -12,25 +12,8 @@
                     <form action="{{ route('admin.users.store') }}" method="POST">
                         @csrf
 
-                        <!-- Name -->
-                        <div class="mb-4">
-                            <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
-                            <input type="text" name="name" id="name" value="{{ old('name') }}"
-                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            @error('name')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
-
-                        <!-- Email -->
-                        <div class="mb-4">
-                            <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                            <input type="email" name="email" id="email" value="{{ old('email') }}"
-                                class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                            @error('email')
-                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                        <!-- Name (Last / First / Middle) + Username -->
+                        @include('admin.users.partials.identity-fields', ['user' => null])
 
                         <!-- Password -->
                         <div class="mb-4">
@@ -91,7 +74,6 @@
                             <select name="status" id="status"
                                 class="block w-full mt-1 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
                                 <option value="active" {{ old('status') === 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="pending" {{ old('status') === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                             @error('status')

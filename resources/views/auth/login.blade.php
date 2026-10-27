@@ -18,24 +18,26 @@
     <form method="POST" action="{{ route('login') }}">
         @csrf
 
-        {{-- Email --}}
+        {{-- Username --}}
         <div class="field">
-            <label class="field-label" for="email">Email Address</label>
+            <label class="field-label" for="username">Username</label>
             <div class="field-input-wrap">
                 <input
-                    id="email"
+                    id="username"
                     class="field-input"
-                    type="email"
-                    name="email"
-                    value="{{ old('email') }}"
-                    placeholder="you@school.edu.ph"
+                    type="text"
+                    name="username"
+                    value="{{ old('username') }}"
+                    placeholder="Your username"
                     required autofocus
                     autocomplete="username"
+                    autocapitalize="off"
+                    spellcheck="false"
                     style="padding-left: 2.5rem;"
                 />
-                <i class="fas fa-envelope field-icon"></i>
+                <i class="fas fa-user field-icon"></i>
             </div>
-            @error('email')
+            @error('username')
                 <div class="field-err">
                     <i class="fas fa-circle-exclamation"></i> {{ $message }}
                 </div>
@@ -74,9 +76,7 @@
                 <input type="checkbox" name="remember" id="remember_me" {{ old('remember') ? 'checked' : '' }}>
                 Remember me
             </label>
-            @if (Route::has('password.request'))
-                <a href="{{ route('password.request') }}" class="link-forgot">Forgot password?</a>
-            @endif
+            <span class="link-forgot" title="Passwords are reset by the administrator under Users.">Forgot password? Ask the administrator.</span>
         </div>
 
         {{-- Submit --}}
@@ -95,7 +95,22 @@
 
 </x-guest-layout>
 
+<script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
 <script>
+// Sign-in problems (wrong username or password, inactive account, too many attempts) also show as a pop-up.
+@php $loginProblem = $errors->first('username') ?: $errors->first('password') ?: session('error'); @endphp
+@if($loginProblem)
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            icon: 'error',
+            title: @js(str_contains($loginProblem, 'inactive') ? 'Account inactive' : (str_contains($loginProblem, 'Too many') ? 'Too many attempts' : 'Sign-in failed')),
+            text: @js($loginProblem),
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#4b6043',
+        }).then(function () { document.getElementById('{{ $errors->has('password') ? 'password' : 'username' }}').focus(); });
+    });
+@endif
+
 function togglePwd() {
     const inp = document.getElementById('password');
     const ico = document.getElementById('eyeIco');

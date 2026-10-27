@@ -19,7 +19,7 @@ class AdminController extends Controller
         $stats = [
             'total_users' => User::count(),
             'active_users' => User::active()->count(),
-            'pending_users' => User::pending()->count(),
+            'inactive_users' => User::where('status', 'inactive')->count(),
             'total_students' => Student::count(),
             'active_students' => Student::active()->count(),
             'total_subjects' => Subject::count(),

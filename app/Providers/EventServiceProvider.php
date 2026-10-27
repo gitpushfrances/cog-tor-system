@@ -42,7 +42,7 @@ class EventServiceProvider extends ServiceProvider
 
         Event::listen(Failed::class, function (Failed $event) {
             activity('auth')->event('failed_login')
-                ->withProperties(['email' => $event->credentials['email'] ?? null, 'ip' => request()->ip()])
+                ->withProperties(['username' => $event->credentials['username'] ?? null, 'ip' => request()->ip()])
                 ->log('Failed sign-in');
         });
     }

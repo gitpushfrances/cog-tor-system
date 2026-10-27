@@ -11,6 +11,7 @@ use App\Models\CogRecord;
 use App\Models\DocumentSetting;
 use App\Models\TorRecord;
 use App\Models\Enrollment;
+use App\Models\Grade;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -95,6 +96,7 @@ class DocumentController extends Controller
                                 'course_code'  => $e->subject->code,
                                 'subject_name' => $e->subject->name,
                                 'units'        => $e->subject->units,
+                                'credit'       => Grade::earnedCredit($e->subject->units, $e->grade->grade, $e->grade->re_exam_grade),
                                 'grade'        => $e->grade->grade,
                                 're_exam'      => $e->grade->re_exam_grade,
                             ])->values()->toarray(),

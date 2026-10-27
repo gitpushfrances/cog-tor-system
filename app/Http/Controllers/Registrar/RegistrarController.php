@@ -286,7 +286,7 @@ class RegistrarController extends Controller
         $userLookup = \App\Models\User::whereIn(
             'id',
             $submissionsByGradeId->pluck('finalized_by')->filter()->unique()
-        )->get(['id', 'name', 'email'])->keyBy('id');
+        )->get(['id', 'name', 'username'])->keyBy('id');
 
         // The only semester that accepts grades: a missing grade can be encoded only if its subject belongs to it.
         $openSemester = Semester::with('schoolYear')->where('status', 'active')
@@ -310,7 +310,7 @@ class RegistrarController extends Controller
                 'status'        => $grade?->status,
                 'encoded'       => (bool) $grade,
                 'encoded_by'    => $encoder?->name,
-                'encoded_email' => $encoder?->email,
+                'encoded_email' => $encoder?->username,
                 'encoded_at'    => $submission?->finalized_at?->format('M d, Y g:i A'),
                 'semester_id'   => $grade ? $enrollment->semester_id : null,
                 'school_year'   => $grade ? $enrollment->semester?->schoolYear?->year_code : null,
@@ -406,7 +406,7 @@ class RegistrarController extends Controller
             're_exam_grade' => $grade->re_exam_grade !== null ? number_format($grade->re_exam_grade, 2) : null,
             'status'        => $grade->status,
             'encoded_by'    => auth()->user()->name,
-            'encoded_email' => auth()->user()->email,
+            'encoded_email' => auth()->user()->username,
             'encoded_at'    => now()->format('M d, Y g:i A'),
             'semester_id'   => $semester->id,
             'school_year'   => $semester->schoolYear?->year_code,

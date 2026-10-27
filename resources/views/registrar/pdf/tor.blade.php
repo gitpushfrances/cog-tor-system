@@ -227,7 +227,7 @@
                             <td class="col-title">{{ $entry['subject_name'] }}</td>
                             <td class="col-final">{{ $entry['grade'] !== null ? number_format($entry['grade'], 2) : '' }}</td>
                             <td class="col-reexam">{{ $entry['re_exam'] !== null ? number_format($entry['re_exam'], 2) : '' }}</td>
-                            <td class="col-credit">{{ number_format($entry['units'], 1) }}</td>
+                            <td class="col-credit">{{ number_format($entry['credit'] ?? $entry['units'], 1) }}</td>
                         </tr>
                     @endif
                 @endforeach

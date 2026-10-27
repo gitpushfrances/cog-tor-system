@@ -36,7 +36,9 @@ class UserController extends Controller
         if ($search) {
             $query->where(fn($q) => $q
                 ->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
+                ->orWhere('last_name', 'like', "%{$search}%")
+                ->orWhere('first_name', 'like', "%{$search}%")
+                ->orWhere('username', 'like', "%{$search}%")
             );
         }
 
@@ -59,17 +61,17 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|unique:users,email',
+        $validated = $request->validate(self::identityRules() + [
             'password'      => 'required|string|min:8|confirmed',
             'role'          => ['required', Rule::in(['registrar'])],
-            'status'        => 'required|in:active,pending,inactive',
-        ]);
+            'status'        => 'required|in:active,inactive',
+        ], self::identityMessages());
 
         $user = User::create([
-            'name'          => $validated['name'],
-            'email'         => $validated['email'],
+            'username'      => $validated['username'],
+            'last_name'     => $validated['last_name'],
+            'first_name'    => $validated['first_name'],
+            'middle_name'   => $validated['middle_name'] ?? null,
             'password'      => Hash::make($validated['password']),
             'status'        => $validated['status'],
             'approved_by'   => $validated['status'] === 'active' ? auth()->id() : null,
@@ -99,20 +101,20 @@ class UserController extends Controller
             return $blocked;
         }
 
-        $validated = $request->validate([
-            'name'          => 'required|string|max:255',
-            'email'         => 'required|email|unique:users,email,' . $user->id,
+        $validated = $request->validate(self::identityRules($user) + [
             'password'      => 'nullable|string|min:8|confirmed',
             'role'          => ['required', Rule::in(['registrar'])],
-            'status'        => 'required|in:active,pending,inactive',
-        ]);
+            'status'        => 'required|in:active,inactive',
+        ], self::identityMessages());
 
-        $before = ['name' => $user->name, 'email' => $user->email, 'status' => $user->status, 'role' => $user->roles->pluck('name')->implode(', ')];
+        $before = ['name' => $user->name, 'username' => $user->username, 'status' => $user->status, 'role' => $user->roles->pluck('name')->implode(', ')];
         $passwordChanged = filled($validated['password'] ?? null);
 
         $user->update([
-            'name'          => $validated['name'],
-            'email'         => $validated['email'],
+            'username'      => $validated['username'],
+            'last_name'     => $validated['last_name'],
+            'first_name'    => $validated['first_name'],
+            'middle_name'   => $validated['middle_name'] ?? null,
             'password'      => $passwordChanged ? Hash::make($validated['password']) : $user->password,
             'status'        => $validated['status'],
             'approved_by'   => $validated['status'] === 'active' && !$user->approved_by ? auth()->id() : $user->approved_by,
@@ -121,7 +123,7 @@ class UserController extends Controller
 
         $user->syncRoles([$validated['role']]);
 
-        $after = ['name' => $user->name, 'email' => $user->email, 'status' => $user->status, 'role' => $validated['role']];
+        $after = ['name' => $user->name, 'username' => $user->username, 'status' => $user->status, 'role' => $validated['role']];
         $old = array_diff_assoc($before, $after);
         $new = array_intersect_key($after, $old);
         if ($passwordChanged) {
@@ -129,7 +131,7 @@ class UserController extends Controller
             $new['password'] = 'changed';
         }
         if ($new) {
-            $this->logAccount($user, 'updated', 'Updated account ' . $user->email, ['old' => $old, 'attributes' => $new]);
+            $this->logAccount($user, 'updated', 'Updated account ' . $user->username, ['old' => $old, 'attributes' => $new]);
         }
 
         return redirect()->route('admin.users.index')
@@ -146,7 +148,7 @@ class UserController extends Controller
             return $blocked;
         }
 
-        $email = $user->email;
+        $username = $user->username;
         try {
             $user->delete();
         } catch (QueryException $e) {
@@ -155,41 +157,30 @@ class UserController extends Controller
                 ->with('error', "{$user->name} has records in the system (enrollments, grades or documents) and cannot be deleted. Set the account to Inactive instead.");
         }
 
-        $this->logAccount(null, 'deleted', 'Deleted account ' . $email, ['email' => $email]);
+        $this->logAccount(null, 'deleted', 'Deleted account ' . $username, ['username' => $username]);
 
         return redirect()->route('admin.users.index')
             ->with('success', 'User deleted successfully.');
     }
 
-    public function approve(User $user)
+    /** Name parts and username (panel: Last / First / Middle name; sign in with a username, not an email). */
+    public static function identityRules(?User $user = null): array
     {
-        if ($blocked = $this->guardManageable($user)) {
-            return $blocked;
-        }
-
-        $user->update([
-            'status'      => 'active',
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
-
-        $this->logAccount($user, 'approved', 'Approved account ' . $user->email);
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User approved successfully.');
+        return [
+            'last_name'   => 'required|string|max:100',
+            'first_name'  => 'required|string|max:100',
+            'middle_name' => 'nullable|string|max:100',
+            'username'    => ['required', 'string', 'min:3', 'max:50', 'regex:/^[A-Za-z0-9._-]+$/',
+                Rule::unique('users', 'username')->ignore($user?->id)],
+        ];
     }
 
-    public function reject(User $user)
+    public static function identityMessages(): array
     {
-        if ($blocked = $this->guardManageable($user)) {
-            return $blocked;
-        }
-
-        $user->update(['status' => 'inactive']);
-        $this->logAccount($user, 'rejected', 'Rejected account ' . $user->email);
-
-        return redirect()->route('admin.users.index')
-            ->with('success', 'User rejected.');
+        return [
+            'username.regex'  => 'The username can use letters, numbers, dot, dash and underscore only (no spaces).',
+            'username.unique' => 'This username is already taken.',
+        ];
     }
 
     /**
@@ -200,7 +191,7 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id() || $user->hasRole('admin')) {
             return redirect()->route('admin.users.index')
-                ->with('error', 'Admin accounts cannot be changed here. Change your own name, email or password under Profile.');
+                ->with('error', 'Admin accounts cannot be changed here. Change your own name, username or password under Profile.');
         }
 
         return null;

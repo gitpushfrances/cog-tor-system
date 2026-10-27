@@ -33,7 +33,7 @@ class IntegrityTest extends TestCase
     {
         $this->actingAs($this->admin);
         $r = $this->put(route('admin.users.update', $this->reg), [
-            'name' => 'Registrar Two', 'email' => $this->reg->email, 'role' => 'registrar', 'status' => 'active', 'confirm_password' => 'password',
+            'last_name' => 'Two', 'first_name' => 'Registrar', 'username' => $this->reg->username, 'role' => 'registrar', 'status' => 'active', 'confirm_password' => 'password',
         ]); // no "password" key at all: used to crash
         $r->assertRedirect(route('admin.users.index'))->assertSessionHas('success');
         $this->assertSame('Registrar Two', $this->reg->fresh()->name);
@@ -42,7 +42,7 @@ class IntegrityTest extends TestCase
         $this->assertSame(['name' => 'Registrar Two'], $log->properties['attributes']);
 
         $this->put(route('admin.users.update', $this->reg), [
-            'name' => 'Registrar Two', 'email' => $this->reg->email, 'role' => 'registrar', 'status' => 'active',
+            'last_name' => 'Two', 'first_name' => 'Registrar', 'username' => $this->reg->username, 'role' => 'registrar', 'status' => 'active',
             'password' => 'newpass123', 'password_confirmation' => 'newpass123', 'confirm_password' => 'password',
         ]);
         $this->assertTrue(\Hash::check('newpass123', $this->reg->fresh()->password));
@@ -54,12 +54,12 @@ class IntegrityTest extends TestCase
     public function test_admin_accounts_are_protected(): void
     {
         $this->actingAs($this->admin);
-        $other = User::create(['name' => 'Admin 2', 'email' => 'a2@x.test', 'password' => bcrypt('x12345678'), 'status' => 'active']);
+        $other = User::create(['username' => 'admin2', 'first_name' => 'Admin', 'last_name' => '2', 'password' => bcrypt('x12345678'), 'status' => 'active']);
         $other->assignRole('admin');
 
         foreach ([$this->admin, $other] as $u) {
             $this->get(route('admin.users.edit', $u))->assertRedirect(route('admin.users.index'))->assertSessionHas('error');
-            $this->put(route('admin.users.update', $u), ['name' => 'X', 'email' => $u->email, 'role' => 'registrar', 'status' => 'inactive', 'confirm_password' => 'password'])
+            $this->put(route('admin.users.update', $u), ['last_name' => 'X', 'first_name' => 'X', 'username' => $u->username, 'role' => 'registrar', 'status' => 'inactive', 'confirm_password' => 'password'])
                 ->assertSessionHas('error');
             $this->assertTrue($u->fresh()->hasRole('admin'));
             $this->assertSame('active', $u->fresh()->status);
@@ -71,7 +71,7 @@ class IntegrityTest extends TestCase
     public function test_delete_user_with_records_is_refused_not_crashing(): void
     {
         $this->actingAs($this->admin);
-        $u = User::create(['name' => 'Reg 3', 'email' => 'r3@x.test', 'password' => bcrypt('x12345678'), 'status' => 'active']);
+        $u = User::create(['username' => 'reg3', 'first_name' => 'Reg', 'last_name' => '3', 'password' => bcrypt('x12345678'), 'status' => 'active']);
         $u->assignRole('registrar');
         Enrollment::create(['student_id' => Student::value('id'), 'subject_id' => Subject::value('id'), 'semester_id' => Semester::value('id'),
             'enrolled_by' => $u->id, 'enrollment_date' => now(), 'status' => 'enrolled']);
@@ -79,7 +79,7 @@ class IntegrityTest extends TestCase
             ->assertRedirect(route('admin.users.index'))->assertSessionHas('error', fn ($m) => str_contains($m, 'Set the account to Inactive'));
         $this->assertNotNull($u->fresh());
 
-        $clean = User::create(['name' => 'Reg 4', 'email' => 'r4@x.test', 'password' => bcrypt('x12345678'), 'status' => 'pending']);
+        $clean = User::create(['username' => 'reg4', 'first_name' => 'Reg', 'last_name' => '4', 'password' => bcrypt('x12345678'), 'status' => 'inactive']);
         $clean->assignRole('registrar');
         $this->delete(route('admin.users.destroy', $clean), ['confirm_password' => 'password'])->assertSessionHas('success');
         $this->assertNull($clean->fresh());

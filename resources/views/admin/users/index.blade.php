@@ -42,7 +42,7 @@
 
                 <form method="GET" action="{{ route('admin.users.index') }}" style="display:flex;gap:8px;align-items:center;">
                     <input type="hidden" name="role" value="{{ $role }}">
-                    <input type="text" name="search" value="{{ $search }}" placeholder="Search name or email..."
+                    <input type="text" name="search" value="{{ $search }}" placeholder="Search name or username..."
                         style="border:1px solid #d4c9b4;border-radius:8px;padding:7px 12px;font-size:0.8rem;width:220px;outline:none;"
                         onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">
                     <button type="submit"
@@ -66,7 +66,7 @@
                 <thead>
                     <tr style="background:#f5f0e8;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;color:#8a7a60;">
                         <th style="padding:10px 20px;text-align:left;font-weight:700;">Name</th>
-                        <th style="padding:10px 20px;text-align:left;font-weight:700;">Email</th>
+                        <th style="padding:10px 20px;text-align:left;font-weight:700;">Username</th>
                         <th style="padding:10px 20px;text-align:left;font-weight:700;">Role</th>
                         <th style="padding:10px 20px;text-align:left;font-weight:700;">Department</th>
                         <th style="padding:10px 20px;text-align:left;font-weight:700;">Status</th>
@@ -82,10 +82,10 @@
                                 <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#e8c96e,#c9a84c);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                                     <span style="color:#fff;font-size:0.8rem;font-weight:700;">{{ strtoupper(substr($user->name,0,1)) }}</span>
                                 </div>
-                                <span style="font-weight:600;color:#1a1a2e;">{{ $user->name }}</span>
+                                <span style="font-weight:600;color:#1a1a2e;">{{ $user->last_name ? $user->last_name . ', ' . $user->first_name . ($user->middle_name ? ' ' . $user->middle_name : '') : $user->name }}</span>
                             </div>
                         </td>
-                        <td style="padding:14px 20px;color:#6b5f4a;">{{ $user->email }}</td>
+                        <td style="padding:14px 20px;color:#6b5f4a;font-family:monospace;">{{ $user->username }}</td>
                         <td style="padding:14px 20px;">
                             @php
                                 $roleColors = ['registrar'=>['#d1fae5','#065f46']];
@@ -105,7 +105,7 @@
                         </td>
                         <td style="padding:14px 20px;">
                             @php
-                                $statusColors = ['active'=>['#d1fae5','#065f46'],'pending'=>['#fef3c7','#92400e'],'inactive'=>['#fee2e2','#991b1b']];
+                                $statusColors = ['active'=>['#d1fae5','#065f46'],'inactive'=>['#fee2e2','#991b1b']];
                                 $sc = $statusColors[$user->status] ?? ['#f3f4f6','#374151'];
                             @endphp
                             <span style="background:{{ $sc[0] }};color:{{ $sc[1] }};padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:700;">
@@ -114,18 +114,6 @@
                         </td>
                         <td style="padding:14px 20px;">
                             <div style="display:flex;align-items:center;gap:10px;">
-                                @if($user->status === 'pending')
-                                    <form action="{{ route('admin.users.approve', $user) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        <button type="submit" style="font-size:0.78rem;color:#059669;font-weight:600;background:none;border:none;cursor:pointer;padding:0;"
-                                            onmouseover="this.style.color='#047857'" onmouseout="this.style.color='#059669'">Approve</button>
-                                    </form>
-                                    <form action="{{ route('admin.users.reject', $user) }}" method="POST" style="display:inline;">
-                                        @csrf
-                                        <button type="submit" style="font-size:0.78rem;color:#dc2626;font-weight:600;background:none;border:none;cursor:pointer;padding:0;"
-                                            onmouseover="this.style.color='#b91c1c'" onmouseout="this.style.color='#dc2626'">Reject</button>
-                                    </form>
-                                @endif
                                 <a href="{{ route('admin.users.edit', $user) }}"
                                    style="font-size:0.78rem;color:#c9a84c;font-weight:600;text-decoration:none;"
                                    onmouseover="this.style.color='#a8872e'" onmouseout="this.style.color='#c9a84c'">Edit</a>

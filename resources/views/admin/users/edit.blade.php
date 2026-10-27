@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 style="font-size:1.25rem;font-weight:700;color:#1a1a2e;">Edit User</h2>
-        <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">{{ $user->name }} — {{ $user->email }}</p>
+        <p style="font-size:0.85rem;color:#8a7a60;margin-top:2px;">{{ $user->name }} — {{ $user->username }}</p>
     </x-slot>
 
     <div style="max-width:640px;margin:0 auto;">
@@ -14,19 +14,7 @@
                 <div style="display:grid;gap:20px;">
 
                     <div>
-                        <label style="display:block;font-size:0.8rem;font-weight:600;color:#4a4535;margin-bottom:6px;">Full Name</label>
-                        <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                            style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:9px 12px;font-size:0.875rem;outline:none;box-sizing:border-box;"
-                            onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">
-                        @error('name')<p style="color:#dc2626;font-size:0.75rem;margin-top:4px;">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label style="display:block;font-size:0.8rem;font-weight:600;color:#4a4535;margin-bottom:6px;">Email Address</label>
-                        <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                            style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:9px 12px;font-size:0.875rem;outline:none;box-sizing:border-box;"
-                            onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">
-                        @error('email')<p style="color:#dc2626;font-size:0.75rem;margin-top:4px;">{{ $message }}</p>@enderror
+                        @include('admin.users.partials.identity-fields', ['user' => $user])
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
@@ -66,7 +54,6 @@
                                 style="width:100%;border:1px solid #d4c9b4;border-radius:8px;padding:9px 12px;font-size:0.875rem;outline:none;background:#fff;box-sizing:border-box;"
                                 onfocus="this.style.borderColor='#c9a84c'" onblur="this.style.borderColor='#d4c9b4'">
                                 <option value="active" {{ old('status', $user->status) === 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="pending" {{ old('status', $user->status) === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="inactive" {{ old('status', $user->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
                             </select>
                         </div>

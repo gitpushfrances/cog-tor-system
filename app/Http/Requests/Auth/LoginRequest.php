@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -27,7 +28,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'username' => ['required', 'string', 'max:50'],
             'password' => ['required', 'string'],
         ];
     }
@@ -41,11 +42,20 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = ['username' => mb_strtolower(trim($this->string('username'))), 'password' => $this->string('password')->value()];
+
+        // Only active accounts may sign in; an inactive account is refused here, before any page opens.
+        if (! Auth::attemptWhen($credentials, fn ($user) => $user->status === 'active', $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
+            // "Inactive" is said only after the right password, so it does not reveal which usernames exist.
+            $user = Auth::getLastAttempted();
+            $inactive = $user && $user->status !== 'active' && Hash::check($credentials['password'], $user->password);
+
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'username' => $inactive
+                    ? 'This account is inactive. Please contact the administrator.'
+                    : 'Invalid username or password.',
             ]);
         }
 
@@ -68,7 +78,7 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
+            'username' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
@@ -80,6 +90,6 @@ class LoginRequest extends FormRequest
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());
+        return Str::transliterate(Str::lower($this->string('username')).'|'.$this->ip());
     }
 }

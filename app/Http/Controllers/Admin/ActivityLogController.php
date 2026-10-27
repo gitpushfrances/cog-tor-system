@@ -81,13 +81,15 @@ class ActivityLogController extends Controller
 
         // Deleted record (or no record): use the values saved with the entry.
         $saved = $activity->properties['old'] ?? $activity->properties['attributes'] ?? [];
-        foreach (['student_number', 'code', 'name', 'school_name', 'year_code', 'semester_name', 'document_number', 'email', 'file'] as $key) {
+        foreach (['student_number', 'code', 'name', 'school_name', 'year_code', 'semester_name', 'document_number', 'username', 'email', 'file'] as $key) {
             if (! empty($saved[$key])) {
                 return $saved[$key] . ($activity->subject_id ? ' (deleted)' : '');
             }
         }
-        if (! empty($activity->properties['email'])) {
-            return $activity->properties['email'];
+        foreach (['username', 'email'] as $key) {
+            if (! empty($activity->properties[$key])) {
+                return $activity->properties[$key];
+            }
         }
 
         return $activity->subject_id ? '#' . $activity->subject_id . ' (deleted)' : '—';

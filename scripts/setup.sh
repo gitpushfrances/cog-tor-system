@@ -127,7 +127,7 @@ cat <<'DONE'
 Setup complete.
 
   Start:   php artisan serve      then open http://127.0.0.1:8000
-  Accounts (fresh install only): admin@cogtor.test / registrar@cogtor.test, password "password".
+  Accounts (fresh install only): usernames admin / registrar, password "password".
            Change both passwords right away under Profile.
   Keep the same .env (APP_KEY) on this PC: TOR verify codes depend on it.
 DONE

@@ -173,7 +173,7 @@ html, body { height: 100%; }
                      x-transition:enter-end="opacity-100"
                      style="flex:1;min-width:0;">
                     <div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->name }}</div>
-                    <div style="font-size:0.68rem;color:#8a7a60;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->email }}</div>
+                    <div style="font-size:0.68rem;color:#8a7a60;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->username }}</div>
                 </div>
             </a>
 

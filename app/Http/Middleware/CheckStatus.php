@@ -17,18 +17,12 @@ class CheckStatus
             return redirect()->route('login');
         }
 
-        if ($user->status === 'pending') {
+        // An account switched to Inactive while signed in is signed out on its next click.
+        if ($user->status !== 'active') {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
-            return redirect()->route('login')->with('error', 'Your account is pending approval. Please contact the administrator.');
-        }
-
-        if ($user->status === 'inactive') {
-            Auth::logout();
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-            return redirect()->route('login')->with('error', 'Your account has been deactivated. Please contact the administrator.');
+            return redirect()->route('login')->with('error', 'This account is inactive. Please contact the administrator.');
         }
 
         return $next($request);

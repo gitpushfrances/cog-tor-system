@@ -15,9 +15,11 @@ class UserSeeder extends Seeder
 
         // Admin User
         $admin = User::updateOrCreate(
-            ['email' => 'admin@cogtor.test'],
+            ['username' => 'admin'],
             [
-                'name'              => 'System Administrator',
+                'email'             => 'admin@cogtor.test',
+                'first_name'        => 'System',
+                'last_name'         => 'Administrator',
                 'password'          => Hash::make('password'),
                 'role'              => 'admin',
                 'status'            => 'active',
@@ -28,9 +30,11 @@ class UserSeeder extends Seeder
 
         // Registrar User
         $registrar = User::updateOrCreate(
-            ['email' => 'registrar@cogtor.test'],
+            ['username' => 'registrar'],
             [
-                'name'              => 'University Registrar',
+                'email'             => 'registrar@cogtor.test',
+                'first_name'        => 'University',
+                'last_name'         => 'Registrar',
                 'password'          => Hash::make('password'),
                 'role'              => 'registrar',
                 'status'            => 'active',
@@ -40,19 +44,6 @@ class UserSeeder extends Seeder
             ]
         );
         $registrar->assignRole('registrar');
-
-        // Pending Faculty (for testing approval workflow)
-        $pendingFaculty = User::updateOrCreate(
-            ['email' => 'pending@cogtor.test'],
-            [
-                'name'              => 'Maria Santos',
-                'password'          => Hash::make('password'),
-                'role'              => 'faculty',
-                'status'            => 'pending',
-                'email_verified_at' => now(),
-            ]
-        );
-        $pendingFaculty->assignRole('faculty');
 
         $this->command->info('Test user accounts seeded successfully!');
     }

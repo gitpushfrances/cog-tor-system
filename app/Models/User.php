@@ -16,7 +16,11 @@ class User extends Authenticatable
     use HasApiTokens, HasFactory, Notifiable, HasRoles, LogsActivity;
 
     protected $fillable = [
+        'username',
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
         'email',
         'password',
         'role',
@@ -41,9 +45,32 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'role', 'status'])
+            ->logOnly(['username', 'name', 'role', 'status'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
+    }
+
+    /** "name" (used by screens, logs and documents) is always built from the name parts: "Juan S. Dela Cruz". */
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->first_name !== null || $user->last_name !== null) {
+                $user->name = self::composeName($user->first_name, $user->middle_name, $user->last_name);
+            }
+        });
+    }
+
+    public static function composeName(?string $first, ?string $middle, ?string $last): string
+    {
+        $middle = trim((string) $middle);
+
+        return trim(preg_replace('/\s+/', ' ', trim((string) $first) . ($middle !== '' ? ' ' . mb_substr($middle, 0, 1) . '.' : '') . ' ' . trim((string) $last)));
+    }
+
+    /** Usernames are stored trimmed and in lower case; sign-in ignores case. */
+    public function setUsernameAttribute($value): void
+    {
+        $this->attributes['username'] = mb_strtolower(trim((string) $value));
     }
 
     // Relationships
@@ -124,11 +151,6 @@ class User extends Authenticatable
         return $this->status === 'active';
     }
 
-    public function isPending()
-    {
-        return $this->status === 'pending';
-    }
-
     public function isInactive()
     {
         return $this->status === 'inactive';
@@ -138,11 +160,6 @@ class User extends Authenticatable
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
-    }
-
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
     }
 
     public function scopeByRole($query, $role)

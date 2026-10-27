@@ -223,7 +223,7 @@ bash scripts/setup.sh --fresh
 **Client / defense PC checklist**
 - `.env`: `APP_ENV=production`, `APP_DEBUG=false`, database settings filled in.
 - Keep the same `APP_KEY` once TORs are issued: the verify code printed on each TOR depends on it. Back up `.env` together with the database.
-- Change the default passwords (`admin@cogtor.test`, `registrar@cogtor.test`, password `password`) under Profile after a fresh install.
+- Change the default passwords (usernames `admin` and `registrar`, password `password`) under Profile after a fresh install.
 - The app needs no internet after setup (fonts and libraries are served locally).
 - Run the tests on a development PC with `php artisan test` (uses the separate `cog_tor_system_test` database).
 
@@ -281,11 +281,10 @@ bash scripts/setup.sh --fresh
 ```
 
    **Test Accounts:**
-   | Role | Email | Password | Notes |
+   | Role | Username | Password | Notes |
    |------|-------|----------|-------|
-   | Admin | admin@cogtor.test | password | Full system config access |
-   | Registrar | registrar@cogtor.test | password | 🆕 Now handles direct grade encoding + student/enrollment/Excel management (Phase 13) |
-   | Pending | pending@cogtor.test | password | Blocked by status middleware — seeded with legacy `faculty` role string, harmless since role is locked out |
+   | Admin | admin | password | Full system config access |
+   | Registrar | registrar | password | Handles direct grade encoding + student/enrollment management |
 
    > Faculty and Head of Department test accounts (`faculty@cogtor.test`, `hod@cogtor.test`) were removed from the seeder as of Phase 13.6 — those roles are locked out at the route level (`role:faculty_disabled` / `role:head_of_department_disabled`), so no login can reach them.
 

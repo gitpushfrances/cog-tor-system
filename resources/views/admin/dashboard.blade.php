@@ -33,8 +33,8 @@
                     <div class="text-3xl font-bold text-green-600">{{ $stats['active_users'] }}</div>
                 </div>
                 <div class="p-5 bg-white rounded-lg shadow">
-                    <div class="mb-1 text-xs text-gray-500 uppercase">Pending Users</div>
-                    <div class="text-3xl font-bold text-yellow-600">{{ $stats['pending_users'] }}</div>
+                    <div class="mb-1 text-xs text-gray-500 uppercase">Inactive Users</div>
+                    <div class="text-3xl font-bold text-gray-500">{{ $stats['inactive_users'] }}</div>
                 </div>
                 <div class="p-5 bg-white rounded-lg shadow">
                     <div class="mb-1 text-xs text-gray-500 uppercase">Total Students</div>
@@ -97,7 +97,7 @@
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Name</th>
-                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Email</th>
+                            <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Username</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Role</th>
                             <th class="px-6 py-3 text-xs font-medium text-left text-gray-500 uppercase">Status</th>
                         </tr>
@@ -106,7 +106,7 @@
                         @foreach($recent_users as $user)
                         <tr>
                             <td class="px-6 py-4 text-sm">{{ $user->name }}</td>
-                            <td class="px-6 py-4 text-sm text-gray-500">{{ $user->email }}</td>
+                            <td class="px-6 py-4 text-sm text-gray-500">{{ $user->username }}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 text-xs text-blue-800 bg-blue-100 rounded-full">
                                     {{ ucwords(str_replace('_', ' ', $user->roles->first()->name ?? 'No Role')) }}
@@ -115,7 +115,6 @@
                             <td class="px-6 py-4">
                                 <span class="px-2 py-1 text-xs rounded-full
                                     {{ $user->status === 'active' ? 'bg-green-100 text-green-800' : '' }}
-                                    {{ $user->status === 'pending' ? 'bg-yellow-100 text-yellow-800' : '' }}
                                     {{ $user->status === 'inactive' ? 'bg-gray-100 text-gray-600' : '' }}">
                                     {{ ucfirst($user->status) }}
                                 </span>

@@ -56,6 +56,20 @@ protected $casts = [
         return $this->status === 'finalized';
     }
 
+    /** TOR grading legend: 3.6-5.0 is Failed (3.1-3.5 is Conditional). */
+    public const FAILING_ABOVE = 3.5;
+
+    /**
+     * Credit printed on the TOR (panel: a failed grade earns 0 credit).
+     * The re-exam grade decides when there is one, otherwise the final grade.
+     */
+    public static function earnedCredit($units, $grade, $reExam = null): float
+    {
+        $decisive = $reExam ?? $grade;
+
+        return $decisive !== null && (float) $decisive > self::FAILING_ABOVE ? 0.0 : (float) $units;
+    }
+
     public function isPassing()
     {
         return $this->grade < 5.0; // Below 5.0 is passing

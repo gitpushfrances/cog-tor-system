@@ -289,7 +289,7 @@ nav::-webkit-scrollbar-thumb { background: #c7dab8; border-radius: 3px; }
                 </div>
                 <div class="sidebar-label sidebar-footer-text" style="flex:1;min-width:0;">
                     <div style="font-size:0.85rem;font-weight:600;color:#223019;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->name }}</div>
-                    <div style="font-size:0.68rem;color:#6b8058;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->email }}</div>
+                    <div style="font-size:0.68rem;color:#6b8058;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ Auth::user()->username }}</div>
                 </div>
             </a>
 
