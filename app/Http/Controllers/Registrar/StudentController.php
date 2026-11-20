@@ -11,6 +11,8 @@ use App\Support\ImageProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
@@ -120,8 +122,16 @@ class StudentController extends Controller
     /** Validation rules for a new student (Add Student form and Bulk Add). */
     public static function newStudentRules(): array
     {
+        return self::studentRules();
+    }
+
+    /** Core rules shared by add and edit. $ignoreId lets an existing student keep their own unique values. */
+    private static function studentRules(?int $ignoreId = null): array
+    {
+        $except = $ignoreId ? ",{$ignoreId}" : '';
+
         return [
-            'student_number' => 'required|string|max:20|unique:students,student_number',
+            'student_number' => 'required|string|max:20|unique:students,student_number' . $except,
             'course_id'      => 'required|exists:courses,id',
             'major_id'       => 'nullable|exists:majors,id',
             'first_name'     => 'required|string|max:100',
@@ -130,19 +140,56 @@ class StudentController extends Controller
             'suffix'         => 'nullable|string|max:10',
             'birth_date'     => 'required|date|before:today|after:1950-01-01',
             'gender'         => 'required|in:Male,Female',
-            'email'          => 'required|email|unique:students,email',
+            'email'          => 'required|email|unique:students,email' . $except,
             'phone'          => 'nullable|string|max:20',
             'address'        => 'nullable|string|max:255',
             'year_level'     => 'required|integer|min:1|max:5',
-            'section'        => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9 \-]+$/'],
+            'section'        => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9 \\-]+$/'],
             'student_type'   => 'required|in:Regular,Irregular,Transferee',
             'status'         => 'required|in:active,inactive,graduated,dropped',
         ] + self::backgroundRules();
     }
 
+    /**
+     * Student Information Sheet rules. Add/Edit only: Bulk Add keeps newStudentRules() and leaves
+     * these columns empty. Every field is required; "N/A" or "None" is accepted.
+     */
+    public static function sisRules(): array
+    {
+        $rules = array_map(fn (int $max) => "required|string|max:{$max}", Student::SIS_FIELDS);
+        $rules['civil_status'] = ['required', Rule::in(Student::CIVIL_STATUSES)];
+        $rules['phone'] = 'required|string|max:20';
+
+        return $rules;
+    }
+
+    /** Add/Edit form rules: the core rules plus the Student Information Sheet. */
+    private static function formRules(?int $ignoreId = null): array
+    {
+        return array_replace(self::studentRules($ignoreId), self::sisRules());
+    }
+
+    /**
+     * One-line permanent address kept in `address` (the TOR prints it).
+     * Parts written as "N/A", "NA" or "None" are left out.
+     */
+    public static function composeAddress(array $data): string
+    {
+        $isBlank = fn ($value) => in_array(mb_strtolower(trim((string) $value)), ['', 'n/a', 'na', 'none'], true);
+
+        $line = implode(', ', array_filter(
+            [$data['address_street'] ?? '', $data['address_barangay'] ?? '', $data['address_municipality'] ?? '', $data['address_province'] ?? ''],
+            fn ($part) => ! $isBlank($part)
+        ));
+        $zip = $isBlank($data['address_zip'] ?? '') ? '' : $data['address_zip'];
+
+        return Str::limit(trim("{$line} {$zip}"), 255, '');
+    }
+
     public function store(Request $request)
     {
-        $validated = $request->validate(self::newStudentRules(), self::validationMessages());
+        $validated = $request->validate(self::formRules(), self::validationMessages());
+        $validated['address'] = self::composeAddress($validated) ?: null;
 
         $student = Student::create(collect($validated)->except('photo')->all());
 
@@ -164,24 +211,8 @@ class StudentController extends Controller
 
     public function update(Request $request, Student $student)
     {
-        $validated = $request->validate([
-            'student_number' => 'required|string|max:20|unique:students,student_number,' . $student->id,
-            'course_id'      => 'required|exists:courses,id',
-            'major_id'       => 'nullable|exists:majors,id',
-            'first_name'     => 'required|string|max:100',
-            'middle_name'    => 'nullable|string|max:100',
-            'last_name'      => 'required|string|max:100',
-            'suffix'         => 'nullable|string|max:10',
-            'birth_date'     => 'required|date|before:today|after:1950-01-01',
-            'gender'         => 'required|in:Male,Female',
-            'email'          => 'required|email|unique:students,email,' . $student->id,
-            'phone'          => 'nullable|string|max:20',
-            'address'        => 'nullable|string|max:255',
-            'year_level'     => 'required|integer|min:1|max:5',
-            'section'        => ['nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9 \-]+$/'],
-            'student_type'   => 'required|in:Regular,Irregular,Transferee',
-            'status'         => 'required|in:active,inactive,graduated,dropped',
-        ] + $this->backgroundRules(), $this->validationMessages());
+        $validated = $request->validate(self::formRules($student->id), self::validationMessages());
+        $validated['address'] = self::composeAddress($validated) ?: null;
 
         $student->update(collect($validated)->except('photo')->all());
 

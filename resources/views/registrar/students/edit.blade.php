@@ -131,17 +131,14 @@
                             @enderror
                         </div>
                         <div>
-                            <label class="block mb-1 text-sm font-medium text-gray-700">Phone</label>
-                            <input type="text" name="phone" value="{{ old('phone', $student->phone) }}"
-                                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <label class="block mb-1 text-sm font-medium text-gray-700">Phone <span class="text-red-500">*</span></label>
+                            <input type="text" name="phone" value="{{ old('phone', $student->phone) }}" required maxlength="20"
+                                   placeholder="09XXXXXXXXX or N/A"
+                                   class="w-full px-3 py-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 @error('phone') border-red-400 @else border-gray-300 @enderror">
+                            @error('phone')
+                                <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
                         </div>
-                    </div>
-
-                    {{-- Address --}}
-                    <div>
-                        <label class="block mb-1 text-sm font-medium text-gray-700">Address</label>
-                        <input type="text" name="address" value="{{ old('address', $student->address) }}"
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
                     </div>
 
                     {{-- Place of Birth --}}
@@ -191,6 +188,8 @@
                             @enderror
                         </div>
                     </div>
+
+                    @include('registrar.students.partials.sis-fields', ['student' => $student])
 
                     {{-- ID Picture --}}
                     <div>
